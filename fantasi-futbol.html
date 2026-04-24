@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fantasi Futbol</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f0e;
+      --bg2: #161a18;
+      --bg3: #1e2421;
+      --surface: #232b27;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.14);
+      --text: #f0ede6;
+      --text2: #8a9690;
+      --text3: #566158;
+      --green: #4ade80;
+      --green-dim: #1a3d27;
+      --amber: #fbbf24;
+      --amber-dim: #3d2e0a;
+      --red: #f87171;
+      --red-dim: #3d1212;
+      --blue: #60a5fa;
+      --blue-dim: #0f2340;
+      --silver: #cbd5e1;
+      --silver-dim: #1e2633;
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* HEADER */
+    .site-header {
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      background: rgba(13,15,14,0.92);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+    .site-logo {
+      font-family: var(--font-display);
+      font-size: 28px;
+      letter-spacing: 1px;
+      color: var(--text);
+    }
+    .site-logo span { color: var(--green); }
+    .header-meta { font-size: 12px; color: var(--text3); font-family: var(--font-mono); }
+
+    /* MAIN LAYOUT */
+    .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    /* GW SELECTOR */
+    .gw-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .gw-bar label { font-size: 12px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; }
+    .gw-bar select {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      cursor: pointer;
+      appearance: none;
+      padding-right: 28px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238a9690' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+    }
+    .btn {
+      background: transparent;
+      color: var(--text2);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      padding: 6px 16px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn:hover { background: var(--surface); color: var(--text); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--green-dim);
+      color: var(--green);
+      border-color: rgba(74,222,128,0.25);
+    }
+    .btn-primary:hover { background: rgba(74,222,128,0.2); }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text3);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.15s;
+    }
+    .tab-btn:hover { color: var(--text2); }
+    .tab-btn.active { color: var(--green); border-bottom-color: var(--green); }
+
+    /* STAT CARDS */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    .stat-card .s-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); margin-bottom: 6px; }
+    .stat-card .s-value { font-family: var(--font-display); font-size: 32px; color: var(--text); line-height: 1; }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      text-align: left;
+      font-size: 11px;
+      color: var(--text3);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr { transition: background 0.1s; }
+    tbody tr:hover td { background: var(--bg2); }
+
+    .m-name { font-weight: 600; font-size: 14px; color: var(--text); }
+    .m-team { font-size: 12px; color: var(--text3); margin-top: 1px; }
+    .pts-val { font-family: var(--font-mono); font-weight: 500; }
+
+    /* ROW ACCENTS */
+    .row-1 td:first-child { border-left: 3px solid var(--amber); }
+    .row-2 td:first-child { border-left: 3px solid var(--silver); }
+    .row-3 td:first-child { border-left: 3px solid #cd7f32; }
+    .row-bottom td:first-child { border-left: 3px solid var(--red); }
+
+    /* BADGES */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 99px;
+      white-space: nowrap;
+    }
+    .badge-1 { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
+    .badge-2 { background: var(--silver-dim); color: var(--silver); border: 1px solid rgba(203,213,225,0.2); }
+    .badge-3 { background: #2a1a0a; color: #cd7f32; border: 1px solid rgba(205,127,50,0.2); }
+    .badge-4 { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+    .badge-top { background: var(--green-dim); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+    .badge-bot { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+    .badge-shot { background: #1a2d1a; color: #86efac; border: 1px solid rgba(134,239,172,0.2); }
+    .badge-zero { color: var(--text3); font-size: 12px; }
+
+    .money-pos { color: var(--green); font-family: var(--font-mono); font-weight: 500; }
+    .money-zero { color: var(--text3); font-family: var(--font-mono); }
+
+    /* RANK NUMBER */
+    .rank-num { font-family: var(--font-mono); font-size: 13px; color: var(--text3); }
+
+    /* SECTION */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* LOADING / ERROR */
+    .loading-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text3);
+      font-size: 14px;
+    }
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-state {
+      background: var(--red-dim);
+      border: 1px solid rgba(248,113,113,0.2);
+      border-radius: 8px;
+      padding: 1.25rem;
+      font-size: 14px;
+      color: var(--red);
+      line-height: 1.6;
+    }
+    .error-state small { display: block; margin-top: 4px; opacity: 0.7; font-family: var(--font-mono); font-size: 12px; }
+
+    /* RECAP */
+    .recap-intro { font-size: 14px; color: var(--text3); margin-bottom: 1.5rem; line-height: 1.6; }
+    .recap-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    .recap-gw-label {
+      font-family: var(--font-display);
+      font-size: 36px;
+      color: var(--green);
+      letter-spacing: 1px;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+    .recap-sub { font-size: 12px; color: var(--text3); font-family: var(--font-mono); margin-bottom: 1.25rem; }
+    .recap-body {
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--text);
+      white-space: pre-wrap;
+    }
+    .recap-body.streaming { opacity: 0.85; }
+
+    /* PRIZE KEY */
+    .prize-key {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 1.5rem;
+      align-items: center;
+    }
+    .prize-key-label { font-size: 11px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-right: 4px; }
+
+    /* HIT COST */
+    .hit-cost { font-size: 11px; color: var(--red); font-family: var(--font-mono); margin-left: 3px; }
+
+    th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+    th.sortable:hover { color: var(--text2); }
+    th.sortable.sort-asc::after { content: ' ↑'; color: var(--green); }
+    th.sortable.sort-desc::after { content: ' ↓'; color: var(--green); }
+
+    @media (max-width: 600px) {
+      .site-header { padding: 0 1rem; }
+      .container { padding: 1.5rem 1rem 3rem; }
+      .tab-btn { padding: 10px 12px; font-size: 13px; }
+      .stat-card .s-value { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-logo">Fantasi <span>Futbol</span></div>
+  <div class="header-meta" id="header-meta">Loading...</div>
+</header>
+
+<div class="container">
+
+  <div class="gw-bar">
+    <label for="gw-select">Gameweek</label>
+    <select id="gw-select"></select>
+    <button class="btn" id="btn-refresh">↺ Refresh</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="standings">Season standings</button>
+    <button class="tab-btn" data-tab="weekly">Weekly results</button>
+    <button class="tab-btn" data-tab="recap">Weekly recap</button>
+  </div>
+
+  <div id="tab-standings" class="section active">
+    <div id="standings-content"><div class="loading-state"><span class="spinner"></span>Loading league data...</div></div>
+  </div>
+
+  <div id="tab-weekly" class="section">
+    <div id="weekly-content"><div class="loading-state"><span class="spinner"></span>Loading gameweek data...</div></div>
+  </div>
+
+  <div id="tab-recap" class="section">
+    <div id="recap-content"></div>
+  </div>
+
+</div>
+
+<script>
+  const LEAGUE_ID = 237384;
+  const PRIZE_MAP = { 1: 30, 2: 15, 3: 10, 4: 5 };
+  const FPL_BASE = 'https://fantasy.premierleague.com/api/';
+
+  const PROXIES = [
+    t => 'https://corsproxy.io/?' + encodeURIComponent(t),
+    t => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(t),
+    t => 'https://api.codetabs.com/v1/proxy?quest=' + t,
+    t => 'https://corsproxy.io/?url=' + encodeURIComponent(t),
+    t => 'https://proxy.cors.sh/' + t,
+  ];
+
+  const state = {
+    managers: [],
+    gwHistory: {},
+    latestGW: 1,
+    currentGW: 1,
+    bootstrapPlayers: {},
+    workingProxy: null,
+  };
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function tryFetch(url) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+      return res;
+    } catch(e) {
+      clearTimeout(timeout);
+      throw e;
+    }
+  }
+
+  async function fetchFPL(path) {
+    const target = FPL_BASE + path;
+
+    // If we have a working proxy, use it with one retry before falling back
+    if (state.workingProxy !== null) {
+      try {
+        const res = await tryFetch(PROXIES[state.workingProxy](target));
+        if (res.ok) return res.json();
+      } catch(e) {}
+      // Working proxy failed, reset and try all
+      state.workingProxy = null;
+    }
+
+    // Try each proxy in order
+    for (let i = 0; i < PROXIES.length; i++) {
+      try {
+        const res = await tryFetch(PROXIES[i](target));
+        if (!res.ok) continue;
+        const data = await res.json();
+        state.workingProxy = i;
+        console.log('Using proxy ' + i + ': ' + PROXIES[i](target).split('?')[0]);
+        return data;
+      } catch(e) {
+        console.warn('Proxy ' + i + ' failed:', e.message);
+        await sleep(300);
+      }
+    }
+    throw new Error('All proxies failed — FPL API may be temporarily unavailable. Please try again in a minute.');
+  }
+
+  async function init() {
+    try {
+      const bootstrap = await fetchFPL('bootstrap-static/');
+
+      // Index player names by id for captain lookup
+      bootstrap.elements.forEach(p => {
+        state.bootstrapPlayers[p.id] = p.web_name;
+      });
+
+      const finished = bootstrap.events.filter(e => e.finished || e.data_checked);
+      state.latestGW = finished.length > 0 ? finished[finished.length - 1].id : 1;
+      state.currentGW = state.latestGW;
+
+      const gwSel = document.getElementById('gw-select');
+      for (let i = 1; i <= state.latestGW; i++) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = 'GW ' + i;
+        if (i === state.latestGW) opt.selected = true;
+        gwSel.appendChild(opt);
+      }
+
+      await loadLeague();
+      await loadAllHistory();
+
+      document.getElementById('header-meta').textContent =
+        `League #${LEAGUE_ID} · GW${state.latestGW}`;
+
+      renderStandings();
+      renderWeekly(state.latestGW);
+      setupRecapTab();
+
+    } catch (e) {
+      const errHtml = `<div class="error-state">Failed to load league data — the FPL API or CORS proxy may be temporarily unavailable.<small>${e.message}</small><br><br>Try hitting ↺ Refresh, or wait a moment and reload the page.</div>`;
+      document.getElementById('standings-content').innerHTML = errHtml;
+      document.getElementById('weekly-content').innerHTML = errHtml;
+      document.getElementById('header-meta').textContent = 'Error loading data';
+    }
+  }
+
+  async function loadLeague() {
+    let page = 1, entries = [];
+    while (true) {
+      const data = await fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=${page}`);
+      entries = entries.concat(data.standings.results);
+      if (!data.standings.has_next) break;
+      page++;
+    }
+    state.managers = entries.map(e => ({
+      id: e.entry,
+      name: e.player_name,
+      team: e.entry_name,
+      total: e.total,
+      rank: e.rank,
+    }));
+  }
+
+  async function loadAllHistory() {
+    const BATCH = 3;
+    const managers = state.managers;
+    for (let i = 0; i < managers.length; i += BATCH) {
+      const batch = managers.slice(i, i + BATCH);
+      await Promise.all(batch.map(async m => {
+        try {
+          const h = await fetchFPL('entry/' + m.id + '/history/');
+          state.gwHistory[m.id] = h.current;
+        } catch (e) {
+          state.gwHistory[m.id] = [];
+        }
+      }));
+      const done = Math.min(i + BATCH, managers.length);
+      const el = document.getElementById('standings-content');
+      if (el) el.innerHTML = '<div class="loading-state"><span class="spinner"></span>Loading manager data... (' + done + '/' + managers.length + ')</div>';
+    }
+  }
+
+  // Returns sorted rows, each with a tieGroup number (same pts = same group)
+  function getWeeklyRankings(gw) {
+    const rows = state.managers.map(m => {
+      const hist = state.gwHistory[m.id] || [];
+      const entry = hist.find(h => h.event === gw);
+      if (!entry) return null;
+      return {
+        ...m,
+        gwPoints: entry.points - entry.event_transfers_cost,
+        rawPoints: entry.points,
+        transferCost: entry.event_transfers_cost,
+        benchPoints: entry.points_on_bench,
+        overallRank: entry.overall_rank,
+      };
+    }).filter(Boolean);
+    rows.sort((a, b) => b.gwPoints - a.gwPoints);
+    return rows;
+  }
+
+  // Given sorted ranked rows, compute prize and shotgun assignments with tie splitting
+  function computeWeeklyPrizes(ranked) {
+    const n = ranked.length;
+    const prizes = {}; // managerId -> { prize, shotgun, splitWith }
+    ranked.forEach(m => { prizes[m.id] = { prize: 0, shotgun: false }; });
+
+    // --- TOP prizes ---
+    const PRIZE_SLOTS = [1, 2, 3, 4];
+    const PRIZE_AMOUNTS = { 1: 30, 2: 15, 3: 10, 4: 5 };
+
+    let i = 0;
+    while (i < n) {
+      const pts = ranked[i].gwPoints;
+      // Find all tied at this score
+      let j = i;
+      while (j < n && ranked[j].gwPoints === pts) j++;
+      const tiedGroup = ranked.slice(i, j); // managers with same score
+      const positions = PRIZE_SLOTS.slice(i, j); // prize slots they span
+      const prizePositions = positions.filter(p => PRIZE_AMOUNTS[p]);
+      if (prizePositions.length > 0) {
+        const totalPrize = prizePositions.reduce((sum, p) => sum + PRIZE_AMOUNTS[p], 0);
+        const split = Math.round((totalPrize / tiedGroup.length) * 100) / 100;
+        tiedGroup.forEach(m => { prizes[m.id].prize = split; });
+      }
+      i = j;
+    }
+
+    // --- BOTTOM shotgun ---
+    // Find the score of the last-place finisher
+    const lastScore = ranked[n - 1].gwPoints;
+    // Find all tied at the boundary: the 2nd-to-last unique score
+    // Collect unique scores from bottom
+    const bottomScore2 = ranked[n - 2].gwPoints;
+    // Everyone at or below the cutoff score gets shotgun
+    // The cutoff: we need at least 2 from bottom. Find score at position n-1 (last),
+    // then expand upward if tied.
+    // Simple rule: bottom 2 positions, expand ties upward
+    let shotgunCutoff = ranked[n - 2].gwPoints; // at minimum the 2nd-to-last score
+    ranked.forEach(m => {
+      if (m.gwPoints <= shotgunCutoff && m.gwPoints <= ranked[n-1].gwPoints) {
+        prizes[m.id].shotgun = true;
+      }
+    });
+    // Also include anyone tied with the 2nd-to-last if they share that score
+    // and the 2nd-to-last is tied with others
+    const secondLastScore = ranked[n - 2].gwPoints;
+    // Mark shotgun for everyone tied at or below the 2nd-to-last score boundary
+    // Boundary: position n-2 (0-indexed) and n-1. Expand ties.
+    let shotgunStart = n - 2;
+    while (shotgunStart > 0 && ranked[shotgunStart - 1].gwPoints === ranked[shotgunStart].gwPoints) {
+      shotgunStart--;
+    }
+    // Also expand from the last position down
+    let shotgunEnd = n - 1;
+    // Mark everyone from shotgunStart to end
+    for (let k = shotgunStart; k <= shotgunEnd; k++) {
+      prizes[ranked[k].id].shotgun = true;
+    }
+
+    return prizes;
+  }
+
+  function computeSeasonStats() {
+    const stats = {};
+    state.managers.forEach(m => {
+      stats[m.id] = { top4: 0, bottom2: 0, moneyWon: 0 };
+    });
+    for (let gw = 1; gw <= state.latestGW; gw++) {
+      const ranked = getWeeklyRankings(gw);
+      if (ranked.length < 2) continue;
+      const prizes = computeWeeklyPrizes(ranked);
+      ranked.forEach(m => {
+        const p = prizes[m.id];
+        if (p.prize > 0) {
+          stats[m.id].top4++;
+          stats[m.id].moneyWon += p.prize;
+        }
+        if (p.shotgun) stats[m.id].bottom2++;
+      });
+    }
+    return stats;
+  }
+
+  const standingsSort = { col: 'pts', dir: 'desc' };
+
+  function renderStandings() {
+    const stats = computeSeasonStats();
+    const totalPool = state.latestGW * 60;
+    const totalShotguns = state.latestGW * 2;
+
+    const rows = state.managers.map(m => {
+      const s = stats[m.id] || {};
+      return { ...m, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0 };
+    });
+
+    const col = standingsSort.col;
+    const dir = standingsSort.dir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => {
+      if (col === 'name') return dir * a.name.localeCompare(b.name);
+      if (col === 'pts')  return dir * (a.total - b.total);
+      if (col === 'top4') return dir * (a.top4 - b.top4);
+      if (col === 'bot2') return dir * (a.bottom2 - b.bottom2);
+      if (col === 'earned') return dir * (a.earned - b.earned);
+      return 0;
+    });
+
+    const thClass = c => 'class="sortable' + (col === c ? ' sort-' + standingsSort.dir : '') + '"';
+
+    let html = '<div class="stat-grid">' +
+      '<div class="stat-card"><div class="s-label">Managers</div><div class="s-value">' + state.managers.length + '</div></div>' +
+      '<div class="stat-card"><div class="s-label">GWs played</div><div class="s-value">' + state.latestGW + '</div></div>' +
+      '<div class="stat-card"><div class="s-label">Prize pool</div><div class="s-value">$' + totalPool + '</div></div>' +
+      '<div class="stat-card"><div class="s-label">Guinness chugged</div><div class="s-value">' + totalShotguns + '</div></div>' +
+      '</div>' +
+      '<div class="table-wrap"><table id="standings-table">' +
+      '<thead><tr>' +
+      '<th style="width:36px">#</th>' +
+      '<th ' + thClass('name') + ' data-col="name">Manager</th>' +
+      '<th style="width:60px" ' + thClass('pts') + ' data-col="pts">Pts</th>' +
+      '<th style="width:60px;text-align:center" ' + thClass('top4') + ' data-col="top4" title="Top-4 finishes">Top 4</th>' +
+      '<th style="width:60px;text-align:center" ' + thClass('bot2') + ' data-col="bot2" title="Bottom-2 finishes">Bot 2</th>' +
+      '<th style="width:80px" ' + thClass('earned') + ' data-col="earned">Earned</th>' +
+      '</tr></thead><tbody>';
+
+    rows.forEach((m, idx) => {
+      const pos = idx + 1;
+      const rowCls = pos === 1 ? 'row-1' : pos === 2 ? 'row-2' : pos === 3 ? 'row-3' : '';
+      html += '<tr class="' + rowCls + '">' +
+        '<td><span class="rank-num">' + pos + '</span></td>' +
+        '<td><div class="m-name">' + esc(m.name) + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
+        '<td><span class="pts-val">' + m.total + '</span></td>' +
+        '<td style="text-align:center">' + (m.top4 > 0 ? '<span class="badge badge-top">' + m.top4 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
+        '<td style="text-align:center">' + (m.bottom2 > 0 ? '<span class="badge badge-bot">' + m.bottom2 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
+        '<td><span class="' + (m.earned > 0 ? 'money-pos' : 'money-zero') + '">$' + m.earned.toFixed(2).replace('.00','') + '</span></td>' +
+        '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    document.getElementById('standings-content').innerHTML = html;
+
+    // Attach sort click handlers
+    document.querySelectorAll('#standings-table th.sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        const c = th.dataset.col;
+        if (standingsSort.col === c) {
+          standingsSort.dir = standingsSort.dir === 'desc' ? 'asc' : 'desc';
+        } else {
+          standingsSort.col = c;
+          standingsSort.dir = 'desc';
+        }
+        renderStandings();
+      });
+    });
+  }
+
+  function renderWeekly(gw) {
+    gw = parseInt(gw) || state.latestGW;
+    document.getElementById('weekly-content').innerHTML =
+      `<div class="loading-state"><span class="spinner"></span>Loading GW${gw}...</div>`;
+
+    try {
+      const ranked = getWeeklyRankings(gw);
+      if (!ranked.length) {
+        document.getElementById('weekly-content').innerHTML =
+          `<div class="loading-state">No data available for GW${gw} yet.</div>`;
+        return;
+      }
+      const n = ranked.length;
+
+      if (!state.weeklySort) state.weeklySort = {};
+      if (!state.weeklySort[gw]) state.weeklySort[gw] = { col: 'gwpts', dir: 'desc' };
+      const wsort = state.weeklySort[gw];
+
+      const weekPrizes = computeWeeklyPrizes(ranked);
+
+      // Build enriched rows with all sortable fields
+      let displayRank = 1;
+      const enriched = ranked.map((m, idx) => {
+        if (idx > 0 && ranked[idx].gwPoints < ranked[idx-1].gwPoints) displayRank = idx + 1;
+        const p = weekPrizes[m.id];
+        return { ...m, _displayRank: displayRank, _prize: p.prize, _shotgun: p.shotgun };
+      });
+
+      // Sort by selected column
+      const wdir = wsort.dir === 'asc' ? 1 : -1;
+      enriched.sort((a, b) => {
+        if (wsort.col === 'name')  return wdir * a.name.localeCompare(b.name);
+        if (wsort.col === 'gwpts') return wdir * (a.gwPoints - b.gwPoints);
+        if (wsort.col === 'total') return wdir * (a.total - b.total);
+        if (wsort.col === 'hits')  return wdir * (a.transferCost - b.transferCost);
+        if (wsort.col === 'bench') return wdir * (a.benchPoints - b.benchPoints);
+        if (wsort.col === 'prize') return wdir * (a._prize - b._prize);
+        return 0;
+      });
+
+      const wthClass = c => 'class="sortable' + (wsort.col === c ? ' sort-' + wsort.dir : '') + '"';
+
+      let html = '<div class="prize-key">' +
+        '<span class="prize-key-label">Prizes:</span>' +
+        '<span class="badge badge-1">1st $30</span>' +
+        '<span class="badge badge-2">2nd $15</span>' +
+        '<span class="badge badge-3">3rd $10</span>' +
+        '<span class="badge badge-4">4th $5</span>' +
+        '<span class="badge badge-shot" style="margin-left:8px">Shotgun duty</span>' +
+        '</div>' +
+        '<div class="table-wrap"><table id="weekly-table">' +
+        '<thead><tr>' +
+        '<th style="width:36px">#</th>' +
+        '<th ' + wthClass('name') + ' data-col="name">Manager</th>' +
+        '<th style="width:70px" ' + wthClass('gwpts') + ' data-col="gwpts">GW pts</th>' +
+        '<th style="width:70px" ' + wthClass('total') + ' data-col="total">Total</th>' +
+        '<th style="width:56px;text-align:center" ' + wthClass('hits') + ' data-col="hits">Hits</th>' +
+        '<th style="width:60px;text-align:center" ' + wthClass('bench') + ' data-col="bench">Bench</th>' +
+        '<th style="width:100px" ' + wthClass('prize') + ' data-col="prize">Result</th>' +
+        '</tr></thead><tbody>';
+
+      enriched.forEach((m, idx) => {
+        const rank = m._displayRank;
+        const isBottom = m._shotgun;
+        const hasPrize = m._prize > 0;
+        const rowCls = rank === 1 ? 'row-1' : rank === 2 ? 'row-2' : rank === 3 ? 'row-3' : isBottom ? 'row-bottom' : '';
+
+        let resultBadge = '';
+        if (hasPrize) {
+          const bc = rank===1?'badge-1':rank===2?'badge-2':rank===3?'badge-3':'badge-4';
+          resultBadge = '<span class="badge ' + bc + '">$' + m._prize.toFixed(2).replace('.00','') + '</span>';
+        }
+        if (isBottom) resultBadge += (resultBadge ? ' ' : '') + '<span class="badge badge-shot">Shotgun</span>';
+
+        const hitStr = m.transferCost > 0
+          ? '<span style="color:var(--red);font-family:var(--font-mono);font-size:12px;">-' + m.transferCost + '</span>'
+          : '<span class="badge-zero">—</span>';
+
+        html += '<tr class="' + rowCls + '">' +
+          '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
+          '<td><div class="m-name">' + esc(m.name) + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
+          '<td><span class="pts-val">' + m.gwPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
+          '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
+          '<td style="text-align:center">' + hitStr + '</td>' +
+          '<td style="text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--text3)">' + m.benchPoints + '</td>' +
+          '<td>' + (resultBadge || '<span class="badge-zero">—</span>') + '</td>' +
+          '</tr>';
+      });
+
+      html += '</tbody></table></div>';
+      document.getElementById('weekly-content').innerHTML = html;
+
+      // Attach sort handlers
+      document.querySelectorAll('#weekly-table th.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+          const c = th.dataset.col;
+          if (wsort.col === c) {
+            wsort.dir = wsort.dir === 'desc' ? 'asc' : 'desc';
+          } else {
+            wsort.col = c;
+            wsort.dir = 'desc';
+          }
+          renderWeekly(gw);
+        });
+      });
+    } catch (e) {
+      document.getElementById('weekly-content').innerHTML =
+        `<div class="error-state">Failed to render GW${gw} data.<small>${e.message}</small></div>`;
+    }
+  }
+
+  function buildPrompt(gw) {
+    const stats = computeSeasonStats();
+    const ranked = getWeeklyRankings(gw);
+    const weekPrizes = computeWeeklyPrizes(ranked);
+
+    // Assign display ranks for ties
+    let displayRank = 1;
+    ranked.forEach((m, idx) => {
+      if (idx > 0 && ranked[idx].gwPoints < ranked[idx-1].gwPoints) displayRank = idx + 1;
+      m._displayRank = displayRank;
+    });
+
+    const summaryLines = ranked.map((m, idx) => {
+      const s = stats[m.id] || {};
+      const p = weekPrizes[m.id];
+      let result = 'no prize';
+      if (p.prize > 0) result = 'won $' + p.prize.toFixed(2).replace('.00','');
+      if (p.shotgun) result = p.prize > 0 ? result + ' + SHOTGUN DUTY' : 'SHOTGUN DUTY';
+      return m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts | Season total: ' + m.total + ' | Top-4 finishes: ' + s.top4 + ' | Bottom-2 finishes: ' + s.bottom2 + ' | ' + result;
+    }).join('\n');
+
+    return `You are the snarky, brutally funny commissioner of a Fantasy Premier League league called "Fantasi Futbol". Write a roast-filled weekly recap for Gameweek ${gw}.
+
+League rules:
+- Weekly prizes: 1st = $30, 2nd = $15, 3rd = $10, 4th = $5
+- The bottom 2 managers each week must shotgun a Guinness before 7:30am ET the following Saturday. No exceptions.
+
+GW${gw} results:
+${summaryLines}
+
+Write the recap with the following EXACT sections in order. Use the section headers exactly as written:
+
+**GW${gw} OVERVIEW**
+2-3 sentences giving a punchy, dramatic summary of the week overall. Set the scene. Be funny.
+
+**1ST PLACE — [manager name] ($30)**
+A short paragraph hyping the winner. Celebrate their score, maybe speculate on how they pulled it off. Make them feel like a genius even if they got lucky.
+
+**2ND PLACE — [manager name] ($15)**
+A short paragraph for second place. Positive but maybe a slight dig that they weren't first.
+
+**3RD PLACE — [manager name] ($10)**
+A short paragraph for third. Positive spin with a gentle ribbing.
+
+**4TH PLACE — [manager name] ($5)**
+A short paragraph for fourth. They got paid but just barely — have fun with that.
+
+**SHOTGUN DUTY 🍺**
+A ruthless but good-natured roast of the bottom 2 managers who must shotgun a Guinness before 7:30am ET Saturday. Name them both. If either has multiple bottom-2 finishes this season, call that out with a funny nickname. Remind them the clock starts Saturday morning.
+
+Tone: funny, punchy, group-chat energy. Each section should be 2-4 sentences. No extra commentary outside the sections.`;
+  }
+
+  function renderRecapDisplay(gw, text) {
+    // Parse bold section headers and render them nicely
+    const html = text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+    document.getElementById('recap-display').innerHTML = `
+      <div class="recap-card">
+        <div class="recap-gw-label">GW${gw} RECAP</div>
+        <div class="recap-sub">Fantasi Futbol · GW${gw}</div>
+        <div class="recap-body">${html}</div>
+      </div>`;
+  }
+
+  function setupRecapTab() {
+    const gw = parseInt(document.getElementById('gw-select').value) || state.latestGW;
+
+    // Load any saved recap for this GW
+    const saved = localStorage.getItem(`recap-gw-${gw}`) || '';
+
+    document.getElementById('recap-content').innerHTML = `
+      <p class="recap-intro">
+        Copy the prompt below, paste it into <a href="https://claude.ai" target="_blank" style="color:var(--green)">claude.ai</a>, then paste the response back here to save it.
+      </p>
+
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="copy-prompt-btn">Copy GW${gw} prompt →</button>
+        <span id="copy-confirm" style="font-size:13px;color:var(--green);display:none;">✓ Copied to clipboard!</span>
+      </div>
+
+      <div style="margin-bottom:1.5rem;">
+        <label style="font-size:12px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:8px;">
+          Paste recap here
+        </label>
+        <textarea id="recap-paste" placeholder="Paste the recap from Claude here..." style="
+          width:100%;min-height:220px;background:var(--bg2);color:var(--text);
+          border:1px solid var(--border2);border-radius:8px;padding:12px;
+          font-family:var(--font-body);font-size:14px;line-height:1.6;resize:vertical;
+        ">${esc(saved)}</textarea>
+        <div style="display:flex;gap:10px;margin-top:10px;">
+          <button class="btn btn-primary" id="save-recap-btn">Save recap</button>
+          <button class="btn" id="clear-recap-btn" style="${saved ? '' : 'display:none'}">Clear</button>
+        </div>
+      </div>
+
+      <div id="recap-display"></div>`;
+
+    // Render saved recap immediately if exists
+    if (saved) renderRecapDisplay(gw, saved);
+
+    document.getElementById('copy-prompt-btn').addEventListener('click', () => {
+      const prompt = buildPrompt(gw);
+      navigator.clipboard.writeText(prompt).then(() => {
+        const confirm = document.getElementById('copy-confirm');
+        confirm.style.display = 'inline';
+        setTimeout(() => confirm.style.display = 'none', 2500);
+      });
+    });
+
+    document.getElementById('save-recap-btn').addEventListener('click', () => {
+      const text = document.getElementById('recap-paste').value.trim();
+      if (!text) return;
+      localStorage.setItem(`recap-gw-${gw}`, text);
+      renderRecapDisplay(gw, text);
+      document.getElementById('clear-recap-btn').style.display = 'inline-block';
+    });
+
+    document.getElementById('clear-recap-btn').addEventListener('click', () => {
+      localStorage.removeItem(`recap-gw-${gw}`);
+      document.getElementById('recap-paste').value = '';
+      document.getElementById('recap-display').innerHTML = '';
+      document.getElementById('clear-recap-btn').style.display = 'none';
+    });
+  }
+
+    function esc(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // TAB SWITCHING
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      document.getElementById('tab-' + tab).classList.add('active');
+      if (tab === 'weekly') renderWeekly(document.getElementById('gw-select').value);
+      if (tab === 'recap') setupRecapTab();
+    });
+  });
+
+  // GW CHANGE
+  document.getElementById('gw-select').addEventListener('change', e => {
+    const active = document.querySelector('.tab-btn.active').dataset.tab;
+    if (active === 'weekly') renderWeekly(e.target.value);
+    if (active === 'recap') setupRecapTab();
+  });
+
+  // REFRESH
+  document.getElementById('btn-refresh').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-refresh');
+    btn.disabled = true;
+    btn.textContent = 'Refreshing...';
+    state.gwHistory = {};
+    state.managers = [];
+    state.workingProxy = null;
+    try {
+      // Re-fetch bootstrap to pick up any new gameweeks
+      const bootstrap = await fetchFPL('bootstrap-static/');
+      bootstrap.elements.forEach(p => { state.bootstrapPlayers[p.id] = p.web_name; });
+      const finished = bootstrap.events.filter(e => e.finished || e.data_checked);
+      const newLatest = finished.length > 0 ? finished[finished.length - 1].id : 1;
+
+      // Rebuild GW dropdown if a new gameweek has appeared
+      if (newLatest !== state.latestGW) {
+        state.latestGW = newLatest;
+        const gwSel = document.getElementById('gw-select');
+        gwSel.innerHTML = '';
+        for (let i = 1; i <= state.latestGW; i++) {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = 'GW ' + i;
+          if (i === state.latestGW) opt.selected = true;
+          gwSel.appendChild(opt);
+        }
+      }
+
+      await loadLeague();
+      await loadAllHistory();
+      document.getElementById('header-meta').textContent =
+        `League #${LEAGUE_ID} · GW${state.latestGW}`;
+      renderStandings();
+      renderWeekly(document.getElementById('gw-select').value);
+    } catch (e) {
+      document.getElementById('standings-content').innerHTML =
+        `<div class="error-state">Refresh failed.<small>${e.message}</small></div>`;
+    }
+    btn.disabled = false;
+    btn.textContent = '↺ Refresh';
+  });
+
+  init();
+</script>
+</body>
+</html>
