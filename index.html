@@ -519,12 +519,12 @@
     return d.missed_gws || [];
   }
 
-  // Did this manager miss their shotgun that was due at the START of GW gw+1?
-  // missed_gws stores the GW when the drink was due, so we check for gw+1
+  // Did this manager miss their shotgun during GW gw?
+  // missed_gws stores the GW when the drink was due (i.e. the week they missed it)
   function didMissGW(name, gw) {
     const d = state.guinnessDebts[name];
     if (!d) return false;
-    return (d.missed_gws || []).includes(gw + 1);
+    return (d.missed_gws || []).includes(gw);
   }
 
   function getTotalGuinnesses(name, bottom2Count) {
