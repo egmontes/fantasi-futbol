@@ -884,9 +884,11 @@
       const rowCls = pos === 1 ? 'row-1' : pos === 2 ? 'row-2' : pos === 3 ? 'row-3' : '';
       const gmissCell = m.gmisses >= 3
         ? '<span class="badge" style="background:#7a1a1a;color:#ffb3b3;border:1px solid rgba(255,100,100,0.3);">⚠️ ' + m.gmisses + '</span>'
-        : m.gmisses > 0
+        : m.gmisses >= 2
           ? '<span class="badge badge-bot">' + m.gmisses + '</span>'
-          : '<span class="badge-zero">—</span>';
+          : m.gmisses === 1
+            ? '<span style="color:var(--red);font-size:12px;font-family:var(--font-mono);">1</span>'
+            : '<span class="badge-zero">—</span>';
       html += '<tr class="' + rowCls + '">' +
         '<td><span class="rank-num">' + pos + '</span></td>' +
         '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
@@ -1028,7 +1030,8 @@
         '<th>Manager</th>' +
         '<th style="width:70px">Live pts</th>' +
         '<th style="width:70px">Total</th>' +
-        '<th style="width:80px;text-align:center">🍺 Beers Owed</th>' +
+        '<th style="width:80px;text-align:center" title="Beers owed at start of this gameweek">🍺 Beers Owed</th>' +
+        '<th style="width:80px;text-align:center" title="Missed shotgun this gameweek">❌ Missed</th>' +
         '</tr></thead><tbody>';
 
       liveRanked.forEach((m, idx) => {
@@ -1037,7 +1040,14 @@
         const owed = getGuinnessOwedAtGW(m.name, gw);
         const owedCell = owed >= 3
           ? '<span class="badge" style="background:#7a1a1a;color:#ffb3b3;border:1px solid rgba(255,100,100,0.3);">⚠️ ' + owed + '</span>'
-          : owed > 0 ? '<span class="badge badge-bot">' + owed + '</span>'
+          : owed >= 2
+            ? '<span class="badge badge-bot">' + owed + '</span>'
+            : owed === 1
+              ? '<span style="color:var(--red);font-size:12px;font-family:var(--font-mono);">1</span>'
+              : '<span class="badge-zero">—</span>';
+        const missedLive = didMissGW(m.name, gw);
+        const missedLiveCell = missedLive
+          ? '<span style="color:var(--red);font-size:16px;font-weight:bold;">✗</span>'
           : '<span class="badge-zero">—</span>';
         const rowCls = rank === 1 ? 'row-1' : rank === 2 ? 'row-2' : rank === 3 ? 'row-3' : isBottom ? 'row-bottom' : '';
         const chipBadge = m.chip ? ' <span class="badge badge-4" style="font-size:10px;">' + m.chip + '</span>' : '';
@@ -1047,6 +1057,7 @@
           '<td><span class="pts-val">' + m.gwPoints + '</span></td>' +
           '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
           '<td style="text-align:center">' + owedCell + '</td>' +
+          '<td style="text-align:center">' + missedLiveCell + '</td>' +
           '</tr>';
       });
 
@@ -1131,7 +1142,7 @@
         if (hasPrize) {
           const bc = rank===1?'badge-1':rank===2?'badge-2':rank===3?'badge-3':'badge-4';
           resultBadge = '<span class="badge ' + bc + '">$' + m._prize.toFixed(2).replace('.00','') + '</span>';
-          if (m._ineligible) {
+          if (m._ineligible && getGuinnessOwed(m.name) >= 2) {
             resultBadge += ' <span class="badge" style="background:#2a1a00;color:#f59e0b;border:1px solid rgba(245,158,11,0.2);" title="Cannot collect until shotguns are completed">⚠️ Owes shotguns</span>';
           }
         }
@@ -1145,9 +1156,11 @@
         const missedThisGW = didMissGW(m.name, gw);
         const owedCell = owedThisGW >= 3
           ? '<span class="badge" style="background:#7a1a1a;color:#ffb3b3;border:1px solid rgba(255,100,100,0.3);">⚠️ ' + owedThisGW + '</span>'
-          : owedThisGW > 0
+          : owedThisGW >= 2
             ? '<span class="badge badge-bot">' + owedThisGW + '</span>'
-            : '<span class="badge-zero">—</span>';
+            : owedThisGW === 1
+              ? '<span style="color:var(--red);font-size:12px;font-family:var(--font-mono);">1</span>'
+              : '<span class="badge-zero">—</span>';
         const missedCell = missedThisGW
           ? '<span style="color:var(--red);font-size:16px;font-weight:bold;">✗</span>'
           : '<span class="badge-zero">—</span>';
@@ -1314,7 +1327,7 @@ Player data notes:
 - "Chip used: [chip]" = special chip played this week (wildcard, bench_boost, free_hit, 3xc).
 - "Transferred in/out" = who they bought and sold. If a transfer-in scored big, call it genius. If they sold someone who then scored, roast them.
 - Only highlight the most interesting/impactful player details — don't list everyone, just what mattered most.
-- "Guinness owed: N" = this manager currently owes N shotguns from a PREVIOUS bottom-2 finish that they haven't drunk yet. They have NOT missed their shotgun — the deadline hasn't passed. Do NOT imply they've missed or skipped anything. They simply have an outstanding debt that is still due.
+- "Guinness owed: N" = this manager owes N shotguns. Only mention this if N >= 2, as owing 1 is normal and expected after a bottom-2 finish. Only flag it as notable or worrying if they owe 2 or more. They have NOT missed their shotgun — the deadline hasn't passed. Do NOT imply they've missed or skipped anything.
 - "SHOTGUN DUTY" = this manager finished bottom-2 THIS week and must shotgun a Guinness before 7:30am ET next Saturday. This is a fresh obligation, not a missed one.
 
 Write the recap with the following sections in order. Each section header must follow this exact format:
@@ -1327,16 +1340,16 @@ Write the recap with the following sections in order. Each section header must f
 2-3 sentences. Punchy dramatic summary of the week. Reference any standout player moments or chips if notable. Be funny.
 
 **🥇 1ST PLACE — [manager name] — [funny title]**
-Hype the winner. Reference their captain and whether it paid off. Mention smart transfers or chips. Include their $30 prize. Make them feel like a genius.
+Hype the winner. Reference their captain and whether it paid off. Mention smart transfers or chips. Mention prize money only if it feels natural — don't force it. Make them feel like a genius.
 
 **🥈 2ND PLACE — [manager name] — [funny title]**
-Celebrate second and their $15. Reference a key player moment or captain. Slight dig they weren't first.
+Celebrate second place. Reference a key player moment or captain. Slight dig that they weren't first. Prize money mention is optional.
 
 **🥉 3RD PLACE — [manager name] — [funny title]**
-Third place and $10. Mention a specific player, captain, or transfer that shaped their week. Positive with gentle ribbing.
+Third place. Mention something specific about their team — a captain, transfer, or chip. Positive with gentle ribbing. No need to mention prize money unless it adds something funny.
 
 **4️⃣ 4TH PLACE — [manager name] — [funny title]**
-Fourth place and their $5. Reference their captain or a notable transfer. They got paid but barely — have fun with it.
+Fourth place. Reference their captain or a notable transfer. They scraped into the money — have fun with that if it feels right, but don't force the dollar amount.
 
 **🍺 SHOTGUN DUTY — [funny title]**
 Ruthless but good-natured roast of the bottom 2. Reference what went wrong — bad captain, transfer that backfired, chip that flopped. Name both managers. Call out repeat offenders with a funny nickname. Remind them: 7:30am Saturday, no exceptions.
