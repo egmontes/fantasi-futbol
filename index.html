@@ -1069,7 +1069,27 @@
     }
   }
 
-  function renderWeekly(gw) {
+  // Cache chips per GW so we don't refetch
+  const _chipCache = {};
+
+  async function fetchChipsForGW(gw) {
+    if (_chipCache[gw]) return _chipCache[gw];
+    const chips = {};
+    const BATCH = 5;
+    for (let i = 0; i < state.managers.length; i += BATCH) {
+      const batch = state.managers.slice(i, i + BATCH);
+      await Promise.all(batch.map(async m => {
+        try {
+          const picks = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/');
+          chips[m.id] = picks.active_chip || null;
+        } catch(e) { chips[m.id] = null; }
+      }));
+    }
+    _chipCache[gw] = chips;
+    return chips;
+  }
+
+  async function renderWeekly(gw) {
     gw = parseInt(gw) || state.latestGW;
     document.getElementById('weekly-content').innerHTML =
       `<div class="loading-state"><span class="spinner"></span>Loading GW${gw}...</div>`;
@@ -1089,12 +1109,15 @@
 
       const weekPrizes = computeWeeklyPrizes(ranked);
 
+      // Fetch chips for this GW
+      const chips = await fetchChipsForGW(gw);
+
       // Build enriched rows with all sortable fields
       let displayRank = 1;
       const enriched = ranked.map((m, idx) => {
         if (idx > 0 && ranked[idx].gwPoints < ranked[idx-1].gwPoints) displayRank = idx + 1;
         const p = weekPrizes[m.id];
-        return { ...m, _displayRank: displayRank, _prize: p.prize, _shotgun: p.shotgun, _ineligible: p.ineligible };
+        return { ...m, _displayRank: displayRank, _prize: p.prize, _shotgun: p.shotgun, _ineligible: p.ineligible, chip: chips[m.id] || null };
       });
 
       // Sort by selected column
@@ -1166,7 +1189,7 @@
           : '<span class="badge-zero">—</span>';
         html += '<tr class="' + rowCls + '">' +
           '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
-          '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
+          '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + (m.chip ? ' <span class="badge badge-4" style="font-size:10px;margin-left:4px;">' + m.chip + '</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
           '<td><span class="pts-val">' + m.gwPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
           '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
           '<td style="text-align:center">' + hitStr + '</td>' +
@@ -1244,6 +1267,30 @@
     return results;
   }
 
+  // Fetch ownership stats: how many managers owned/captained each player this GW
+  const _ownershipCache = {};
+  async function fetchOwnershipForGW(gw) {
+    if (_ownershipCache[gw]) return _ownershipCache[gw];
+    const owned = {};   // playerId -> count of managers who owned them
+    const captained = {}; // playerId -> count of managers who captained them
+    const total = state.managers.length;
+    const BATCH = 5;
+    for (let i = 0; i < state.managers.length; i += BATCH) {
+      const batch = state.managers.slice(i, i + BATCH);
+      await Promise.all(batch.map(async m => {
+        try {
+          const picks = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/');
+          picks.picks.forEach(p => {
+            owned[p.element] = (owned[p.element] || 0) + 1;
+            if (p.is_captain) captained[p.element] = (captained[p.element] || 0) + 1;
+          });
+        } catch(e) {}
+      }));
+    }
+    _ownershipCache[gw] = { owned, captained, total };
+    return _ownershipCache[gw];
+  }
+
   async function buildPrompt(gw) {
     const stats = computeSeasonStats();
     const ranked = getWeeklyRankings(gw);
@@ -1274,9 +1321,14 @@
     while (shotgunStart > 0 && ranked[shotgunStart - 1].gwPoints === ranked[shotgunStart].gwPoints) shotgunStart--;
     ranked.slice(shotgunStart).forEach(m => keyIds.add(m.id));
 
-    // Fetch details only for key managers
+    // Fetch full picks/chip for ALL managers (for accurate chip counts in overview)
+    // but only fetch transfers/captain detail for key managers
     const keyManagers = ranked.filter(m => keyIds.has(m.id));
-    const details = await fetchAllGWDetails(gw, keyManagers);
+    const [details, allChips, ownership] = await Promise.all([
+      fetchAllGWDetails(gw, keyManagers),
+      fetchChipsForGW(gw),
+      fetchOwnershipForGW(gw),
+    ]);
 
     const summaryLines = ranked.map((m, idx) => {
       const s = stats[m.id] || {};
@@ -1291,12 +1343,27 @@
 
       let extras = [];
       if (d) {
-        if (d.captainName) extras.push('Captained: ' + d.captainName + (d.captainMult === 3 ? ' (TC)' : ''));
+        if (d.captainName) {
+          // Find player id for captain to get ownership stats
+          const captainId = Object.keys(state.bootstrapPlayers).find(id => state.bootstrapPlayers[id] === d.captainName);
+          const captainCount = captainId ? (ownership.captained[captainId] || 0) : 0;
+          const captainPct = captainCount > 0 ? Math.round((captainCount / ownership.total) * 100) : null;
+          const captainOwnerStr = captainPct !== null ? ' (' + captainPct + '% of league captained)' : '';
+          extras.push('Captained: ' + d.captainName + (d.captainMult === 3 ? ' (TC)' : '') + captainOwnerStr);
+        }
         if (d.chip) extras.push('Chip used: ' + d.chip);
         if (d.transfersIn && d.transfersIn.length > 0) {
-          extras.push('Transferred in: ' + d.transfersIn.join(', '));
+          // Add ownership % for transferred-in players
+          const inWithOwnership = d.transfersIn.map(name => {
+            const pid = Object.keys(state.bootstrapPlayers).find(id => state.bootstrapPlayers[id] === name);
+            const pct = pid ? Math.round(((ownership.owned[pid] || 0) / ownership.total) * 100) : null;
+            return pct !== null ? name + ' (' + pct + '% owned)' : name;
+          });
+          extras.push('Transferred in: ' + inWithOwnership.join(', '));
           extras.push('Transferred out: ' + d.transfersOut.join(', '));
         }
+      } else if (allChips[m.id]) {
+        extras.push('Chip used: ' + allChips[m.id]);
       }
 
       // Use GW-specific owed count so the prompt reflects debt at the time of this GW
@@ -1323,10 +1390,12 @@ GW${gw} results (includes captain, chip, and transfer data where available):
 ${summaryLines}
 
 Player data notes:
-- "Captained: [player]" = that manager chose them as captain (2x points). "(TC)" = Triple Captain chip (3x points).
+- "Captained: [player] (X% of league captained)" = that manager's captain pick, with how popular it was league-wide. If <20% captained them, it was a contrarian pick — highlight if it paid off or backfired. If >60%, it was the consensus pick.
+- "(TC)" = Triple Captain chip used (3x points instead of 2x).
 - "Chip used: [chip]" = special chip played this week (wildcard, bench_boost, free_hit, 3xc).
-- "Transferred in/out" = who they bought and sold. If a transfer-in scored big, call it genius. If they sold someone who then scored, roast them.
-- Only highlight the most interesting/impactful player details — don't list everyone, just what mattered most.
+- "Transferred in: [player] (X% owned)" = who they brought in and how many others in the league own them. A low-ownership transfer-in that scores big is a genius differential. A high-ownership one is just following the crowd.
+- "Transferred out" = who they sold. If they sold someone who then scored big, roast them for it.
+- Only highlight the most interesting/impactful player details — ownership % context makes differentials worth calling out.
 - "Guinness owed: N" = this manager owes N shotguns. Only mention this if N >= 2, as owing 1 is normal and expected after a bottom-2 finish. Only flag it as notable or worrying if they owe 2 or more. They have NOT missed their shotgun — the deadline hasn't passed. Do NOT imply they've missed or skipped anything.
 - "SHOTGUN DUTY" = this manager finished bottom-2 THIS week and must shotgun a Guinness before 7:30am ET next Saturday. This is a fresh obligation, not a missed one.
 
@@ -1353,6 +1422,9 @@ Fourth place. Reference their captain or a notable transfer. They scraped into t
 
 **🍺 SHOTGUN DUTY — [funny title]**
 Ruthless but good-natured roast of the bottom 2. Reference what went wrong — bad captain, transfer that backfired, chip that flopped. Name both managers. Call out repeat offenders with a funny nickname. Remind them: 7:30am Saturday, no exceptions.
+
+**🌊 PACIFICO IMPULSE CAPTAIN OF THE WEEK** (OPTIONAL — only include if earned)
+If any manager in the top 4 captained someone truly unusual — low ownership (<15% of league), unexpected, or just a bold left-field pick — and it paid off, award them the "Pacifico Impulse Captain of the Week" award. Make it feel like a prestigious honor. If nobody qualifies (e.g. everyone captained the consensus pick), skip this section entirely. Do not force it.
 
 Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra commentary outside the sections.`
   }
@@ -1563,7 +1635,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         const val = document.getElementById('gw-select').value;
         if (val === 'preview') renderPreview();
         else if (val === 'live') renderLive();
-        else renderWeekly(parseInt(val));
+        else renderWeekly(parseInt(val)).catch(console.error);
       }
       if (tab === 'recap') setupRecapTab();
     });
@@ -1576,7 +1648,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const val = e.target.value;
       if (val === 'preview') renderPreview();
       else if (val === 'live') renderLive();
-      else renderWeekly(parseInt(val));
+      else renderWeekly(parseInt(val)).catch(console.error);
     }
     if (active === 'recap') setupRecapTab();
   });
