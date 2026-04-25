@@ -586,13 +586,41 @@
       state.latestGW = finished.length > 0 ? finished[finished.length - 1].id : 1;
       state.currentGW = state.latestGW;
 
+      // Detect next GW state
+      const nextGWEvent = bootstrap.events.find(e => e.id === state.latestGW + 1);
+      const now = Date.now();
+      const nextDeadline = nextGWEvent ? new Date(nextGWEvent.deadline_time).getTime() : null;
+      // Show preview if next GW exists and deadline hasn't passed yet (no matches started)
+      state.showPreview = nextGWEvent && nextDeadline && now < nextDeadline;
+      state.nextGW = state.latestGW + 1;
+      // Show live if current GW has started but isn't finished yet
+      const currentGWEvent = bootstrap.events.find(e => e.is_current);
+      state.isLive = currentGWEvent && !currentGWEvent.finished && !currentGWEvent.data_checked;
+      if (state.isLive) state.liveGW = currentGWEvent.id;
+
       const gwSel = document.getElementById('gw-select');
       for (let i = 1; i <= state.latestGW; i++) {
         const opt = document.createElement('option');
         opt.value = i;
         opt.textContent = 'GW ' + i;
-        if (i === state.latestGW) opt.selected = true;
+        if (i === state.latestGW && !state.isLive && !state.showPreview) opt.selected = true;
         gwSel.appendChild(opt);
+      }
+      // Add live GW option if in progress
+      if (state.isLive) {
+        const liveOpt = document.createElement('option');
+        liveOpt.value = 'live';
+        liveOpt.textContent = 'GW ' + state.liveGW + ' 🔴 Live';
+        liveOpt.selected = true;
+        gwSel.appendChild(liveOpt);
+      }
+      // Add preview option if next GW hasn't started
+      if (state.showPreview) {
+        const prevOpt = document.createElement('option');
+        prevOpt.value = 'preview';
+        prevOpt.textContent = 'GW ' + state.nextGW + ' Preview';
+        prevOpt.selected = true;
+        gwSel.appendChild(prevOpt);
       }
 
       await loadLeague();
@@ -603,7 +631,9 @@
         `League #${LEAGUE_ID} · GW${state.latestGW}`;
 
       renderStandings();
-      renderWeekly(state.latestGW);
+      if (state.isLive) renderLive();
+      else if (state.showPreview) renderPreview();
+      else renderWeekly(state.latestGW);
       setupRecapTab();
 
     } catch (e) {
@@ -887,6 +917,147 @@
     });
   }
 
+  async function renderPreview() {
+    const gw = state.nextGW;
+    document.getElementById('weekly-content').innerHTML =
+      '<div class="loading-state"><span class="spinner"></span>Loading GW' + gw + ' preview...</div>';
+
+    // Get shotgun managers from last week
+    const lastRanked = getWeeklyRankings(state.latestGW);
+    const lastPrizes = computeWeeklyPrizes(lastRanked);
+    const shotgunDuty = lastRanked.filter(m => lastPrizes[m.id] && lastPrizes[m.id].shotgun);
+
+    const sorted = [...state.managers].sort((a, b) => b.total - a.total);
+
+    let html = '<div style="margin-bottom:1.5rem;">' +
+      '<div style="font-size:13px;color:var(--text3);font-family:var(--font-mono);margin-bottom:1rem;">GW' + gw + ' has not started yet. Showing current standings and upcoming obligations.</div>';
+
+    if (shotgunDuty.length > 0) {
+      html += '<div style="background:var(--red-dim);border:1px solid rgba(248,113,113,0.2);border-radius:8px;padding:1rem;margin-bottom:1rem;">' +
+        '<div style="font-size:12px;color:var(--red);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">🍺 Shotgun duty — due Saturday before 7:30am ET</div>' +
+        shotgunDuty.map(m => '<div style="font-size:14px;color:var(--text);font-weight:500;margin-bottom:2px;">' + esc(m.name) + ' <span style="color:var(--text3);font-size:12px;">(' + esc(m.team) + ')</span></div>').join('') +
+        '</div>';
+    }
+
+    html += '</div><div class="table-wrap"><table>' +
+      '<thead><tr>' +
+      '<th style="width:36px">#</th>' +
+      '<th>Manager</th>' +
+      '<th style="width:60px">Total pts</th>' +
+      '<th style="width:80px;text-align:center">🍺 Beers Owed</th>' +
+      '</tr></thead><tbody>';
+
+    sorted.forEach((m, idx) => {
+      const owed = getGuinnessOwedAtGW(m.name, gw);
+      const owedCell = owed >= 3
+        ? '<span class="badge" style="background:#7a1a1a;color:#ffb3b3;border:1px solid rgba(255,100,100,0.3);">⚠️ ' + owed + '</span>'
+        : owed > 0
+          ? '<span class="badge badge-bot">' + owed + '</span>'
+          : '<span class="badge-zero">—</span>';
+      const kickedStyle = isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '';
+      html += '<tr>' +
+        '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
+        '<td><div class="m-name" style="' + kickedStyle + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
+        '<td><span class="pts-val">' + m.total + '</span></td>' +
+        '<td style="text-align:center">' + owedCell + '</td>' +
+        '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    document.getElementById('weekly-content').innerHTML = html;
+  }
+
+  async function renderLive() {
+    const gw = state.liveGW;
+    document.getElementById('weekly-content').innerHTML =
+      '<div class="loading-state"><span class="spinner"></span>Loading live GW' + gw + ' scores...</div>';
+    try {
+      // Fetch live player scores
+      const liveData = await fetchFPL('event/' + gw + '/live/');
+      const liveScores = {};
+      liveData.elements.forEach(e => {
+        liveScores[e.id] = e.stats.total_points;
+      });
+
+      // Fetch picks for all managers in batches
+      const BATCH = 5;
+      const managerScores = {};
+      for (let i = 0; i < state.managers.length; i += BATCH) {
+        const batch = state.managers.slice(i, i + BATCH);
+        await Promise.all(batch.map(async m => {
+          try {
+            const picks = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/');
+            let pts = 0;
+            picks.picks.forEach(p => {
+              const playerPts = liveScores[p.element] || 0;
+              pts += playerPts * p.multiplier;
+            });
+            // Subtract transfer cost
+            const hist = state.gwHistory[m.id] || [];
+            const gwEntry = hist.find(h => h.event === gw);
+            const hit = gwEntry ? gwEntry.event_transfers_cost : 0;
+            managerScores[m.id] = { pts: pts - hit, rawPts: pts, chip: picks.active_chip };
+          } catch(e) {
+            managerScores[m.id] = { pts: 0, rawPts: 0 };
+          }
+        }));
+        const done = Math.min(i + BATCH, state.managers.length);
+        document.getElementById('weekly-content').innerHTML =
+          '<div class="loading-state"><span class="spinner"></span>Loading live scores... (' + done + '/' + state.managers.length + ')</div>';
+      }
+
+      // Sort by live points
+      const liveRanked = [...state.managers]
+        .map(m => ({ ...m, gwPoints: managerScores[m.id]?.pts || 0, chip: managerScores[m.id]?.chip }))
+        .sort((a, b) => b.gwPoints - a.gwPoints);
+
+      const n = liveRanked.length;
+      let displayRank = 1;
+      liveRanked.forEach((m, idx) => {
+        if (idx > 0 && liveRanked[idx].gwPoints < liveRanked[idx-1].gwPoints) displayRank = idx + 1;
+        m._displayRank = displayRank;
+      });
+
+      let html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">' +
+        '<span style="background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,0.3);border-radius:99px;font-size:11px;font-family:var(--font-mono);padding:3px 10px;">🔴 LIVE GW' + gw + '</span>' +
+        '<span style="font-size:12px;color:var(--text3);">Scores provisional — bonus points & auto-subs not yet applied</span>' +
+        '</div>' +
+        '<div class="table-wrap"><table>' +
+        '<thead><tr>' +
+        '<th style="width:36px">#</th>' +
+        '<th>Manager</th>' +
+        '<th style="width:70px">Live pts</th>' +
+        '<th style="width:70px">Total</th>' +
+        '<th style="width:80px;text-align:center">🍺 Beers Owed</th>' +
+        '</tr></thead><tbody>';
+
+      liveRanked.forEach((m, idx) => {
+        const rank = m._displayRank;
+        const isBottom = m.gwPoints <= liveRanked[n-2].gwPoints;
+        const owed = getGuinnessOwedAtGW(m.name, gw);
+        const owedCell = owed >= 3
+          ? '<span class="badge" style="background:#7a1a1a;color:#ffb3b3;border:1px solid rgba(255,100,100,0.3);">⚠️ ' + owed + '</span>'
+          : owed > 0 ? '<span class="badge badge-bot">' + owed + '</span>'
+          : '<span class="badge-zero">—</span>';
+        const rowCls = rank === 1 ? 'row-1' : rank === 2 ? 'row-2' : rank === 3 ? 'row-3' : isBottom ? 'row-bottom' : '';
+        const chipBadge = m.chip ? ' <span class="badge badge-4" style="font-size:10px;">' + m.chip + '</span>' : '';
+        html += '<tr class="' + rowCls + '">' +
+          '<td><span class="rank-num">' + rank + '</span></td>' +
+          '<td><div class="m-name">' + esc(m.name) + chipBadge + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
+          '<td><span class="pts-val">' + m.gwPoints + '</span></td>' +
+          '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
+          '<td style="text-align:center">' + owedCell + '</td>' +
+          '</tr>';
+      });
+
+      html += '</tbody></table></div>';
+      document.getElementById('weekly-content').innerHTML = html;
+    } catch(e) {
+      document.getElementById('weekly-content').innerHTML =
+        '<div class="error-state">Failed to load live scores.<small>' + e.message + '</small></div>';
+    }
+  }
+
   function renderWeekly(gw) {
     gw = parseInt(gw) || state.latestGW;
     document.getElementById('weekly-content').innerHTML =
@@ -946,7 +1117,7 @@
         '<th style="width:56px;text-align:center" ' + wthClass('hits') + ' data-col="hits">Hits</th>' +
         '<th style="width:60px;text-align:center" ' + wthClass('bench') + ' data-col="bench">Bench</th>' +
         '<th style="width:100px" ' + wthClass('prize') + ' data-col="prize">Result</th>' +
-        '<th style="width:80px;text-align:center" title="Beers owed at start of this gameweek">🍺 Beers Owed</th>' +
+        '<th style="width:80px;text-align:center" title="Beers owed this week">🍺 Beers This Week</th>' +
         '<th style="width:80px;text-align:center" title="Missed shotgun this gameweek">❌ Missed</th>' +
         '</tr></thead><tbody>';
 
@@ -1117,7 +1288,8 @@
 
       // Use GW-specific owed count so the prompt reflects debt at the time of this GW
       const gmissCount = getGuinnessOwedAtGW(m.name, gw);
-      if (gmissCount > 0) {
+      // Only flag in prompt if they owe 2+ — 1 is the normal expected amount from losing last week
+      if (gmissCount >= 2) {
         const missedGWs = getGuinnessMissedGWs(m.name).filter(g => g < gw);
         const gwStr = missedGWs.length > 0 ? ' (missed GW' + missedGWs.join(', GW') + ')' : '';
         const dangerStr = isKickedOut(m.name) ? ' KICKED OUT OF LEAGUE' : (gmissCount >= 3 ? ' WARNING: ONE MORE MISS AND THEY ARE KICKED OUT' : '');
@@ -1374,7 +1546,12 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       btn.classList.add('active');
       const tab = btn.dataset.tab;
       document.getElementById('tab-' + tab).classList.add('active');
-      if (tab === 'weekly') renderWeekly(document.getElementById('gw-select').value);
+      if (tab === 'weekly') {
+        const val = document.getElementById('gw-select').value;
+        if (val === 'preview') renderPreview();
+        else if (val === 'live') renderLive();
+        else renderWeekly(parseInt(val));
+      }
       if (tab === 'recap') setupRecapTab();
     });
   });
@@ -1382,7 +1559,12 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   // GW CHANGE
   document.getElementById('gw-select').addEventListener('change', e => {
     const active = document.querySelector('.tab-btn.active').dataset.tab;
-    if (active === 'weekly') renderWeekly(e.target.value);
+    if (active === 'weekly') {
+      const val = e.target.value;
+      if (val === 'preview') renderPreview();
+      else if (val === 'live') renderLive();
+      else renderWeekly(parseInt(val));
+    }
     if (active === 'recap') setupRecapTab();
   });
 
@@ -1420,8 +1602,37 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       await loadGuinnessDebts();
       document.getElementById('header-meta').textContent =
         `League #${LEAGUE_ID} · GW${state.latestGW}`;
+      // Rebuild dropdown in case GW state changed
+      const gwSel = document.getElementById('gw-select');
+      const currentVal = gwSel.value;
+      gwSel.innerHTML = '';
+      for (let i = 1; i <= state.latestGW; i++) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = 'GW ' + i;
+        if (String(i) === currentVal) opt.selected = true;
+        gwSel.appendChild(opt);
+      }
+      if (state.isLive) {
+        const liveOpt = document.createElement('option');
+        liveOpt.value = 'live';
+        liveOpt.textContent = 'GW ' + state.liveGW + ' 🔴 Live';
+        if (currentVal === 'live') liveOpt.selected = true;
+        gwSel.appendChild(liveOpt);
+      }
+      if (state.showPreview) {
+        const prevOpt = document.createElement('option');
+        prevOpt.value = 'preview';
+        prevOpt.textContent = 'GW ' + state.nextGW + ' Preview';
+        if (currentVal === 'preview') prevOpt.selected = true;
+        gwSel.appendChild(prevOpt);
+      }
+
       renderStandings();
-      renderWeekly(document.getElementById('gw-select').value);
+      const refreshVal = gwSel.value;
+      if (refreshVal === 'preview') renderPreview();
+      else if (refreshVal === 'live') renderLive();
+      else renderWeekly(parseInt(refreshVal));
     } catch (e) {
       document.getElementById('standings-content').innerHTML =
         `<div class="error-state">Refresh failed.<small>${e.message}</small></div>`;
