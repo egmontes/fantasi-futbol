@@ -393,17 +393,119 @@
     }
   }
 
-  // How many beers does a manager owe at the START of gameweek n?
-  // Only based on recorded misses and makeups — on-time shotguns are not recorded
-  function getGuinnessOwedAtGW(name, gw) {
-    const d = state.guinnessDebts[name];
-    if (!d) return 0;
-    const missed = (d.missed_gws || []).filter(g => g < gw).length;
-    const madeUp = (d.made_up_gws || []).filter(g => g < gw).length;
-    return Math.max(0, missed - madeUp);
+  // Groups consecutive entries in missed_gws into incidents
+  // e.g. [32, 33, 35] -> [{start:32, len:2}, {start:35, len:1}]
+  function groupMissedIncidents(missedSorted) {
+    const incidents = [];
+    let i = 0;
+    while (i < missedSorted.length) {
+      let j = i;
+      while (j + 1 < missedSorted.length && missedSorted[j + 1] === missedSorted[j] + 1) j++;
+      incidents.push({ start: missedSorted[i], len: j - i + 1 });
+      i = j + 1;
+    }
+    return incidents;
   }
 
-  // Current owed (for standings page)
+  // Compute debt contributions by GW for each incident
+  // Rules per incident starting at GW s with length l:
+  //   l=1: owe 2 from s+1 onwards, cleared by 2x made_up at s+1
+  //   l=2: owe 2 from s+1, owe 3 from s+2 onwards, cleared by 3x made_up at s+2
+  //   l>=3: kicked out
+  function computeGuinnessState(name) {
+    const d = state.guinnessDebts[name];
+    if (!d) return { owedByGW: {}, kickedOut: false };
+
+    const missedSorted = [...(d.missed_gws || [])].sort((a, b) => a - b);
+    const madeUpAll = [...(d.made_up_gws || [])];
+    const remainingMadeUp = [...madeUpAll];
+
+    const owedByGW = {};
+    let kickedOut = false;
+
+    const incidents = groupMissedIncidents(missedSorted);
+
+    for (const inc of incidents) {
+      const { start, len } = inc;
+
+      if (len >= 3) {
+        kickedOut = true;
+        // Mark as kicked out from start+2 onwards
+        for (let g = start + 2; g <= 50; g++) owedByGW[g] = 99;
+        continue;
+      }
+
+      if (len === 2) {
+        const clearGW = start + 2;
+        // Historical: owe 2 at start+1, owe 3 at start+2
+        owedByGW[start + 1] = (owedByGW[start + 1] || 0) + 2;
+
+        // Try to clear with 3x made_up at clearGW
+        const available = remainingMadeUp.filter(g => g === clearGW);
+        if (available.length >= 3) {
+          let removed = 0;
+          for (let i = remainingMadeUp.length - 1; i >= 0 && removed < 3; i--) {
+            if (remainingMadeUp[i] === clearGW) { remainingMadeUp.splice(i, 1); removed++; }
+          }
+          owedByGW[clearGW] = (owedByGW[clearGW] || 0) + 3;
+        } else {
+          for (let g = clearGW; g <= 50; g++) owedByGW[g] = (owedByGW[g] || 0) + 3;
+        }
+        continue;
+      }
+
+      // len === 1
+      const clearGW = start + 1;
+      // Try to clear with 2x made_up at clearGW
+      const available = remainingMadeUp.filter(g => g === clearGW);
+      if (available.length >= 2) {
+        let removed = 0;
+        for (let i = remainingMadeUp.length - 1; i >= 0 && removed < 2; i--) {
+          if (remainingMadeUp[i] === clearGW) { remainingMadeUp.splice(i, 1); removed++; }
+        }
+        owedByGW[clearGW] = (owedByGW[clearGW] || 0) + 2;
+      } else {
+        for (let g = clearGW; g <= 50; g++) owedByGW[g] = (owedByGW[g] || 0) + 2;
+      }
+    }
+
+    return { owedByGW, kickedOut };
+  }
+
+  function getGuinnessOwedAtGW(name, gw) {
+    const d = state.guinnessDebts[name];
+    const missedAll = d ? (d.missed_gws || []) : [];
+
+    // Check bottom-2 in prior GW (1 drink due this week, not yet recorded as miss)
+    let lostPriorGW = false;
+    if (gw > 1) {
+      const priorRanked = getWeeklyRankings(gw - 1);
+      if (priorRanked.length >= 2) {
+        const n = priorRanked.length;
+        let shotgunStart = n - 2;
+        while (shotgunStart > 0 && priorRanked[shotgunStart - 1].gwPoints === priorRanked[shotgunStart].gwPoints) {
+          shotgunStart--;
+        }
+        const shotgunNames = priorRanked.slice(shotgunStart).map(m => m.name);
+        if (shotgunNames.includes(name)) lostPriorGW = true;
+      }
+    }
+
+    if (!lostPriorGW && missedAll.length === 0) return 0;
+
+    const { owedByGW } = computeGuinnessState(name);
+    const fromMisses = owedByGW[gw] || 0;
+    // Add 1 for prior week loss only if not already captured as a miss
+    const fromLoss = (lostPriorGW && !missedAll.includes(gw)) ? 1 : 0;
+
+    return Math.max(0, fromMisses + fromLoss);
+  }
+
+  function isKickedOut(name) {
+    return computeGuinnessState(name).kickedOut;
+  }
+
+  // Current owed for standings = owed at start of next GW
   function getGuinnessOwed(name) {
     return getGuinnessOwedAtGW(name, state.latestGW + 1);
   }
@@ -414,11 +516,12 @@
     return d.missed_gws || [];
   }
 
-  // Did this manager miss their shotgun for a specific GW?
+  // Did this manager miss their shotgun that was due at the START of GW gw+1?
+  // missed_gws stores the GW when the drink was due, so we check for gw+1
   function didMissGW(name, gw) {
     const d = state.guinnessDebts[name];
     if (!d) return false;
-    return (d.missed_gws || []).includes(gw);
+    return (d.missed_gws || []).includes(gw + 1);
   }
 
   function getTotalGuinnesses(name, bottom2Count) {
@@ -744,7 +847,7 @@
           : '<span class="badge-zero">—</span>';
       html += '<tr class="' + rowCls + '">' +
         '<td><span class="rank-num">' + pos + '</span></td>' +
-        '<td><div class="m-name">' + esc(m.name) + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
+        '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
         '<td><span class="pts-val">' + m.total + '</span></td>' +
         '<td style="text-align:center">' + (m.top4 > 0 ? '<span class="badge badge-top">' + m.top4 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
         '<td style="text-align:center">' + (m.bottom2 > 0 ? '<span class="badge badge-bot">' + m.bottom2 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
@@ -867,7 +970,7 @@
           : '<span class="badge-zero">—</span>';
         html += '<tr class="' + rowCls + '">' +
           '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
-          '<td><div class="m-name">' + esc(m.name) + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
+          '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
           '<td><span class="pts-val">' + m.gwPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
           '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
           '<td style="text-align:center">' + hitStr + '</td>' +
