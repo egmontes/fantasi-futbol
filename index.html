@@ -1052,6 +1052,7 @@
     const stats = computeSeasonStats();
     const ranked = getWeeklyRankings(gw);
     const weekPrizes = computeWeeklyPrizes(ranked);
+    const n = ranked.length;
 
     // Assign display ranks for ties
     let displayRank = 1;
@@ -1060,8 +1061,26 @@
       m._displayRank = displayRank;
     });
 
-    // Fetch detailed picks/transfers/chips for all managers
-    const details = await fetchAllGWDetails(gw, ranked);
+    // Find key managers: top-4 positions (expanded for ties) + bottom-2 (expanded for ties)
+    const keyIds = new Set();
+
+    // Top: find all managers in prize positions including ties
+    const PRIZE_SLOTS = [1, 2, 3, 4];
+    ranked.forEach((m, idx) => {
+      if (PRIZE_SLOTS.includes(m._displayRank)) keyIds.add(m.id);
+    });
+    // Also include anyone tied with the 4th place score
+    const fourthScore = ranked.find(m => m._displayRank === 4);
+    if (fourthScore) ranked.filter(m => m.gwPoints === fourthScore.gwPoints).forEach(m => keyIds.add(m.id));
+
+    // Bottom: find shotgun managers
+    let shotgunStart = n - 2;
+    while (shotgunStart > 0 && ranked[shotgunStart - 1].gwPoints === ranked[shotgunStart].gwPoints) shotgunStart--;
+    ranked.slice(shotgunStart).forEach(m => keyIds.add(m.id));
+
+    // Fetch details only for key managers
+    const keyManagers = ranked.filter(m => keyIds.has(m.id));
+    const details = await fetchAllGWDetails(gw, keyManagers);
 
     const summaryLines = ranked.map((m, idx) => {
       const s = stats[m.id] || {};
@@ -1086,8 +1105,9 @@
 
       const gmissCount = getGuinnessOwed(m.name);
       if (gmissCount > 0) {
-        const gwStr = gmissMissedGWs.length > 0 ? ' (missed GW' + gmissMissedGWs.join(', GW') + ')' : '';
-        const dangerStr = gmissCount >= 3 ? ' WARNING: ONE MORE MISS AND THEY ARE KICKED OUT' : '';
+        const missedGWs = getGuinnessMissedGWs(m.name);
+        const gwStr = missedGWs.length > 0 ? ' (missed GW' + missedGWs.join(', GW') + ')' : '';
+        const dangerStr = isKickedOut(m.name) ? ' KICKED OUT OF LEAGUE' : (gmissCount >= 3 ? ' WARNING: ONE MORE MISS AND THEY ARE KICKED OUT' : '');
         extras.push('Guinness owed: ' + gmissCount + gwStr + dangerStr);
       }
       let line = m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts | Season total: ' + m.total + ' | Top-4 finishes: ' + s.top4 + ' | Bottom-2 finishes: ' + s.bottom2 + ' | ' + result;
@@ -1205,9 +1225,21 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         Copy the prompt below, paste it into <a href="https://claude.ai" target="_blank" style="color:var(--green)">claude.ai</a>, then paste the response back here. Hitting <strong>Save recap</strong> will display it and automatically download a <code style="font-family:var(--font-mono);font-size:12px;color:var(--green)">2025-gw${gw}.txt</code> file — drag that into your <code style="font-family:var(--font-mono);font-size:12px;color:var(--green)">recaps/</code> folder and push to GitHub.
       </p>
 
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;">
-        <button class="btn btn-primary" id="copy-prompt-btn">Copy GW${gw} prompt →</button>
-        <span id="copy-confirm" style="font-size:13px;color:var(--green);display:none;">✓ Copied to clipboard!</span>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="prepare-prompt-btn">Prepare GW${gw} prompt →</button>
+        <span id="prepare-confirm" style="font-size:13px;color:var(--text3);display:none;"></span>
+      </div>
+      <div id="prompt-preview-area" style="display:none;margin-bottom:1.5rem;">
+        <label style="font-size:12px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:8px;">Prompt ready — select all and copy</label>
+        <textarea id="prompt-preview" readonly style="
+          width:100%;min-height:120px;background:var(--bg2);color:var(--text2);
+          border:1px solid var(--border2);border-radius:8px;padding:12px;
+          font-family:var(--font-mono);font-size:12px;line-height:1.5;resize:vertical;
+        "></textarea>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button class="btn btn-primary" id="copy-prompt-btn">Copy to clipboard</button>
+          <span id="copy-confirm" style="font-size:13px;color:var(--green);display:none;">✓ Copied!</span>
+        </div>
       </div>
 
       <div style="margin-bottom:1.5rem;">
@@ -1230,28 +1262,49 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     // Render saved recap immediately if exists
     if (saved) renderRecapDisplay(gw, saved);
 
-    document.getElementById('copy-prompt-btn').addEventListener('click', async () => {
-      const btn = document.getElementById('copy-prompt-btn');
-      const confirm = document.getElementById('copy-confirm');
+    // Step 1: fetch data and populate textarea
+    document.getElementById('prepare-prompt-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('prepare-prompt-btn');
+      const status = document.getElementById('prepare-confirm');
       if (btn.disabled) return;
       btn.disabled = true;
       btn.textContent = 'Fetching player data...';
-      confirm.style.display = 'none';
+      status.textContent = 'Fetching picks & transfers for key managers...';
+      status.style.display = 'inline';
       try {
         const prompt = await buildPrompt(gw);
-        await navigator.clipboard.writeText(prompt);
-        confirm.textContent = '✓ Copied to clipboard!';
-        confirm.style.display = 'inline';
-        btn.textContent = 'Copy GW' + gw + ' prompt →';
-        setTimeout(() => confirm.style.display = 'none', 3000);
+        document.getElementById('prompt-preview').value = prompt;
+        document.getElementById('prompt-preview-area').style.display = 'block';
+        status.textContent = '✓ Ready to copy!';
+        btn.textContent = 'Refresh prompt →';
+        // Auto-select the textarea
+        const ta = document.getElementById('prompt-preview');
+        ta.focus();
+        ta.select();
       } catch(e) {
-        confirm.textContent = '✗ Failed to copy — try again';
-        confirm.style.color = 'var(--red)';
-        confirm.style.display = 'inline';
-        btn.textContent = 'Copy GW' + gw + ' prompt →';
-        setTimeout(() => { confirm.style.display = 'none'; confirm.style.color = 'var(--green)'; }, 3000);
+        status.textContent = '✗ Failed: ' + e.message;
       }
       btn.disabled = false;
+    });
+
+    // Step 2: copy from textarea (direct user gesture — clipboard always works)
+    document.getElementById('recap-content').addEventListener('click', (e) => {
+      if (e.target.id !== 'copy-prompt-btn') return;
+      const ta = document.getElementById('prompt-preview');
+      if (!ta || !ta.value) return;
+      navigator.clipboard.writeText(ta.value).then(() => {
+        const confirm = document.getElementById('copy-confirm');
+        confirm.style.display = 'inline';
+        setTimeout(() => confirm.style.display = 'none', 2500);
+      }).catch(() => {
+        // Fallback: select the text so user can Cmd+C
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        const confirm = document.getElementById('copy-confirm');
+        confirm.style.display = 'inline';
+        setTimeout(() => confirm.style.display = 'none', 2500);
+      });
     });
 
     document.getElementById('save-recap-btn').addEventListener('click', () => {
