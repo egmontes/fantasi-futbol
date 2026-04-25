@@ -297,20 +297,13 @@
       .tab-btn { padding: 10px 12px; font-size: 13px; }
       .stat-card .s-value { font-size: 26px; }
     }
-  
-    #last-updated {
-      font-size: 11px;
-      color: var(--text3);
-      font-family: var(--font-mono);
-    }
-
-</style>
+  </style>
 </head>
 <body>
 
 <header class="site-header">
   <div class="site-logo">Fantasi <span>Futbol</span></div>
-  <div class="header-meta"><span id="header-meta">Loading...</span><span id="last-updated" style="margin-left:10px; opacity:0.7;"></span></div>
+  <div class="header-meta" id="header-meta">Loading...</div>
 </header>
 
 <div class="container">
@@ -580,28 +573,7 @@
     throw new Error('All proxies failed — FPL API may be temporarily unavailable. Please try again in a minute.');
   }
 
-  
-async function loadLastUpdated() {
-  try {
-    const res = await fetch('https://api.github.com/repos/egmontes/fantasi-futbol/commits?per_page=1');
-    const data = await res.json();
-    const date = new Date(data[0].commit.committer.date);
-
-    const formatted = date.toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
-    });
-
-    document.getElementById('last-updated').textContent = `Updated ${formatted}`;
-  } catch (e) {
-    console.warn('Failed to load last updated time');
-  }
-}
-
-
-async function init() {
+  async function init() {
     try {
       const bootstrap = await fetchFPL('bootstrap-static/');
 
@@ -658,7 +630,6 @@ async function init() {
       document.getElementById('header-meta').textContent =
         `League #${LEAGUE_ID} · GW${state.latestGW}`;
 
-      await loadLastUpdated();
       renderStandings();
       if (state.isLive) renderLive();
       else if (state.showPreview) renderPreview();
@@ -943,8 +914,7 @@ async function init() {
           standingsSort.col = c;
           standingsSort.dir = 'desc';
         }
-        await loadLastUpdated();
-      renderStandings();
+        renderStandings();
       });
     });
   }
@@ -1853,7 +1823,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         gwSel.appendChild(prevOpt);
       }
 
-      await loadLastUpdated();
       renderStandings();
       const refreshVal = gwSel.value;
       if (refreshVal === 'preview') renderPreview();
