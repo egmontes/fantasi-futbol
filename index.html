@@ -1061,12 +1061,7 @@
     });
 
     // Fetch detailed picks/transfers/chips for all managers
-    const btn = document.getElementById('copy-prompt-btn');
-    btn.disabled = true;
-    btn.textContent = 'Fetching player data...';
     const details = await fetchAllGWDetails(gw, ranked);
-    btn.disabled = false;
-    btn.textContent = 'Copy GW' + gw + ' prompt →';
 
     const summaryLines = ranked.map((m, idx) => {
       const s = stats[m.id] || {};
@@ -1236,12 +1231,27 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (saved) renderRecapDisplay(gw, saved);
 
     document.getElementById('copy-prompt-btn').addEventListener('click', async () => {
-      const prompt = await buildPrompt(gw);
-      navigator.clipboard.writeText(prompt).then(() => {
-        const confirm = document.getElementById('copy-confirm');
+      const btn = document.getElementById('copy-prompt-btn');
+      const confirm = document.getElementById('copy-confirm');
+      if (btn.disabled) return;
+      btn.disabled = true;
+      btn.textContent = 'Fetching player data...';
+      confirm.style.display = 'none';
+      try {
+        const prompt = await buildPrompt(gw);
+        await navigator.clipboard.writeText(prompt);
+        confirm.textContent = '✓ Copied to clipboard!';
         confirm.style.display = 'inline';
-        setTimeout(() => confirm.style.display = 'none', 2500);
-      });
+        btn.textContent = 'Copy GW' + gw + ' prompt →';
+        setTimeout(() => confirm.style.display = 'none', 3000);
+      } catch(e) {
+        confirm.textContent = '✗ Failed to copy — try again';
+        confirm.style.color = 'var(--red)';
+        confirm.style.display = 'inline';
+        btn.textContent = 'Copy GW' + gw + ' prompt →';
+        setTimeout(() => { confirm.style.display = 'none'; confirm.style.color = 'var(--green)'; }, 3000);
+      }
+      btn.disabled = false;
     });
 
     document.getElementById('save-recap-btn').addEventListener('click', () => {
