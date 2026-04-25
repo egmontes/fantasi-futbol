@@ -359,11 +359,21 @@
 
   async function loadGuinnessDebts() {
     try {
-      const res = await fetch('data/guinness-misses.json?nocache=' + Date.now());
+      const url = 'data/guinness-misses.json?nocache=' + Date.now();
+      console.log('Fetching guinness debts from:', url);
+      const res = await fetch(url);
+      console.log('Guinness fetch status:', res.status);
       if (res.ok) {
-        state.guinnessDebts = await res.json();
+        const data = await res.json();
+        state.guinnessDebts = data;
+        console.log('Guinness debts loaded:', Object.keys(data).length, 'managers');
+        console.log('Sample entry:', JSON.stringify(Object.entries(data)[0]));
+      } else {
+        console.warn('Guinness fetch failed with status:', res.status);
+        state.guinnessDebts = {};
       }
     } catch(e) {
+      console.error('Guinness fetch error:', e.message);
       state.guinnessDebts = {};
     }
   }
@@ -386,13 +396,23 @@
   function getGuinnessOwed(name) {
     const d = state.guinnessDebts[name];
     if (!d) return 0;
-    return Math.max(0, (d.missed_gws || []).length - (d.made_up_gws || []).length);
+    const missed = (d.missed_gws || []).length;
+    const madeUp = (d.made_up_gws || []).length;
+    if (missed === 0) return 0;
+    return Math.max(0, missed - madeUp + 1);
   }
 
   function getGuinnessMissedGWs(name) {
     const d = state.guinnessDebts[name];
     if (!d) return [];
     return d.missed_gws || [];
+  }
+
+  function getTotalGuinnesses(name, bottom2Count) {
+    const d = state.guinnessDebts[name];
+    const missed = d ? (d.missed_gws || []).length : 0;
+    const madeUp = d ? (d.made_up_gws || []).length : 0;
+    return Math.max(0, bottom2Count - missed + madeUp);
   }
 
   async function fetchFPL(path) {
@@ -483,8 +503,41 @@
     }));
   }
 
-  async function loadAllHistory() {
-    const BATCH = 3;
+  async function loadAllHistory(forceRefresh = false) {
+    const BATCH = 5;
+    const CACHE_KEY = 'ff_history_gw' + state.latestGW;
+    const CACHE_TS_KEY = 'ff_history_ts' + state.latestGW;
+    const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+    // Try cache first unless forceRefresh
+    if (!forceRefresh) {
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        const ts = parseInt(localStorage.getItem(CACHE_TS_KEY) || '0');
+        if (cached && (Date.now() - ts < CACHE_TTL)) {
+          const parsed = JSON.parse(cached);
+          // Validate cache has data for our managers
+          const managerIds = state.managers.map(m => m.id);
+          const hasData = managerIds.every(id => parsed[id] !== undefined);
+          if (hasData) {
+            state.gwHistory = parsed;
+            const el = document.getElementById('standings-content');
+            if (el) el.innerHTML = '<div class="loading-state"><span class="spinner"></span>Loaded from cache (' + state.managers.length + '/' + state.managers.length + ')</div>';
+            return;
+          }
+        }
+      } catch(e) {
+        console.warn('Cache read failed, fetching fresh:', e.message);
+      }
+    }
+
+    // Clear old GW cache keys
+    for (let g = 1; g < state.latestGW; g++) {
+      localStorage.removeItem('ff_history_gw' + g);
+      localStorage.removeItem('ff_history_ts' + g);
+    }
+
+    // Fetch fresh from API in batches of 5
     const managers = state.managers;
     for (let i = 0; i < managers.length; i += BATCH) {
       const batch = managers.slice(i, i + BATCH);
@@ -493,12 +546,22 @@
           const h = await fetchFPL('entry/' + m.id + '/history/');
           state.gwHistory[m.id] = h.current;
         } catch (e) {
+          console.warn('Failed to load history for manager', m.id, e.message);
           state.gwHistory[m.id] = [];
         }
       }));
       const done = Math.min(i + BATCH, managers.length);
       const el = document.getElementById('standings-content');
       if (el) el.innerHTML = '<div class="loading-state"><span class="spinner"></span>Loading manager data... (' + done + '/' + managers.length + ')</div>';
+    }
+
+    // Save to cache
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(state.gwHistory));
+      localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
+      console.log('History cached for GW' + state.latestGW);
+    } catch(e) {
+      console.warn('Cache write failed:', e.message);
     }
   }
 
@@ -524,21 +587,28 @@
   // Given sorted ranked rows, compute prize and shotgun assignments with tie splitting
   function computeWeeklyPrizes(ranked) {
     const n = ranked.length;
-    const prizes = {}; // managerId -> { prize, shotgun, splitWith }
-    ranked.forEach(m => { prizes[m.id] = { prize: 0, shotgun: false }; });
+    const prizes = {}; // managerId -> { prize, shotgun, ineligible }
+    ranked.forEach(m => { prizes[m.id] = { prize: 0, shotgun: false, ineligible: false }; });
 
-    // --- TOP prizes ---
+    // Mark ineligible managers (those with outstanding Guinnesses owed)
+    // They still earn the prize but can't collect until debts are cleared
+    ranked.forEach(m => {
+      if (getGuinnessOwed(m.name) > 0) {
+        prizes[m.id].ineligible = true;
+      }
+    });
+
+    // --- TOP prizes — awarded normally regardless of eligibility ---
     const PRIZE_SLOTS = [1, 2, 3, 4];
     const PRIZE_AMOUNTS = { 1: 30, 2: 15, 3: 10, 4: 5 };
 
     let i = 0;
     while (i < n) {
       const pts = ranked[i].gwPoints;
-      // Find all tied at this score
       let j = i;
       while (j < n && ranked[j].gwPoints === pts) j++;
-      const tiedGroup = ranked.slice(i, j); // managers with same score
-      const positions = PRIZE_SLOTS.slice(i, j); // prize slots they span
+      const tiedGroup = ranked.slice(i, j);
+      const positions = PRIZE_SLOTS.slice(i, j);
       const prizePositions = positions.filter(p => PRIZE_AMOUNTS[p]);
       if (prizePositions.length > 0) {
         const totalPrize = prizePositions.reduce((sum, p) => sum + PRIZE_AMOUNTS[p], 0);
@@ -614,7 +684,8 @@
     const rows = state.managers.map(m => {
       const s = stats[m.id] || {};
       const gmisses = getGuinnessOwed(m.name);
-      return { ...m, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses };
+      const totalG = getTotalGuinnesses(m.name, s.bottom2 || 0);
+      return { ...m, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, totalG };
     });
 
     const col = standingsSort.col;
@@ -626,6 +697,7 @@
       if (col === 'bot2') return dir * (a.bottom2 - b.bottom2);
       if (col === 'earned') return dir * (a.earned - b.earned);
       if (col === 'gmisses') return dir * (a.gmisses - b.gmisses);
+      if (col === 'totalg') return dir * (a.totalG - b.totalG);
       return 0;
     });
 
@@ -635,7 +707,7 @@
       '<div class="stat-card"><div class="s-label">Managers</div><div class="s-value">' + state.managers.length + '</div></div>' +
       '<div class="stat-card"><div class="s-label">GWs played</div><div class="s-value">' + state.latestGW + '</div></div>' +
       '<div class="stat-card"><div class="s-label">Prize pool</div><div class="s-value">$' + totalPool + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">Guinness chugged</div><div class="s-value">' + totalShotguns + '</div></div>' +
+      '<div class="stat-card"><div class="s-label">Guinness chugged</div><div class="s-value">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
       '</div>' +
       '<div class="table-wrap"><table id="standings-table">' +
       '<thead><tr>' +
@@ -646,6 +718,7 @@
       '<th style="width:60px;text-align:center" ' + thClass('bot2') + ' data-col="bot2" title="Bottom-2 finishes">Bot 2</th>' +
       '<th style="width:80px" ' + thClass('earned') + ' data-col="earned">Earned</th>' +
       '<th style="width:70px;text-align:center" ' + thClass('gmisses') + ' data-col="gmisses" title="Missed Guinness shotguns owed">🍺 Owes</th>' +
+      '<th style="width:70px;text-align:center" ' + thClass('totalg') + ' data-col="totalg" title="Total Guinnesses shotgunned this season">🍺 Total</th>' +
       '</tr></thead><tbody>';
 
     rows.forEach((m, idx) => {
@@ -664,6 +737,7 @@
         '<td style="text-align:center">' + (m.bottom2 > 0 ? '<span class="badge badge-bot">' + m.bottom2 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
         '<td><span class="' + (m.earned > 0 ? 'money-pos' : 'money-zero') + '">$' + m.earned.toFixed(2).replace('.00','') + '</span></td>' +
         '<td style="text-align:center">' + gmissCell + '</td>' +
+        '<td style="text-align:center;font-family:var(--font-mono);font-size:13px;font-weight:500;color:' + (m.totalG > 0 ? 'var(--amber)' : 'var(--text3)') + '">' + (m.totalG > 0 ? m.totalG : '—') + '</td>' +
         '</tr>';
     });
 
@@ -710,7 +784,7 @@
       const enriched = ranked.map((m, idx) => {
         if (idx > 0 && ranked[idx].gwPoints < ranked[idx-1].gwPoints) displayRank = idx + 1;
         const p = weekPrizes[m.id];
-        return { ...m, _displayRank: displayRank, _prize: p.prize, _shotgun: p.shotgun };
+        return { ...m, _displayRank: displayRank, _prize: p.prize, _shotgun: p.shotgun, _ineligible: p.ineligible };
       });
 
       // Sort by selected column
@@ -757,6 +831,9 @@
         if (hasPrize) {
           const bc = rank===1?'badge-1':rank===2?'badge-2':rank===3?'badge-3':'badge-4';
           resultBadge = '<span class="badge ' + bc + '">$' + m._prize.toFixed(2).replace('.00','') + '</span>';
+          if (m._ineligible) {
+            resultBadge += ' <span class="badge" style="background:#2a1a00;color:#f59e0b;border:1px solid rgba(245,158,11,0.2);" title="Cannot collect until shotguns are completed">⚠️ Owes shotguns</span>';
+          }
         }
         if (isBottom) resultBadge += (resultBadge ? ' ' : '') + '<span class="badge badge-shot">Shotgun</span>';
 
@@ -874,8 +951,11 @@
       const p = weekPrizes[m.id];
       const d = details[m.id];
       let result = 'no prize';
-      if (p.prize > 0) result = 'won $' + p.prize.toFixed(2).replace('.00','');
-      if (p.shotgun) result = p.prize > 0 ? result + ' + SHOTGUN DUTY' : 'SHOTGUN DUTY';
+      if (p.prize > 0) {
+        result = 'won $' + p.prize.toFixed(2).replace('.00','');
+        if (p.ineligible) result += ' (CANNOT COLLECT — must pay off outstanding Guinnesses first)';
+      }
+      if (p.shotgun) result = result !== 'no prize' ? result + ' + SHOTGUN DUTY' : 'SHOTGUN DUTY';
 
       let extras = [];
       if (d) {
@@ -888,7 +968,11 @@
       }
 
       const gmissCount = getGuinnessOwed(m.name);
-      if (gmissCount > 0) extras.push('Guinness owed: ' + gmissCount + (gmissCount >= 3 ? ' ⚠️ ONE MORE AND THEY'RE OUT' : ''));
+      if (gmissCount > 0) {
+        const gwStr = gmissMissedGWs.length > 0 ? ' (missed GW' + gmissMissedGWs.join(', GW') + ')' : '';
+        const dangerStr = gmissCount >= 3 ? ' WARNING: ONE MORE MISS AND THEY ARE KICKED OUT' : '';
+        extras.push('Guinness owed: ' + gmissCount + gwStr + dangerStr);
+      }
       let line = m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts | Season total: ' + m.total + ' | Top-4 finishes: ' + s.top4 + ' | Bottom-2 finishes: ' + s.bottom2 + ' | ' + result;
       if (extras.length > 0) line += ' | ' + extras.join(' | ');
       return line;
@@ -1132,7 +1216,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       }
 
       await loadLeague();
-      await loadAllHistory();
+      await loadAllHistory(true); // force refresh, bypass cache
       await loadGuinnessDebts();
       document.getElementById('header-meta').textContent =
         `League #${LEAGUE_ID} · GW${state.latestGW}`;
