@@ -472,33 +472,30 @@
     return { owedByGW, kickedOut };
   }
 
+  // Cache shotgun results per GW to avoid recomputing
+  const _shotgunCache = {};
+  function getShotgunManagersForGW(gw) {
+    if (_shotgunCache[gw]) return _shotgunCache[gw];
+    const ranked = getWeeklyRankings(gw);
+    if (ranked.length < 2) { _shotgunCache[gw] = new Set(); return _shotgunCache[gw]; }
+    const prizes = computeWeeklyPrizes(ranked);
+    const names = new Set();
+    ranked.forEach(m => { if (prizes[m.id] && prizes[m.id].shotgun) names.add(m.name); });
+    _shotgunCache[gw] = names;
+    return names;
+  }
+
   function getGuinnessOwedAtGW(name, gw) {
     const d = state.guinnessDebts[name];
     const missedAll = d ? (d.missed_gws || []) : [];
 
-    // Check bottom-2 in prior GW — this means they owe 1 drink at start of this GW
-    // This is always true regardless of whether it's recorded in missed_gws
-    let lostPriorGW = false;
-    if (gw > 1) {
-      const priorRanked = getWeeklyRankings(gw - 1);
-      if (priorRanked.length >= 2) {
-        const n = priorRanked.length;
-        let shotgunStart = n - 2;
-        while (shotgunStart > 0 && priorRanked[shotgunStart - 1].gwPoints === priorRanked[shotgunStart].gwPoints) {
-          shotgunStart--;
-        }
-        const shotgunNames = priorRanked.slice(shotgunStart).map(m => m.name);
-        if (shotgunNames.includes(name)) lostPriorGW = true;
-      }
-    }
+    // Check bottom-2 in prior GW using the same prize logic as the weekly table
+    const lostPriorGW = gw > 1 && getShotgunManagersForGW(gw - 1).has(name);
 
     if (!lostPriorGW && missedAll.length === 0) return 0;
 
     const { owedByGW } = computeGuinnessState(name);
     const fromMisses = owedByGW[gw] || 0;
-
-    // Always add 1 for prior week loss — it's owed regardless of whether they drank it
-    // The missed_gws entries represent additional penalties on top of this base
     const fromLoss = lostPriorGW ? 1 : 0;
 
     return Math.max(0, fromMisses + fromLoss);
