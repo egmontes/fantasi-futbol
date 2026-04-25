@@ -1367,25 +1367,7 @@
     return _ownershipCache[gw];
   }
 
-  
-// --- Helper: group managers by equal GW points (tie-aware) ---
-function groupByPoints(ranked) {
-  const groups = [];
-  let i = 0;
-  while (i < ranked.length) {
-    const pts = ranked[i].gwPoints;
-    let j = i;
-    while (j < ranked.length && ranked[j].gwPoints === pts) j++;
-    groups.push({
-      points: pts,
-      managers: ranked.slice(i, j).map(m => m.name)
-    });
-    i = j;
-  }
-  return groups;
-}
-
-async function buildPrompt(gw) {
+  async function buildPrompt(gw) {
     const stats = computeSeasonStats();
     const ranked = getWeeklyRankings(gw);
     const weekPrizes = computeWeeklyPrizes(ranked);
