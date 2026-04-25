@@ -1115,9 +1115,10 @@
         }
       }
 
-      const gmissCount = getGuinnessOwed(m.name);
+      // Use GW-specific owed count so the prompt reflects debt at the time of this GW
+      const gmissCount = getGuinnessOwedAtGW(m.name, gw);
       if (gmissCount > 0) {
-        const missedGWs = getGuinnessMissedGWs(m.name);
+        const missedGWs = getGuinnessMissedGWs(m.name).filter(g => g < gw);
         const gwStr = missedGWs.length > 0 ? ' (missed GW' + missedGWs.join(', GW') + ')' : '';
         const dangerStr = isKickedOut(m.name) ? ' KICKED OUT OF LEAGUE' : (gmissCount >= 3 ? ' WARNING: ONE MORE MISS AND THEY ARE KICKED OUT' : '');
         extras.push('Guinness owed: ' + gmissCount + gwStr + dangerStr);
