@@ -1222,34 +1222,110 @@
     }
   }
 
+  // Cache live player stats per GW
+  const _liveStatsCache = {};
+  async function fetchLiveStats(gw) {
+    if (_liveStatsCache[gw]) return _liveStatsCache[gw];
+    try {
+      const data = await fetchFPL('event/' + gw + '/live/');
+      const stats = {};
+      data.elements.forEach(el => {
+        const s = el.stats;
+        stats[el.id] = {
+          pts: s.total_points,
+          goals: s.goals_scored,
+          assists: s.assists,
+          cleanSheet: s.clean_sheets,
+          goalsConceded: s.goals_conceded,
+          yellowCards: s.yellow_cards,
+          redCards: s.red_cards,
+          saves: s.saves,
+          bonus: s.bonus,
+          minutesPlayed: s.minutes,
+        };
+      });
+      _liveStatsCache[gw] = stats;
+      return stats;
+    } catch(e) {
+      return {};
+    }
+  }
+
+  function formatPlayerStats(playerId, liveStats, multiplier) {
+    const s = liveStats[playerId];
+    if (!s) return null;
+    const pts = s.pts * (multiplier || 1);
+    if (s.minutesPlayed === 0) return pts + ' pts (DNP)';
+    const parts = [];
+    if (s.goals > 0) parts.push(s.goals + ' goal' + (s.goals > 1 ? 's' : ''));
+    if (s.assists > 0) parts.push(s.assists + ' assist' + (s.assists > 1 ? 's' : ''));
+    if (s.cleanSheet > 0) parts.push('clean sheet');
+    if (s.saves >= 3) parts.push(s.saves + ' saves');
+    if (s.yellowCards > 0) parts.push('yellow card');
+    if (s.redCards > 0) parts.push('red card');
+    if (s.bonus > 0) parts.push(s.bonus + ' bonus');
+    const context = parts.length > 0 ? ' — ' + parts.join(', ') : ' — no returns';
+    return pts + ' pts' + context;
+  }
+
   async function fetchManagerGWDetail(managerId, gw) {
     try {
-      const [picksData, histData] = await Promise.all([
+      const [picksData, histData, liveStats] = await Promise.all([
         fetchFPL('entry/' + managerId + '/event/' + gw + '/picks/'),
         fetchFPL('entry/' + managerId + '/transfers/'),
+        fetchLiveStats(gw),
       ]);
 
       // Captain
       const captainPick = picksData.picks.find(p => p.is_captain);
-      const captainName = captainPick ? (state.bootstrapPlayers[captainPick.element] || 'Unknown') : null;
+      const captainId = captainPick ? captainPick.element : null;
+      const captainName = captainId ? (state.bootstrapPlayers[captainId] || 'Unknown') : null;
       const captainMult = captainPick ? captainPick.multiplier : 2;
+      const captainStats = captainId ? formatPlayerStats(captainId, liveStats, captainMult) : null;
 
       // Chip used
       const chip = picksData.active_chip || null;
 
-      // Player scores — picks don't include live scores directly, use element_explain if available
-      // Build list of player names + scores from bootstrap element_gameweek or fallback
-      const playerScores = picksData.picks.map(p => {
-        const name = state.bootstrapPlayers[p.element] || ('Player ' + p.element);
-        return { name, multiplier: p.multiplier, isCaptain: p.is_captain, isViceCaptain: p.is_vice_captain };
+      // Transfers for this GW with player scores
+      const gwTransfers = histData.filter(t => t.event === gw);
+      const transfersIn = gwTransfers.map(t => {
+        const name = state.bootstrapPlayers[t.element_in] || ('Player ' + t.element_in);
+        const stats = formatPlayerStats(t.element_in, liveStats, 1);
+        return { name, stats };
+      });
+      const transfersOut = gwTransfers.map(t => {
+        const name = state.bootstrapPlayers[t.element_out] || ('Player ' + t.element_out);
+        const stats = formatPlayerStats(t.element_out, liveStats, 1);
+        return { name, stats };
       });
 
-      // Transfers for this GW
-      const gwTransfers = histData.filter(t => t.event === gw);
-      const transfersIn = gwTransfers.map(t => state.bootstrapPlayers[t.element_in] || ('Player ' + t.element_in));
-      const transfersOut = gwTransfers.map(t => state.bootstrapPlayers[t.element_out] || ('Player ' + t.element_out));
+      // Split picks into starting XI and bench
+      const startingPicks = picksData.picks.filter(p => p.position <= 11);
+      const benchPicks = picksData.picks.filter(p => p.position > 11);
 
-      return { captainName, chip, transfersIn, transfersOut, playerScores };
+      // Standout performers in starting XI (8+ pts, excluding captain who's already shown)
+      const standouts = startingPicks
+        .filter(p => !p.is_captain && (liveStats[p.element]?.pts || 0) >= 8)
+        .map(p => ({
+          name: state.bootstrapPlayers[p.element] || ('Player ' + p.element),
+          stats: formatPlayerStats(p.element, liveStats, 1),
+        }))
+        .sort((a, b) => (liveStats[b.element]?.pts || 0) - (liveStats[a.element]?.pts || 0));
+
+      // Underperformers — captain who blanked (<=2 pts)
+      const captainBlank = captainId && (liveStats[captainId]?.pts || 0) <= 2;
+
+      // Bench points — anyone on bench who scored 6+ pts (wasted points)
+      const benchWaste = benchPicks
+        .map(p => ({
+          name: state.bootstrapPlayers[p.element] || ('Player ' + p.element),
+          pts: liveStats[p.element]?.pts || 0,
+          stats: formatPlayerStats(p.element, liveStats, 1),
+        }))
+        .filter(p => p.pts >= 6)
+        .sort((a, b) => b.pts - a.pts);
+
+      return { captainName, captainStats, captainMult, captainBlank, chip, transfersIn, transfersOut, standouts, benchWaste };
     } catch(e) {
       return null;
     }
@@ -1344,23 +1420,37 @@
       let extras = [];
       if (d) {
         if (d.captainName) {
-          // Find player id for captain to get ownership stats
           const captainId = Object.keys(state.bootstrapPlayers).find(id => state.bootstrapPlayers[id] === d.captainName);
           const captainCount = captainId ? (ownership.captained[captainId] || 0) : 0;
           const captainPct = captainCount > 0 ? Math.round((captainCount / ownership.total) * 100) : null;
           const captainOwnerStr = captainPct !== null ? ' (' + captainPct + '% of league captained)' : '';
-          extras.push('Captained: ' + d.captainName + (d.captainMult === 3 ? ' (TC)' : '') + captainOwnerStr);
+          const captainStatStr = d.captainStats ? ': ' + d.captainStats : '';
+          const blankStr = d.captainBlank ? ' — BLANKED' : '';
+          extras.push('Captained: ' + d.captainName + (d.captainMult === 3 ? ' (TC)' : '') + captainOwnerStr + captainStatStr + blankStr);
         }
         if (d.chip) extras.push('Chip used: ' + d.chip);
         if (d.transfersIn && d.transfersIn.length > 0) {
-          // Add ownership % for transferred-in players
-          const inWithOwnership = d.transfersIn.map(name => {
-            const pid = Object.keys(state.bootstrapPlayers).find(id => state.bootstrapPlayers[id] === name);
+          const inWithStats = d.transfersIn.map(t => {
+            const pid = Object.keys(state.bootstrapPlayers).find(id => state.bootstrapPlayers[id] === t.name);
             const pct = pid ? Math.round(((ownership.owned[pid] || 0) / ownership.total) * 100) : null;
-            return pct !== null ? name + ' (' + pct + '% owned)' : name;
+            const ownStr = pct !== null ? ' (' + pct + '% owned)' : '';
+            const statStr = t.stats ? ': ' + t.stats : '';
+            return t.name + ownStr + statStr;
           });
-          extras.push('Transferred in: ' + inWithOwnership.join(', '));
-          extras.push('Transferred out: ' + d.transfersOut.join(', '));
+          const outWithStats = d.transfersOut.map(t => {
+            const statStr = t.stats ? ': ' + t.stats : '';
+            return t.name + statStr;
+          });
+          extras.push('Transferred in: ' + inWithStats.join(' | '));
+          extras.push('Transferred out: ' + outWithStats.join(' | '));
+        }
+        if (d.standouts && d.standouts.length > 0) {
+          const standoutStr = d.standouts.map(s => s.name + ': ' + s.stats).join(' | ');
+          extras.push('Standout players: ' + standoutStr);
+        }
+        if (d.benchWaste && d.benchWaste.length > 0) {
+          const benchStr = d.benchWaste.map(b => b.name + ': ' + b.stats + ' (on bench — wasted)').join(' | ');
+          extras.push('Points left on bench: ' + benchStr);
         }
       } else if (allChips[m.id]) {
         extras.push('Chip used: ' + allChips[m.id]);
@@ -1390,12 +1480,14 @@ GW${gw} results (includes captain, chip, and transfer data where available):
 ${summaryLines}
 
 Player data notes:
-- "Captained: [player] (X% of league captained)" = that manager's captain pick. DO NOT mention the % in the recap unless it's genuinely part of the story — e.g. someone captained a huge differential (<15%) that paid off big, or someone went ultra-contrarian and it blew up. If most people captained the same player, just say they captained them without the stat.
-- "(TC)" = Triple Captain chip used (3x points instead of 2x).
-- "Chip used: [chip]" = special chip played this week (wildcard, bench_boost, free_hit, 3xc).
-- "Transferred in: [player] (X% owned)" = ownership context is available but use it sparingly. Only mention % if someone brought in a genuine differential (<15% owned) that had a big impact. Don't pepper the recap with ownership stats — this is a casual league, not a FPL podcast.
-- "Transferred out" = who they sold. If they sold someone who then scored big, roast them for it.
-- The ownership data is background context to help you identify what's interesting. Reference it naturally in the narrative only when it genuinely adds to the story.
+- "Captained: [player] (X% captained): Y pts — [stats]" = captain pick with actual points scored and breakdown (goals, assists, clean sheet etc). Use this to accurately describe captain performance. Only mention ownership % if it's genuinely part of the story (e.g. ultra-contrarian pick that paid off or blew up).
+- "(TC)" = Triple Captain chip (3x points).
+- "Chip used: [chip]" = special chip played (wildcard, bench_boost, free_hit, 3xc).
+- "Transferred in: [player] (X% owned): Y pts — [stats]" = transfer in with actual points and breakdown. Use the stats to accurately call out standout transfers or disasters. Only mention ownership % if genuinely interesting. A transfer-in with "no returns" that someone brought in for a key reason is worth a gentle roast.
+- "Transferred out: [player] (Y pts — goals/assists if any)" = if a sold player then scored goals or got assists that week, roast the manager for it. If they scored 0, no need to mention them.
+- "Standout players: [player]: Y pts — stats" = non-captain starters who scored 8+ pts. Worth mentioning if they drove a big haul for the manager.
+- "Points left on bench: [player]: Y pts (on bench — wasted)" = players who scored 6+ pts but were benched. Great roast material especially if it cost them a prize position or a big score. Always mention this if it's notable.
+- Always use the actual stats provided — never speculate or guess about player performance.
 - "Guinness owed: N" = this manager owes N shotguns. Only mention this if N >= 2, as owing 1 is normal and expected after a bottom-2 finish. Only flag it as notable or worrying if they owe 2 or more. They have NOT missed their shotgun — the deadline hasn't passed. Do NOT imply they've missed or skipped anything.
 - "SHOTGUN DUTY" = this manager finished bottom-2 THIS week and must shotgun a Guinness before 7:30am ET next Saturday. This is a fresh obligation, not a missed one.
 
