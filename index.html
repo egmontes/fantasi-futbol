@@ -393,19 +393,32 @@
     }
   }
 
-  function getGuinnessOwed(name) {
+  // How many beers does a manager owe at the START of gameweek n?
+  // Only based on recorded misses and makeups — on-time shotguns are not recorded
+  function getGuinnessOwedAtGW(name, gw) {
     const d = state.guinnessDebts[name];
     if (!d) return 0;
-    const missed = (d.missed_gws || []).length;
-    const madeUp = (d.made_up_gws || []).length;
-    if (missed === 0) return 0;
-    return Math.max(0, missed - madeUp + 1);
+    const missed = (d.missed_gws || []).filter(g => g < gw).length;
+    const madeUp = (d.made_up_gws || []).filter(g => g < gw).length;
+    return Math.max(0, missed - madeUp);
+  }
+
+  // Current owed (for standings page)
+  function getGuinnessOwed(name) {
+    return getGuinnessOwedAtGW(name, state.latestGW + 1);
   }
 
   function getGuinnessMissedGWs(name) {
     const d = state.guinnessDebts[name];
     if (!d) return [];
     return d.missed_gws || [];
+  }
+
+  // Did this manager miss their shotgun for a specific GW?
+  function didMissGW(name, gw) {
+    const d = state.guinnessDebts[name];
+    if (!d) return false;
+    return (d.missed_gws || []).includes(gw);
   }
 
   function getTotalGuinnesses(name, bottom2Count) {
@@ -818,7 +831,8 @@
         '<th style="width:56px;text-align:center" ' + wthClass('hits') + ' data-col="hits">Hits</th>' +
         '<th style="width:60px;text-align:center" ' + wthClass('bench') + ' data-col="bench">Bench</th>' +
         '<th style="width:100px" ' + wthClass('prize') + ' data-col="prize">Result</th>' +
-        '<th style="width:70px;text-align:center" title="Missed Guinness shotguns owed">🍺 Owes</th>' +
+        '<th style="width:80px;text-align:center" title="Beers owed at start of this gameweek">🍺 Beers Owed</th>' +
+        '<th style="width:80px;text-align:center" title="Missed shotgun this gameweek">❌ Missed</th>' +
         '</tr></thead><tbody>';
 
       enriched.forEach((m, idx) => {
@@ -841,12 +855,16 @@
           ? '<span style="color:var(--red);font-family:var(--font-mono);font-size:12px;">-' + m.transferCost + '</span>'
           : '<span class="badge-zero">—</span>';
 
-        const gmisses = getGuinnessOwed(m.name);
-        const gmissWeekly = gmisses >= 3
-          ? '<span class="badge" style="background:#7a1a1a;color:#ffb3b3;border:1px solid rgba(255,100,100,0.3);">⚠️ ' + gmisses + '</span>'
-          : gmisses > 0
-            ? '<span class="badge badge-bot">' + gmisses + '</span>'
+        const owedThisGW = getGuinnessOwedAtGW(m.name, gw);
+        const missedThisGW = didMissGW(m.name, gw);
+        const owedCell = owedThisGW >= 3
+          ? '<span class="badge" style="background:#7a1a1a;color:#ffb3b3;border:1px solid rgba(255,100,100,0.3);">⚠️ ' + owedThisGW + '</span>'
+          : owedThisGW > 0
+            ? '<span class="badge badge-bot">' + owedThisGW + '</span>'
             : '<span class="badge-zero">—</span>';
+        const missedCell = missedThisGW
+          ? '<span style="color:var(--red);font-size:16px;font-weight:bold;">✗</span>'
+          : '<span class="badge-zero">—</span>';
         html += '<tr class="' + rowCls + '">' +
           '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
           '<td><div class="m-name">' + esc(m.name) + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
@@ -855,7 +873,8 @@
           '<td style="text-align:center">' + hitStr + '</td>' +
           '<td style="text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--text3)">' + m.benchPoints + '</td>' +
           '<td>' + (resultBadge || '<span class="badge-zero">—</span>') + '</td>' +
-          '<td style="text-align:center">' + gmissWeekly + '</td>' +
+          '<td style="text-align:center">' + owedCell + '</td>' +
+          '<td style="text-align:center">' + missedCell + '</td>' +
           '</tr>';
       });
 
