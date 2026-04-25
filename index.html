@@ -473,14 +473,26 @@
   }
 
   // Cache shotgun results per GW to avoid recomputing
+  // Uses raw ranking logic (no computeWeeklyPrizes) to avoid circular dependency
   const _shotgunCache = {};
   function getShotgunManagersForGW(gw) {
     if (_shotgunCache[gw]) return _shotgunCache[gw];
     const ranked = getWeeklyRankings(gw);
-    if (ranked.length < 2) { _shotgunCache[gw] = new Set(); return _shotgunCache[gw]; }
-    const prizes = computeWeeklyPrizes(ranked);
     const names = new Set();
-    ranked.forEach(m => { if (prizes[m.id] && prizes[m.id].shotgun) names.add(m.name); });
+    if (ranked.length < 2) { _shotgunCache[gw] = names; return names; }
+    const n = ranked.length;
+    // Find bottom-2 boundary, expanding for ties
+    let shotgunStart = n - 2;
+    while (shotgunStart > 0 && ranked[shotgunStart - 1].gwPoints === ranked[shotgunStart].gwPoints) {
+      shotgunStart--;
+    }
+    // Only mark as shotgun if they're at or below the last-place score
+    // (prevents top-tied managers from being incorrectly flagged)
+    const lastScore = ranked[n - 1].gwPoints;
+    const secondLastScore = ranked[n - 2].gwPoints;
+    ranked.forEach((m, idx) => {
+      if (m.gwPoints <= secondLastScore) names.add(m.name);
+    });
     _shotgunCache[gw] = names;
     return names;
   }
