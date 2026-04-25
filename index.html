@@ -658,7 +658,7 @@ async function init() {
       document.getElementById('header-meta').textContent =
         `League #${LEAGUE_ID} · GW${state.latestGW}`;
 
-      await loadLastUpdated();
+      loadLastUpdated();
       renderStandings();
       if (state.isLive) renderLive();
       else if (state.showPreview) renderPreview();
@@ -943,7 +943,7 @@ async function init() {
           standingsSort.col = c;
           standingsSort.dir = 'desc';
         }
-        await loadLastUpdated();
+        loadLastUpdated();
       renderStandings();
       });
     });
@@ -1853,7 +1853,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         gwSel.appendChild(prevOpt);
       }
 
-      await loadLastUpdated();
+      loadLastUpdated();
       renderStandings();
       const refreshVal = gwSel.value;
       if (refreshVal === 'preview') renderPreview();
