@@ -476,7 +476,8 @@
     const d = state.guinnessDebts[name];
     const missedAll = d ? (d.missed_gws || []) : [];
 
-    // Check bottom-2 in prior GW (1 drink due this week, not yet recorded as miss)
+    // Check bottom-2 in prior GW — this means they owe 1 drink at start of this GW
+    // This is always true regardless of whether it's recorded in missed_gws
     let lostPriorGW = false;
     if (gw > 1) {
       const priorRanked = getWeeklyRankings(gw - 1);
@@ -495,8 +496,10 @@
 
     const { owedByGW } = computeGuinnessState(name);
     const fromMisses = owedByGW[gw] || 0;
-    // Add 1 for prior week loss only if not already captured as a miss
-    const fromLoss = (lostPriorGW && !missedAll.includes(gw)) ? 1 : 0;
+
+    // Always add 1 for prior week loss — it's owed regardless of whether they drank it
+    // The missed_gws entries represent additional penalties on top of this base
+    const fromLoss = lostPriorGW ? 1 : 0;
 
     return Math.max(0, fromMisses + fromLoss);
   }
