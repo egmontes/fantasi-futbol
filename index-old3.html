@@ -658,7 +658,7 @@ async function init() {
       document.getElementById('header-meta').textContent =
         `League #${LEAGUE_ID} · GW${state.latestGW}`;
 
-      loadLastUpdated();
+      await loadLastUpdated();
       renderStandings();
       if (state.isLive) renderLive();
       else if (state.showPreview) renderPreview();
@@ -943,7 +943,7 @@ async function init() {
           standingsSort.col = c;
           standingsSort.dir = 'desc';
         }
-        loadLastUpdated();
+        await loadLastUpdated();
       renderStandings();
       });
     });
@@ -1528,18 +1528,7 @@ GW${gw} results (includes captain, chip, and transfer data where available):
 ${summaryLines}
 
 Player data notes:
-- You MUST reference how each manager’s weekly performance fits into their season.
-- Use season stats (total points, top-4 finishes, bottom-2 finishes) to add context:
-  - Is this a rare good week or business as usual?
-  - Are they consistent, streaky, or chaotic?
-  - Are they climbing, collapsing, or stuck in mediocrity?
-- Call out patterns (e.g. “another top finish”, “back in the mud again”, “quietly consistent all season”).
 - "Captained: [player] (X% captained): Y pts — [stats]" = captain pick with actual points and stat breakdown. Write about this like a match reporter, not a data analyst — fold the stats into the narrative naturally. Only mention the ownership % if it genuinely adds to the story (ultra-contrarian pick that paid off, or consensus pick that bombed). Never put raw numbers in parentheses mid-sentence.
-- Captain points are already DOUBLED in the point total shown.
-- The raw performance listed (goals, assists, etc.) reflects the player’s actual match output, not the doubled score.
-- When writing about captains, make it clear whether the performance itself was good, or if the doubled points are making it look better than it was.
-- Example: if a captain shows 8 points from a single assist, acknowledge that it was a modest return that looks better because of the armband.
-- Do NOT describe the doubled total as the player's actual performance.
 - "(TC)" = Triple Captain chip (3x points). Worth mentioning if it paid off big or backfired badly.
 - "Chip used: [chip]" = special chip played. Weave it into the story naturally rather than just stating it.
 - "Transferred in: [player] (X% owned): Y pts — [stats]" = use the stats to celebrate genius transfers or roast disasters. Ownership % should flavor the writing — "a player barely anyone else owned" rather than "(8% owned)". Never list the raw % in parentheses.
@@ -1864,7 +1853,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         gwSel.appendChild(prevOpt);
       }
 
-      loadLastUpdated();
+      await loadLastUpdated();
       renderStandings();
       const refreshVal = gwSel.value;
       if (refreshVal === 'preview') renderPreview();

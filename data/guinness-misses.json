@@ -21,7 +21,7 @@
   "Logan Kluis":        { "missed_gws": [], "made_up_gws": [] },
   "Lucas Rodriguez":    { "missed_gws": [], "made_up_gws": [] },
   "Luke Civantos":      { "missed_gws": [], "made_up_gws": [] },
-  "Mark Wright":        { "missed_gws": [], "made_up_gws": [] },
+  "Mark Wright":        { "missed_gws": [34], "made_up_gws": [] },
   "Matt Nicolai":       { "missed_gws": [], "made_up_gws": [] },
   "Michael DeLaus":     { "missed_gws": [], "made_up_gws": [] },
   "Michael Legaz":      { "missed_gws": [], "made_up_gws": [] },
