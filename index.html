@@ -354,7 +354,19 @@
     currentGW: 1,
     bootstrapPlayers: {},
     workingProxy: null,
+    guinnessDebts: {}, // name -> { missed_gws: [], made_up_gws: [] }
   };
+
+  async function loadGuinnessDebts() {
+    try {
+      const res = await fetch('data/guinness-misses.json?nocache=' + Date.now());
+      if (res.ok) {
+        state.guinnessDebts = await res.json();
+      }
+    } catch(e) {
+      state.guinnessDebts = {};
+    }
+  }
 
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -369,6 +381,18 @@
       clearTimeout(timeout);
       throw e;
     }
+  }
+
+  function getGuinnessOwed(name) {
+    const d = state.guinnessDebts[name];
+    if (!d) return 0;
+    return Math.max(0, (d.missed_gws || []).length - (d.made_up_gws || []).length);
+  }
+
+  function getGuinnessMissedGWs(name) {
+    const d = state.guinnessDebts[name];
+    if (!d) return [];
+    return d.missed_gws || [];
   }
 
   async function fetchFPL(path) {
@@ -425,6 +449,7 @@
 
       await loadLeague();
       await loadAllHistory();
+      await loadGuinnessDebts();
 
       document.getElementById('header-meta').textContent =
         `League #${LEAGUE_ID} · GW${state.latestGW}`;
@@ -588,7 +613,8 @@
 
     const rows = state.managers.map(m => {
       const s = stats[m.id] || {};
-      return { ...m, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0 };
+      const gmisses = getGuinnessOwed(m.name);
+      return { ...m, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses };
     });
 
     const col = standingsSort.col;
@@ -599,6 +625,7 @@
       if (col === 'top4') return dir * (a.top4 - b.top4);
       if (col === 'bot2') return dir * (a.bottom2 - b.bottom2);
       if (col === 'earned') return dir * (a.earned - b.earned);
+      if (col === 'gmisses') return dir * (a.gmisses - b.gmisses);
       return 0;
     });
 
@@ -618,11 +645,17 @@
       '<th style="width:60px;text-align:center" ' + thClass('top4') + ' data-col="top4" title="Top-4 finishes">Top 4</th>' +
       '<th style="width:60px;text-align:center" ' + thClass('bot2') + ' data-col="bot2" title="Bottom-2 finishes">Bot 2</th>' +
       '<th style="width:80px" ' + thClass('earned') + ' data-col="earned">Earned</th>' +
+      '<th style="width:70px;text-align:center" ' + thClass('gmisses') + ' data-col="gmisses" title="Missed Guinness shotguns owed">🍺 Owes</th>' +
       '</tr></thead><tbody>';
 
     rows.forEach((m, idx) => {
       const pos = idx + 1;
       const rowCls = pos === 1 ? 'row-1' : pos === 2 ? 'row-2' : pos === 3 ? 'row-3' : '';
+      const gmissCell = m.gmisses >= 3
+        ? '<span class="badge" style="background:#7a1a1a;color:#ffb3b3;border:1px solid rgba(255,100,100,0.3);">⚠️ ' + m.gmisses + '</span>'
+        : m.gmisses > 0
+          ? '<span class="badge badge-bot">' + m.gmisses + '</span>'
+          : '<span class="badge-zero">—</span>';
       html += '<tr class="' + rowCls + '">' +
         '<td><span class="rank-num">' + pos + '</span></td>' +
         '<td><div class="m-name">' + esc(m.name) + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
@@ -630,6 +663,7 @@
         '<td style="text-align:center">' + (m.top4 > 0 ? '<span class="badge badge-top">' + m.top4 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
         '<td style="text-align:center">' + (m.bottom2 > 0 ? '<span class="badge badge-bot">' + m.bottom2 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
         '<td><span class="' + (m.earned > 0 ? 'money-pos' : 'money-zero') + '">$' + m.earned.toFixed(2).replace('.00','') + '</span></td>' +
+        '<td style="text-align:center">' + gmissCell + '</td>' +
         '</tr>';
     });
 
@@ -710,6 +744,7 @@
         '<th style="width:56px;text-align:center" ' + wthClass('hits') + ' data-col="hits">Hits</th>' +
         '<th style="width:60px;text-align:center" ' + wthClass('bench') + ' data-col="bench">Bench</th>' +
         '<th style="width:100px" ' + wthClass('prize') + ' data-col="prize">Result</th>' +
+        '<th style="width:70px;text-align:center" title="Missed Guinness shotguns owed">🍺 Owes</th>' +
         '</tr></thead><tbody>';
 
       enriched.forEach((m, idx) => {
@@ -729,6 +764,12 @@
           ? '<span style="color:var(--red);font-family:var(--font-mono);font-size:12px;">-' + m.transferCost + '</span>'
           : '<span class="badge-zero">—</span>';
 
+        const gmisses = getGuinnessOwed(m.name);
+        const gmissWeekly = gmisses >= 3
+          ? '<span class="badge" style="background:#7a1a1a;color:#ffb3b3;border:1px solid rgba(255,100,100,0.3);">⚠️ ' + gmisses + '</span>'
+          : gmisses > 0
+            ? '<span class="badge badge-bot">' + gmisses + '</span>'
+            : '<span class="badge-zero">—</span>';
         html += '<tr class="' + rowCls + '">' +
           '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
           '<td><div class="m-name">' + esc(m.name) + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
@@ -737,6 +778,7 @@
           '<td style="text-align:center">' + hitStr + '</td>' +
           '<td style="text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--text3)">' + m.benchPoints + '</td>' +
           '<td>' + (resultBadge || '<span class="badge-zero">—</span>') + '</td>' +
+          '<td style="text-align:center">' + gmissWeekly + '</td>' +
           '</tr>';
       });
 
@@ -762,7 +804,52 @@
     }
   }
 
-  function buildPrompt(gw) {
+  async function fetchManagerGWDetail(managerId, gw) {
+    try {
+      const [picksData, histData] = await Promise.all([
+        fetchFPL('entry/' + managerId + '/event/' + gw + '/picks/'),
+        fetchFPL('entry/' + managerId + '/transfers/'),
+      ]);
+
+      // Captain
+      const captainPick = picksData.picks.find(p => p.is_captain);
+      const captainName = captainPick ? (state.bootstrapPlayers[captainPick.element] || 'Unknown') : null;
+      const captainMult = captainPick ? captainPick.multiplier : 2;
+
+      // Chip used
+      const chip = picksData.active_chip || null;
+
+      // Player scores — picks don't include live scores directly, use element_explain if available
+      // Build list of player names + scores from bootstrap element_gameweek or fallback
+      const playerScores = picksData.picks.map(p => {
+        const name = state.bootstrapPlayers[p.element] || ('Player ' + p.element);
+        return { name, multiplier: p.multiplier, isCaptain: p.is_captain, isViceCaptain: p.is_vice_captain };
+      });
+
+      // Transfers for this GW
+      const gwTransfers = histData.filter(t => t.event === gw);
+      const transfersIn = gwTransfers.map(t => state.bootstrapPlayers[t.element_in] || ('Player ' + t.element_in));
+      const transfersOut = gwTransfers.map(t => state.bootstrapPlayers[t.element_out] || ('Player ' + t.element_out));
+
+      return { captainName, chip, transfersIn, transfersOut, playerScores };
+    } catch(e) {
+      return null;
+    }
+  }
+
+  async function fetchAllGWDetails(gw, managers) {
+    const BATCH = 3;
+    const results = {};
+    for (let i = 0; i < managers.length; i += BATCH) {
+      const batch = managers.slice(i, i + BATCH);
+      await Promise.all(batch.map(async m => {
+        results[m.id] = await fetchManagerGWDetail(m.id, gw);
+      }));
+    }
+    return results;
+  }
+
+  async function buildPrompt(gw) {
     const stats = computeSeasonStats();
     const ranked = getWeeklyRankings(gw);
     const weekPrizes = computeWeeklyPrizes(ranked);
@@ -774,13 +861,37 @@
       m._displayRank = displayRank;
     });
 
+    // Fetch detailed picks/transfers/chips for all managers
+    const btn = document.getElementById('copy-prompt-btn');
+    btn.disabled = true;
+    btn.textContent = 'Fetching player data...';
+    const details = await fetchAllGWDetails(gw, ranked);
+    btn.disabled = false;
+    btn.textContent = 'Copy GW' + gw + ' prompt →';
+
     const summaryLines = ranked.map((m, idx) => {
       const s = stats[m.id] || {};
       const p = weekPrizes[m.id];
+      const d = details[m.id];
       let result = 'no prize';
       if (p.prize > 0) result = 'won $' + p.prize.toFixed(2).replace('.00','');
       if (p.shotgun) result = p.prize > 0 ? result + ' + SHOTGUN DUTY' : 'SHOTGUN DUTY';
-      return m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts | Season total: ' + m.total + ' | Top-4 finishes: ' + s.top4 + ' | Bottom-2 finishes: ' + s.bottom2 + ' | ' + result;
+
+      let extras = [];
+      if (d) {
+        if (d.captainName) extras.push('Captained: ' + d.captainName + (d.captainMult === 3 ? ' (TC)' : ''));
+        if (d.chip) extras.push('Chip used: ' + d.chip);
+        if (d.transfersIn && d.transfersIn.length > 0) {
+          extras.push('Transferred in: ' + d.transfersIn.join(', '));
+          extras.push('Transferred out: ' + d.transfersOut.join(', '));
+        }
+      }
+
+      const gmissCount = getGuinnessOwed(m.name);
+      if (gmissCount > 0) extras.push('Guinness owed: ' + gmissCount + (gmissCount >= 3 ? ' ⚠️ ONE MORE AND THEY'RE OUT' : ''));
+      let line = m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts | Season total: ' + m.total + ' | Top-4 finishes: ' + s.top4 + ' | Bottom-2 finishes: ' + s.bottom2 + ' | ' + result;
+      if (extras.length > 0) line += ' | ' + extras.join(' | ');
+      return line;
     }).join('\n');
 
     return `You are the snarky, brutally funny commissioner of a Fantasy Premier League league called "Fantasi Futbol". Write a roast-filled weekly recap for Gameweek ${gw}.
@@ -789,30 +900,56 @@ League rules:
 - Weekly prizes: 1st = $30, 2nd = $15, 3rd = $10, 4th = $5
 - The bottom 2 managers each week must shotgun a Guinness before 7:30am ET the following Saturday. No exceptions.
 
-GW${gw} results:
+GW${gw} results (includes captain, chip, and transfer data where available):
 ${summaryLines}
 
-Write the recap with the following EXACT sections in order. Use the section headers exactly as written:
+Player data notes:
+- "Captained: [player]" = that manager chose them as captain (2x points). "(TC)" = Triple Captain chip (3x points).
+- "Chip used: [chip]" = special chip played this week (wildcard, bench_boost, free_hit, 3xc).
+- "Transferred in/out" = who they bought and sold. If a transfer-in scored big, call it genius. If they sold someone who then scored, roast them.
+- Only highlight the most interesting/impactful player details — don't list everyone, just what mattered most.
 
-**GW${gw} OVERVIEW**
-2-3 sentences giving a punchy, dramatic summary of the week overall. Set the scene. Be funny.
+Write the recap with the following sections in order. Each section header must follow this exact format:
+- Fixed prefix (emoji + place + manager name) followed by a dash and a SHORT FUNNY TITLE (3-5 words)
+- Entire header is bold
+- Paragraph starts on a NEW LINE after the header
+- Blank line between each section
 
-**1ST PLACE — [manager name] ($30)**
-A short paragraph hyping the winner. Celebrate their score, maybe speculate on how they pulled it off. Make them feel like a genius even if they got lucky.
+**📋 GW${gw} OVERVIEW — [funny title]**
+2-3 sentences. Punchy dramatic summary of the week. Reference any standout player moments or chips if notable. Be funny.
 
-**2ND PLACE — [manager name] ($15)**
-A short paragraph for second place. Positive but maybe a slight dig that they weren't first.
+**🥇 1ST PLACE — [manager name] — [funny title]**
+Hype the winner. Reference their captain and whether it paid off. Mention smart transfers or chips. Include their $30 prize. Make them feel like a genius.
 
-**3RD PLACE — [manager name] ($10)**
-A short paragraph for third. Positive spin with a gentle ribbing.
+**🥈 2ND PLACE — [manager name] — [funny title]**
+Celebrate second and their $15. Reference a key player moment or captain. Slight dig they weren't first.
 
-**4TH PLACE — [manager name] ($5)**
-A short paragraph for fourth. They got paid but just barely — have fun with that.
+**🥉 3RD PLACE — [manager name] — [funny title]**
+Third place and $10. Mention a specific player, captain, or transfer that shaped their week. Positive with gentle ribbing.
 
-**SHOTGUN DUTY 🍺**
-A ruthless but good-natured roast of the bottom 2 managers who must shotgun a Guinness before 7:30am ET Saturday. Name them both. If either has multiple bottom-2 finishes this season, call that out with a funny nickname. Remind them the clock starts Saturday morning.
+**4️⃣ 4TH PLACE — [manager name] — [funny title]**
+Fourth place and their $5. Reference their captain or a notable transfer. They got paid but barely — have fun with it.
 
-Tone: funny, punchy, group-chat energy. Each section should be 2-4 sentences. No extra commentary outside the sections.`;
+**🍺 SHOTGUN DUTY — [funny title]**
+Ruthless but good-natured roast of the bottom 2. Reference what went wrong — bad captain, transfer that backfired, chip that flopped. Name both managers. Call out repeat offenders with a funny nickname. Remind them: 7:30am Saturday, no exceptions.
+
+Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra commentary outside the sections.`
+  }
+
+  // Try to load recap from GitHub Pages recaps/ folder, fall back to localStorage
+  async function loadSavedRecap(gw) {
+    const season = 2025;
+    const gwPadded = String(gw).padStart(2, '0');
+    const filename = season + '-gw' + gwPadded + '.txt';
+    try {
+      const res = await fetch('recaps/' + filename + '?nocache=' + Date.now());
+      if (res.ok) {
+        const text = await res.text();
+        if (text.trim()) return text.trim();
+      }
+    } catch(e) {}
+    // Fall back to localStorage
+    return localStorage.getItem('recap-gw-' + gw) || '';
   }
 
   function renderRecapDisplay(gw, text) {
@@ -820,8 +957,10 @@ Tone: funny, punchy, group-chat energy. Each section should be 2-4 sentences. No
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\n/g, '<br>');
 
-    // Strip markdown for WhatsApp (remove ** bold markers, keep text)
-    const plain = text.replace(/\*\*(.+?)\*\*/g, '*$1*');
+    // Format for WhatsApp: convert **header** to *header*, ensure blank line before each header
+    const plain = text
+      .replace(/\*\*(.+?)\*\*/g, '*$1*')         // ** to * for WhatsApp bold
+      .replace(/\n(\*[^\n]+\*)\n/g, '\n\n$1\n'); // ensure blank line before each bold header
     const waUrl = 'https://wa.me/?text=' + encodeURIComponent(plain);
 
     document.getElementById('recap-display').innerHTML =
@@ -854,15 +993,15 @@ Tone: funny, punchy, group-chat energy. Each section should be 2-4 sentences. No
     });
   }
 
-  function setupRecapTab() {
+  async function setupRecapTab() {
     const gw = parseInt(document.getElementById('gw-select').value) || state.latestGW;
 
-    // Load any saved recap for this GW
-    const saved = localStorage.getItem(`recap-gw-${gw}`) || '';
+    // Load recap from GitHub recaps/ folder or localStorage
+    const saved = await loadSavedRecap(gw);
 
     document.getElementById('recap-content').innerHTML = `
       <p class="recap-intro">
-        Copy the prompt below, paste it into <a href="https://claude.ai" target="_blank" style="color:var(--green)">claude.ai</a>, then paste the response back here to save it.
+        Copy the prompt below, paste it into <a href="https://claude.ai" target="_blank" style="color:var(--green)">claude.ai</a>, then paste the response back here. Hitting <strong>Save recap</strong> will display it and automatically download a <code style="font-family:var(--font-mono);font-size:12px;color:var(--green)">2025-gw${gw}.txt</code> file — drag that into your <code style="font-family:var(--font-mono);font-size:12px;color:var(--green)">recaps/</code> folder and push to GitHub.
       </p>
 
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;">
@@ -890,8 +1029,8 @@ Tone: funny, punchy, group-chat energy. Each section should be 2-4 sentences. No
     // Render saved recap immediately if exists
     if (saved) renderRecapDisplay(gw, saved);
 
-    document.getElementById('copy-prompt-btn').addEventListener('click', () => {
-      const prompt = buildPrompt(gw);
+    document.getElementById('copy-prompt-btn').addEventListener('click', async () => {
+      const prompt = await buildPrompt(gw);
       navigator.clipboard.writeText(prompt).then(() => {
         const confirm = document.getElementById('copy-confirm');
         confirm.style.display = 'inline';
@@ -902,9 +1041,29 @@ Tone: funny, punchy, group-chat energy. Each section should be 2-4 sentences. No
     document.getElementById('save-recap-btn').addEventListener('click', () => {
       const text = document.getElementById('recap-paste').value.trim();
       if (!text) return;
-      localStorage.setItem(`recap-gw-${gw}`, text);
+
+      // Save to localStorage as before
+      localStorage.setItem('recap-gw-' + gw, text);
       renderRecapDisplay(gw, text);
       document.getElementById('clear-recap-btn').style.display = 'inline-block';
+
+      // Auto-download the .txt file with correct naming
+      const season = 2025;
+      const gwPadded = String(gw).padStart(2, '0');
+      const filename = season + '-gw' + gwPadded + '.txt';
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // Show download confirmation
+      const btn = document.getElementById('save-recap-btn');
+      const orig = btn.textContent;
+      btn.textContent = '✓ Saved & downloaded ' + filename;
+      setTimeout(() => btn.textContent = orig, 3000);
     });
 
     document.getElementById('clear-recap-btn').addEventListener('click', () => {
@@ -974,6 +1133,7 @@ Tone: funny, punchy, group-chat energy. Each section should be 2-4 sentences. No
 
       await loadLeague();
       await loadAllHistory();
+      await loadGuinnessDebts();
       document.getElementById('header-meta').textContent =
         `League #${LEAGUE_ID} · GW${state.latestGW}`;
       renderStandings();

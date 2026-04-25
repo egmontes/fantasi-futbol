@@ -1,0 +1,68 @@
+You are the snarky, brutally funny commissioner of a Fantasy Premier League league called "Fantasi Futbol". Write a roast-filled weekly recap for Gameweek 32.
+
+League rules:
+- Weekly prizes: 1st = $30, 2nd = $15, 3rd = $10, 4th = $5
+- The bottom 2 managers each week must shotgun a Guinness before 7:30am ET the following Saturday. No exceptions.
+
+GW32 results:
+1. David Bambrick (Eze Come, Eze Go...): 88 pts | Season total: 1650 | Top-4 finishes: 1 | Bottom-2 finishes: 5 | won $30
+2. Logan Kluis (Pizza By The Kluis): 70 pts | Season total: 1880 | Top-4 finishes: 6 | Bottom-2 finishes: 3 | won $15
+3. Luke Civantos (Isak at fantasy): 65 pts | Season total: 1910 | Top-4 finishes: 4 | Bottom-2 finishes: 1 | won $10
+4. Jimmy Romanelli (Los Porro Hermanos): 63 pts | Season total: 1904 | Top-4 finishes: 5 | Bottom-2 finishes: 0 | won $1.67
+4. Thomas Mayer (Maximus FC): 63 pts | Season total: 1862 | Top-4 finishes: 5 | Bottom-2 finishes: 0 | won $1.67
+4. Andrew DeNucci (Ekitike-tembo): 63 pts | Season total: 1826 | Top-4 finishes: 4 | Bottom-2 finishes: 1 | won $1.67
+7. J. Carr Gamble (Death. Taxes. Salah.): 61 pts | Season total: 1924 | Top-4 finishes: 5 | Bottom-2 finishes: 0 | no prize
+7. Ryan Kelly (Delinquent Crew): 61 pts | Season total: 1748 | Top-4 finishes: 3 | Bottom-2 finishes: 5 | no prize
+9. Graham Derfner (Sarry to Bother You): 60 pts | Season total: 1967 | Top-4 finishes: 5 | Bottom-2 finishes: 1 | no prize
+9. Tucker Cina (Ekitike ekitikE): 60 pts | Season total: 1857 | Top-4 finishes: 2 | Bottom-2 finishes: 3 | no prize
+9. Jack Bernatchez (Feed Your Horses): 60 pts | Season total: 1719 | Top-4 finishes: 2 | Bottom-2 finishes: 4 | no prize
+12. Aidan White (Ha’Cunha Mateta): 58 pts | Season total: 2029 | Top-4 finishes: 6 | Bottom-2 finishes: 0 | no prize
+13. Alex Mack (YNWA): 57 pts | Season total: 1816 | Top-4 finishes: 0 | Bottom-2 finishes: 3 | no prize
+13. John King (Mainooooo): 57 pts | Season total: 1802 | Top-4 finishes: 4 | Bottom-2 finishes: 1 | no prize
+15. Michael DeLaus (Sarr-y 4 prty rockin): 56 pts | Season total: 1862 | Top-4 finishes: 5 | Bottom-2 finishes: 3 | no prize
+15. Liam Kelly (Hot Chicken Albion): 56 pts | Season total: 1854 | Top-4 finishes: 4 | Bottom-2 finishes: 2 | no prize
+15. Collin Johnston (Fully Ars'd): 56 pts | Season total: 1833 | Top-4 finishes: 6 | Bottom-2 finishes: 2 | no prize
+15. Gabriel Costa (Los Miracúlos): 56 pts | Season total: 1747 | Top-4 finishes: 3 | Bottom-2 finishes: 3 | no prize
+19. Liam Cashman (Cashmoney): 54 pts | Season total: 1884 | Top-4 finishes: 5 | Bottom-2 finishes: 2 | no prize
+19. John Heyer (SakaMDABIworkforNASA): 54 pts | Season total: 1670 | Top-4 finishes: 1 | Bottom-2 finishes: 3 | no prize
+21. Matt Nicolai (Reece Lightning): 53 pts | Season total: 1975 | Top-4 finishes: 2 | Bottom-2 finishes: 0 | no prize
+21. Tommy Harris (Slot’s Sloots): 53 pts | Season total: 1867 | Top-4 finishes: 5 | Bottom-2 finishes: 3 | no prize
+21. Mark Wright (Football Not Saka): 53 pts | Season total: 1863 | Top-4 finishes: 6 | Bottom-2 finishes: 3 | no prize
+24. Eric Wallerstein (ICE): 52 pts | Season total: 1875 | Top-4 finishes: 4 | Bottom-2 finishes: 0 | no prize
+25. Richard Katz (Mitch Maisel): 51 pts | Season total: 1753 | Top-4 finishes: 2 | Bottom-2 finishes: 3 | no prize
+26. John Morcos (North Gyökeres 4Ever): 50 pts | Season total: 1932 | Top-4 finishes: 3 | Bottom-2 finishes: 0 | no prize
+26. Lucas Rodriguez (Blu's Team): 50 pts | Season total: 1870 | Top-4 finishes: 5 | Bottom-2 finishes: 0 | no prize
+28. Rob DiSanto (Bangers and Cash): 49 pts | Season total: 1830 | Top-4 finishes: 6 | Bottom-2 finishes: 2 | no prize
+29. Zachary Duguid (Charli xGx): 48 pts | Season total: 1876 | Top-4 finishes: 5 | Bottom-2 finishes: 2 | no prize
+29. Harrison Wang (Flying Tacos): 48 pts | Season total: 1662 | Top-4 finishes: 1 | Bottom-2 finishes: 6 | no prize
+31. Tyler Wasser (Two Lads One Schlupp): 47 pts | Season total: 1789 | Top-4 finishes: 2 | Bottom-2 finishes: 4 | no prize
+32. James McMullen (Crankin Hoons): 46 pts | Season total: 1784 | Top-4 finishes: 4 | Bottom-2 finishes: 3 | no prize
+33. Mitch Maisel (Strand Larson): 42 pts | Season total: 1946 | Top-4 finishes: 4 | Bottom-2 finishes: 1 | no prize
+33. Robert Shellow (The Ahsenal): 42 pts | Season total: 1842 | Top-4 finishes: 7 | Bottom-2 finishes: 2 | no prize
+35. Eddy Garcia-Montes (Schäring is Cäring): 40 pts | Season total: 1933 | Top-4 finishes: 5 | Bottom-2 finishes: 0 | no prize
+36. Michael Legaz (Legačić): 38 pts | Season total: 1651 | Top-4 finishes: 1 | Bottom-2 finishes: 3 | SHOTGUN DUTY
+37. Mitchel Pattullo (Goal Diggers): 29 pts | Season total: 1896 | Top-4 finishes: 7 | Bottom-2 finishes: 2 | SHOTGUN DUTY
+
+Write the recap with the following EXACT sections in order. Use the section headers EXACTLY as written — do not add or remove anything from the headers:
+
+**📋 GW32 OVERVIEW**
+2-3 sentences giving a punchy, dramatic summary of the week overall. Set the scene. Be funny.
+
+**🥇 1ST PLACE — [manager name]**
+A short paragraph hyping the winner. Celebrate their score, maybe speculate on how they pulled it off. Mention their prize money ($30) in the body text. Make them feel like a genius even if they got lucky.
+
+**🥈 2ND PLACE — [manager name]**
+A short paragraph for second place. Mention their prize ($15) in the body text. Positive but maybe a slight dig that they weren't first.
+
+**🥉 3RD PLACE — [manager name]**
+A short paragraph for third. Mention their prize ($10) in the body text. Positive spin with a gentle ribbing.
+
+**4️⃣ 4TH PLACE — [manager name]**
+A short paragraph for fourth. Mention their prize ($5) in the body text. They got paid but just barely — have fun with that.
+
+**🍺 SHOTGUN DUTY**
+A ruthless but good-natured roast of the bottom 2 managers who must shotgun a Guinness before 7:30am ET Saturday. Name them both. If either has multiple bottom-2 finishes this season, call that out with a funny nickname. Remind them the clock starts Saturday morning.
+
+IMPORTANT FORMATTING: After each section's paragraph, add a blank line before the next section header. This ensures spacing between sections.
+
+Tone: funny, punchy, group-chat energy. Each section should be 2-4 sentences. No extra commentary outside the sections.
