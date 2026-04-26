@@ -283,9 +283,10 @@
     .badge-2 { background: var(--silver-dim); color: var(--silver); border: 1px solid rgba(203,213,225,0.2); }
     .badge-3 { background: #2a1a0a; color: #cd7f32; border: 1px solid rgba(205,127,50,0.2); }
     .badge-4 { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+    .badge-chip { background: rgba(168,85,247,0.2); color: #d8b4fe; border: 1px solid rgba(168,85,247,0.4); font-size: 10px; font-family: var(--font-mono); font-weight: 600; padding: 2px 7px; border-radius: 99px; display: inline-block; margin-top: 3px; letter-spacing: 0.02em; }
     .badge-top { background: var(--green-dim); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
     .badge-bot { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
-    .badge-shot { background: #1a2d1a; color: #86efac; border: 1px solid rgba(134,239,172,0.2); }
+    .badge-shot { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
     .badge-zero { color: var(--text3); font-size: 12px; }
 
     .money-pos { color: var(--green); font-family: var(--font-mono); font-weight: 500; }
@@ -1250,10 +1251,10 @@ async function init() {
             ? '<span style="color:var(--red);font-size:16px;font-weight:bold;">✗</span>'
             : '<span class="badge-zero">—</span>';
           const rowCls = rank === 1 ? 'row-1' : rank === 2 ? 'row-2' : rank === 3 ? 'row-3' : rank === 4 ? 'row-4' : isBottom ? 'row-bottom' : '';
-          const chipBadge = m.chip ? ' <span class="badge badge-4" style="font-size:10px;">' + m.chip + '</span>' : '';
+          const chipBadge = m.chip ? '<div><span class="badge-chip">' + chipLabel(m.chip) + '</span></div>' : '';
           html += '<tr class="' + rowCls + '">' +
             '<td><span class="rank-num">' + rank + '</span></td>' +
-            '<td><div class="m-name">' + esc(m.name) + chipBadge + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
+            '<td><div class="m-name">' + esc(m.name) + '</div><div class="m-team">' + esc(m.team) + '</div>' + chipBadge + '</td>' +
             '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost" title="Transfer hit">(-' + m.transferCost + ')</span>' : '') + '</td>' +
             '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
             '<td style="text-align:center">' + owedCell + '</td>' +
@@ -1284,6 +1285,12 @@ async function init() {
       document.getElementById('weekly-content').innerHTML =
         '<div class="error-state">Failed to load live scores.<small>' + e.message + '</small></div>';
     }
+  }
+
+
+  function chipLabel(chip) {
+    const map = { freehit: 'Free Hit', wildcard: 'Wildcard', bboost: 'Bench Boost', '3xc': 'Triple Captain' };
+    return map[chip] || chip;
   }
 
   // Cache chips per GW so we don't refetch
@@ -1406,7 +1413,7 @@ async function init() {
           : '<span class="badge-zero">—</span>';
         html += '<tr class="' + rowCls + '">' +
           '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
-          '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + (m.chip ? ' <span class="badge badge-4" style="font-size:10px;margin-left:4px;">' + m.chip + '</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
+          '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + (m.chip ? '<div><span class="badge-chip">' + chipLabel(m.chip) + '</span></div>' : '') + '</td>' +
           '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
           '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
           '<td style="text-align:center">' + hitStr + '</td>' +
