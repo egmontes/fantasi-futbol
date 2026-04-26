@@ -195,11 +195,10 @@
       background: var(--bg2);
       box-shadow: 0 1px 0 var(--border);
     }
-    .sticky-clone-header th:nth-child(1) {
-      position: sticky; left: 0; z-index: 4; background: var(--bg2);
-    }
+    .sticky-clone-header th:nth-child(1),
     .sticky-clone-header th:nth-child(2) {
-      position: sticky; z-index: 4; background: var(--bg2);
+      background: var(--bg2);
+      z-index: 4;
     }
     /* Override — sticky doesn't work inside fixed, handled by JS */
     .sticky-clone-header th {
@@ -2506,18 +2505,23 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     function syncHorizontal() {
       const scrollLeft = tableOuter.scrollLeft;
       cloneTable.style.transform = 'translateX(-' + scrollLeft + 'px)';
-      // Pin first two th cells to stay fixed regardless of horizontal scroll
+      // Pin first two th cells using counter-transform relative to their natural position
       const ths = cloneThead.querySelectorAll('th');
       if (ths[0]) {
+        // col 0 naturally starts at 0, counter-translate to keep it at 0
         ths[0].style.transform = 'translateX(' + scrollLeft + 'px)';
-        ths[0].style.position = 'relative';
         ths[0].style.zIndex = '4';
+        ths[0].style.background = 'var(--bg2)';
       }
       if (ths[1]) {
-        const th0Width = ths[0] ? ths[0].getBoundingClientRect().width : 36;
+        // col 1 naturally starts at col0Width, counter-translate to keep it at col0Width
+        const col0Width = ths[0] ? ths[0].offsetWidth : 36;
+        // Its natural position after table translate is: col0Width - scrollLeft
+        // We want it at: col0Width
+        // So extra translate needed: scrollLeft
         ths[1].style.transform = 'translateX(' + scrollLeft + 'px)';
-        ths[1].style.position = 'relative';
         ths[1].style.zIndex = '4';
+        ths[1].style.background = 'var(--bg2)';
       }
     }
     tableOuter.addEventListener('scroll', syncHorizontal, { passive: true });
