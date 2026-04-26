@@ -1834,52 +1834,120 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   }
 
   async function setupRecapTab() {
-    const gw = parseInt(document.getElementById('gw-select').value) || state.latestGW;
+    const gwVal = document.getElementById('gw-select').value;
+    const isLiveGW = gwVal === 'live';
+    const isPreview = gwVal === 'preview';
+    const gw = isLiveGW ? state.liveGW : (isPreview ? state.nextGW : parseInt(gwVal) || state.latestGW);
+
+    // Live GW — show pending message
+    if (isLiveGW) {
+      document.getElementById('recap-content').innerHTML = `
+        <div style="text-align:center;padding:3rem 1rem;">
+          <div style="font-size:2rem;margin-bottom:1rem;">⏳</div>
+          <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px;">GW${gw} Recap Pending</div>
+          <div style="font-size:13px;color:var(--text3);max-width:360px;margin:0 auto;line-height:1.6;">
+            The gameweek is still in progress. Come back once all matches are complete and scores are finalized.
+          </div>
+        </div>`;
+      return;
+    }
 
     // Load recap from GitHub recaps/ folder or localStorage
     const saved = await loadSavedRecap(gw);
 
-    document.getElementById('recap-content').innerHTML = `
-      <p class="recap-intro">
-        Copy the prompt below, paste it into <a href="https://claude.ai" target="_blank" style="color:var(--green)">claude.ai</a>, then paste the response back here. Hitting <strong>Save recap</strong> will display it and automatically download a <code style="font-family:var(--font-mono);font-size:12px;color:var(--green)">2025-gw${gw}.txt</code> file — drag that into your <code style="font-family:var(--font-mono);font-size:12px;color:var(--green)">recaps/</code> folder and push to GitHub.
-      </p>
+    // Build HTML
+    let html = '';
 
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
-        <button class="btn btn-primary" id="prepare-prompt-btn">Prepare GW${gw} prompt →</button>
-        <span id="prepare-confirm" style="font-size:13px;color:var(--text3);display:none;"></span>
+    // 1. SAVED RECAP — shown first if exists
+    if (saved) {
+      html += `<div id="recap-display" style="margin-bottom:2rem;"></div>`;
+    }
+
+    // 2. GENERATE SECTION — always present (collapsed behind "Need a new recap?" if saved)
+    const generateLabel = saved ? 'Need a new recap?' : 'Generate GW' + gw + ' recap';
+    const generateOpen = !saved;
+    html += `
+      <div style="margin-bottom:1rem;">
+        <button id="toggle-generate-btn" style="
+          background:none;border:none;cursor:pointer;padding:0;
+          font-size:${saved ? '13px' : '14px'};
+          color:${saved ? 'var(--text3)' : 'var(--text)'};
+          font-weight:${saved ? '400' : '600'};
+          display:flex;align-items:center;gap:6px;
+        ">${saved ? '↩ ' + generateLabel : generateLabel}</button>
       </div>
-      <div id="prompt-preview-area" style="display:none;margin-bottom:1.5rem;">
-        <label style="font-size:12px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:8px;">Prompt ready — select all and copy</label>
-        <textarea id="prompt-preview" readonly style="
-          width:100%;min-height:120px;background:var(--bg2);color:var(--text2);
-          border:1px solid var(--border2);border-radius:8px;padding:12px;
-          font-family:var(--font-mono);font-size:12px;line-height:1.5;resize:vertical;
-        "></textarea>
-        <div style="display:flex;gap:10px;margin-top:8px;">
-          <button class="btn btn-primary" id="copy-prompt-btn">Copy to clipboard</button>
-          <span id="copy-confirm" style="font-size:13px;color:var(--green);display:none;">✓ Copied!</span>
+      <div id="generate-section" style="display:${generateOpen ? 'block' : 'none'};">
+
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="prepare-prompt-btn">Prepare GW${gw} prompt →</button>
+          <span id="prepare-confirm" style="font-size:13px;color:var(--text3);display:none;"></span>
         </div>
-      </div>
-
-      <div style="margin-bottom:1.5rem;">
-        <label style="font-size:12px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:8px;">
-          Paste recap here
-        </label>
-        <textarea id="recap-paste" placeholder="Paste the recap from Claude here..." style="
-          width:100%;min-height:220px;background:var(--bg2);color:var(--text);
-          border:1px solid var(--border2);border-radius:8px;padding:12px;
-          font-family:var(--font-body);font-size:14px;line-height:1.6;resize:vertical;
-        ">${esc(saved)}</textarea>
-        <div style="display:flex;gap:10px;margin-top:10px;">
-          <button class="btn btn-primary" id="save-recap-btn">Save recap</button>
-          <button class="btn" id="clear-recap-btn" style="${saved ? '' : 'display:none'}">Clear</button>
+        <div id="prompt-preview-area" style="display:none;margin-bottom:1.5rem;">
+          <label style="font-size:12px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:8px;">Prompt ready — select all and copy</label>
+          <textarea id="prompt-preview" readonly style="
+            width:100%;min-height:120px;background:var(--bg2);color:var(--text2);
+            border:1px solid var(--border2);border-radius:8px;padding:12px;
+            font-family:var(--font-mono);font-size:12px;line-height:1.5;resize:vertical;
+          "></textarea>
+          <div style="display:flex;gap:10px;margin-top:8px;">
+            <button class="btn btn-primary" id="copy-prompt-btn">Copy to clipboard</button>
+            <span id="copy-confirm" style="font-size:13px;color:var(--green);display:none;">✓ Copied!</span>
+          </div>
         </div>
-      </div>
+        <div style="margin-bottom:1.5rem;">
+          <label style="font-size:12px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:8px;">Paste recap here</label>
+          <textarea id="recap-paste" placeholder="Paste the recap from Claude here..." style="
+            width:100%;min-height:220px;background:var(--bg2);color:var(--text);
+            border:1px solid var(--border2);border-radius:8px;padding:12px;
+            font-family:var(--font-body);font-size:14px;line-height:1.6;resize:vertical;
+          ">${esc(saved || '')}</textarea>
+          <div style="display:flex;gap:10px;margin-top:10px;">
+            <button class="btn btn-primary" id="save-recap-btn">Save recap</button>
+            <button class="btn" id="clear-recap-btn" style="${saved ? '' : 'display:none'}">Clear</button>
+          </div>
+        </div>
+      </div>`;
 
-      <div id="recap-display"></div>`;
+    // 3. PROMPT INSTRUCTIONS — subtle collapsible at bottom
+    html += `
+      <div style="margin-top:3rem;padding-top:1rem;border-top:1px solid var(--border);">
+        <button id="toggle-instructions-btn" style="
+          background:none;border:none;cursor:pointer;padding:0;
+          font-size:11px;color:var(--text3);font-family:var(--font-mono);
+          text-transform:uppercase;letter-spacing:0.06em;
+          display:flex;align-items:center;gap:4px;
+        ">▸ How to use</button>
+        <div id="instructions-section" style="display:none;margin-top:10px;">
+          <p style="font-size:13px;color:var(--text3);line-height:1.6;margin:0;">
+            Copy the prompt below, paste it into <a href="https://claude.ai" target="_blank" style="color:var(--green)">claude.ai</a>, then paste the response back here. Hitting <strong style="color:var(--text2);">Save recap</strong> will display it and automatically download a <code style="font-family:var(--font-mono);font-size:12px;color:var(--green);">2025-gw${gw}.txt</code> file — drag that into your <code style="font-family:var(--font-mono);font-size:12px;color:var(--green);">recaps/</code> folder and push to GitHub.
+          </p>
+        </div>
+      </div>`;
+
+    document.getElementById('recap-content').innerHTML = html;
 
     // Render saved recap immediately if exists
-    if (saved) renderRecapDisplay(gw, saved);
+    if (saved) {
+      renderRecapDisplay(gw, saved);
+    }
+
+    // Toggle generate section
+    document.getElementById('toggle-generate-btn').addEventListener('click', () => {
+      const sec = document.getElementById('generate-section');
+      const btn = document.getElementById('toggle-generate-btn');
+      const open = sec.style.display !== 'none';
+      sec.style.display = open ? 'none' : 'block';
+      if (saved) btn.textContent = (open ? '↩ ' : '↪ ') + generateLabel;
+    });
+
+    // Toggle instructions
+    document.getElementById('toggle-instructions-btn').addEventListener('click', () => {
+      const sec = document.getElementById('instructions-section');
+      const btn = document.getElementById('toggle-instructions-btn');
+      const open = sec.style.display !== 'none';
+      sec.style.display = open ? 'none' : 'block';
+      btn.textContent = (open ? '▸' : '▾') + ' How to use';
+    });
 
     // Step 1: fetch data and populate textarea
     document.getElementById('prepare-prompt-btn').addEventListener('click', async () => {
@@ -1930,8 +1998,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const text = document.getElementById('recap-paste').value.trim();
       if (!text) return;
 
-      // Save to localStorage as before
+      // Save to localStorage
       localStorage.setItem('recap-gw-' + gw, text);
+
+      // Ensure recap-display exists at top
+      if (!document.getElementById('recap-display')) {
+        const recapDisplay = document.createElement('div');
+        recapDisplay.id = 'recap-display';
+        recapDisplay.style.marginBottom = '2rem';
+        document.getElementById('recap-content').prepend(recapDisplay);
+      }
       renderRecapDisplay(gw, text);
       document.getElementById('clear-recap-btn').style.display = 'inline-block';
 
