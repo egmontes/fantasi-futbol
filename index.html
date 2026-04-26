@@ -221,7 +221,8 @@
     }
     .sticky-thead table {
       width: 100%;
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0;
       font-size: 13px;
       table-layout: fixed;
     }
@@ -2426,10 +2427,22 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         const cols = thead.querySelectorAll('th');
         stickyInner.innerHTML = '';
         const tr = document.createElement('tr');
-        cols.forEach(th => {
+        cols.forEach((th, i) => {
           const clone = th.cloneNode(true);
           clone.style.width = th.offsetWidth + 'px';
           clone.style.minWidth = th.offsetWidth + 'px';
+          // Keep first two columns sticky within the floating header too
+          if (i === 0) {
+            clone.style.position = 'sticky';
+            clone.style.left = '0';
+            clone.style.zIndex = '6';
+            clone.style.background = 'var(--bg2)';
+          } else if (i === 1) {
+            clone.style.position = 'sticky';
+            clone.style.left = th.closest('table').querySelector('thead th:first-child').offsetWidth + 'px';
+            clone.style.zIndex = '6';
+            clone.style.background = 'var(--bg2)';
+          }
           if (th.dataset.col) clone.addEventListener('click', () => th.click());
           tr.appendChild(clone);
         });
