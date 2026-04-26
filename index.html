@@ -1845,12 +1845,26 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       let allMatches = [];
       const seen = new Set();
 
-      // Correct FPL cup endpoint for classic leagues
-      // Try each known variant
+      // FPL cup endpoint variants to try
       const cupEndpoints = [
         'leagues-classic/' + LEAGUE_ID + '/cup/',
         'leagues-classic-cup/' + LEAGUE_ID + '/standings/',
+        'leagues-classic/' + LEAGUE_ID + '/standings/?page_new_entries=1&page_standings=1&phase=1',
+        'entry/' + state.managers[0].id + '/event/' + state.latestGW + '/picks/',
       ];
+
+      // First try fetching the league info to find cup_league field
+      try {
+        const leagueData = await fetchFPL('leagues-classic/' + LEAGUE_ID + '/standings/');
+        console.log('League data league field:', JSON.stringify(leagueData.league).slice(0, 300));
+        if (leagueData.league && leagueData.league.cup_league) {
+          console.log('Found cup_league ID:', leagueData.league.cup_league);
+          cupEndpoints.unshift('leagues-h2h/' + leagueData.league.cup_league + '/standings/');
+          cupEndpoints.unshift('leagues-classic/' + leagueData.league.cup_league + '/cup/');
+        }
+      } catch(e) {
+        console.warn('Could not fetch league info:', e.message);
+      }
 
       for (const ep of cupEndpoints) {
         try {
