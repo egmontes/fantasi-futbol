@@ -2498,11 +2498,17 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           }
         });
 
-        // Position using outer container bounds — more reliable on mobile
+        // Position floating header over the table-outer container
         fh.style.top = tabsBottom + 'px';
-        fh.style.left = Math.max(0, outerRect.left) + 'px';
-        fh.style.right = Math.max(0, window.innerWidth - outerRect.right) + 'px';
-        fhTable.style.width = table.getBoundingClientRect().width + 'px';
+        fh.style.left = '0';
+        fh.style.right = '0';
+        fh.style.overflow = 'hidden';
+
+        // Sync horizontal scroll via transform — matches the real thead exactly
+        const tableWidth = table.getBoundingClientRect().width;
+        fhTable.style.width = tableWidth + 'px';
+        fhTable.style.marginLeft = outerRect.left + 'px';
+        fhTable.style.transform = 'translateX(-' + outer.scrollLeft + 'px)';
 
         fh.classList.add('visible');
       } else {
@@ -2510,14 +2516,20 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       }
     }
 
+    // Sync horizontal scroll separately for smooth tracking
+    function syncScroll() {
+      if (!fh.classList.contains('visible')) return;
+      fhTable.style.transform = 'translateX(-' + outer.scrollLeft + 'px)';
+    }
+
     if (_fhScrollContainer) {
-      _fhScrollContainer.removeEventListener('scroll', sync);
+      _fhScrollContainer.removeEventListener('scroll', _fhScrollContainer._syncScroll);
     }
     _fhScrollContainer = outer;
-    outer.addEventListener('scroll', sync, { passive: true });
+    outer._syncScroll = syncScroll;
+    outer.addEventListener('scroll', syncScroll, { passive: true });
     window.addEventListener('scroll', sync, { passive: true });
     window.addEventListener('resize', sync, { passive: true });
-    // touchmove for mobile — fires more reliably than scroll during fast swipes
     window.addEventListener('touchmove', sync, { passive: true });
 
     sync();
@@ -2543,7 +2555,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     document.documentElement.style.setProperty('--gwbar-h', gwBarH + 'px');
     const contentTop = headerH + calloutH + gwBarH + tabsH;
     document.documentElement.style.setProperty('--sticky-thead-top', contentTop + 'px');
-    document.documentElement.style.setProperty('--content-top', contentTop + 'px');
+    // Add a small buffer so first row isn't right against the tabs
+    document.documentElement.style.setProperty('--content-top', (contentTop + 8) + 'px');
   }
 
   window.addEventListener('resize', updateStickyOffsets, { passive: true });
