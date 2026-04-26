@@ -1055,11 +1055,17 @@ async function init() {
               const playerPts = liveScores[p.element] || 0;
               pts += playerPts * p.multiplier;
             });
-            // Subtract transfer cost
-            const hist = state.gwHistory[m.id] || [];
-            const gwEntry = hist.find(h => h.event === gw);
-            const hit = gwEntry ? gwEntry.event_transfers_cost : 0;
-            managerScores[m.id] = { pts: pts - hit, rawPts: pts, chip: picks.active_chip };
+            // Get hit from picks.entry_history (most reliable for live GW)
+            // Falls back to gwHistory if entry_history not available
+            let hit = 0;
+            if (picks.entry_history && picks.entry_history.event_transfers_cost !== undefined) {
+              hit = picks.entry_history.event_transfers_cost;
+            } else {
+              const hist = state.gwHistory[m.id] || [];
+              const gwEntry = hist.find(h => h.event === gw);
+              hit = gwEntry ? gwEntry.event_transfers_cost : 0;
+            }
+            managerScores[m.id] = { pts: pts - hit, rawPts: pts, chip: picks.active_chip, hit };
           } catch(e) {
             managerScores[m.id] = { pts: 0, rawPts: 0 };
           }
@@ -1069,61 +1075,103 @@ async function init() {
           '<div class="loading-state"><span class="spinner"></span>Loading live scores... (' + done + '/' + state.managers.length + ')</div>';
       }
 
-      // Sort by live points
-      const liveRanked = [...state.managers]
-        .map(m => ({ ...m, gwPoints: managerScores[m.id]?.pts || 0, chip: managerScores[m.id]?.chip }))
-        .sort((a, b) => b.gwPoints - a.gwPoints);
+      // Build enriched live rows — pts already includes hit deduction
+      const liveEnriched = [...state.managers]
+        .map(m => ({
+          ...m,
+          gwPoints: managerScores[m.id]?.pts || 0,
+          chip: managerScores[m.id]?.chip,
+          transferCost: managerScores[m.id]?.hit || 0,
+        }));
 
-      const n = liveRanked.length;
-      let displayRank = 1;
-      liveRanked.forEach((m, idx) => {
-        if (idx > 0 && liveRanked[idx].gwPoints < liveRanked[idx-1].gwPoints) displayRank = idx + 1;
-        m._displayRank = displayRank;
-      });
+      // Default sort: by gwPoints desc
+      let liveSort = { col: 'pts', dir: -1 };
 
-      let html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">' +
-        '<span style="background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,0.3);border-radius:99px;font-size:11px;font-family:var(--font-mono);padding:3px 10px;">🔴 LIVE GW' + gw + '</span>' +
-        '<span style="font-size:12px;color:var(--text3);">Scores provisional — bonus points & auto-subs not yet applied</span>' +
-        '</div>' +
-        '<div class="table-wrap"><table>' +
-        '<thead><tr>' +
-        '<th style="width:36px">#</th>' +
-        '<th>Manager</th>' +
-        '<th style="width:70px">Live pts</th>' +
-        '<th style="width:70px">Total</th>' +
-        '<th style="width:80px;text-align:center" title="Beers owed at start of this gameweek">🍺 Beers Owed</th>' +
-        '<th style="width:80px;text-align:center" title="Missed shotgun this gameweek">❌ Missed</th>' +
-        '</tr></thead><tbody>';
+      function renderLiveTable() {
+        // dir: -1 = natural desc (highest first), 1 = asc (lowest first)
+        // For pts/total/owed: default desc = highest first, so multiply by dir
+        // For name: default desc = Z-A, asc = A-Z
+        const sorted = [...liveEnriched].sort((a, b) => {
+          if (liveSort.col === 'pts')    return liveSort.dir === -1 ? b.gwPoints - a.gwPoints : a.gwPoints - b.gwPoints;
+          if (liveSort.col === 'name')   return liveSort.dir === -1 ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name);
+          if (liveSort.col === 'total')  return liveSort.dir === -1 ? b.total - a.total : a.total - b.total;
+          if (liveSort.col === 'owed')   return liveSort.dir === -1
+            ? getGuinnessOwedAtGW(b.name, gw) - getGuinnessOwedAtGW(a.name, gw)
+            : getGuinnessOwedAtGW(a.name, gw) - getGuinnessOwedAtGW(b.name, gw);
+          return 0;
+        });
 
-      liveRanked.forEach((m, idx) => {
-        const rank = m._displayRank;
-        const isBottom = m.gwPoints <= liveRanked[n-2].gwPoints;
-        const owed = getGuinnessOwedAtGW(m.name, gw);
-        const owedCell = owed >= 3
-          ? '<span class="badge" style="background:#7a1a1a;color:#ffb3b3;border:1px solid rgba(255,100,100,0.3);">⚠️ ' + owed + '</span>'
-          : owed >= 2
-            ? '<span class="badge badge-bot">' + owed + '</span>'
-            : owed === 1
-              ? '<span style="color:var(--red);font-size:12px;font-family:var(--font-mono);">1</span>'
-              : '<span class="badge-zero">—</span>';
-        const missedLive = didMissGW(m.name, gw);
-        const missedLiveCell = missedLive
-          ? '<span style="color:var(--red);font-size:16px;font-weight:bold;">✗</span>'
-          : '<span class="badge-zero">—</span>';
-        const rowCls = rank === 1 ? 'row-1' : rank === 2 ? 'row-2' : rank === 3 ? 'row-3' : isBottom ? 'row-bottom' : '';
-        const chipBadge = m.chip ? ' <span class="badge badge-4" style="font-size:10px;">' + m.chip + '</span>' : '';
-        html += '<tr class="' + rowCls + '">' +
-          '<td><span class="rank-num">' + rank + '</span></td>' +
-          '<td><div class="m-name">' + esc(m.name) + chipBadge + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
-          '<td><span class="pts-val">' + m.gwPoints + '</span></td>' +
-          '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
-          '<td style="text-align:center">' + owedCell + '</td>' +
-          '<td style="text-align:center">' + missedLiveCell + '</td>' +
-          '</tr>';
-      });
+        const n = sorted.length;
+        // Compute display ranks based on gwPoints order (always by pts)
+        const byPts = [...liveEnriched].sort((a, b) => b.gwPoints - a.gwPoints);
+        const rankMap = {};
+        let dRank = 1;
+        byPts.forEach((m, idx) => {
+          if (idx > 0 && byPts[idx].gwPoints < byPts[idx-1].gwPoints) dRank = idx + 1;
+          rankMap[m.id] = dRank;
+        });
+        const bottomThreshold = byPts[n-2]?.gwPoints ?? 0;
 
-      html += '</tbody></table></div>';
-      document.getElementById('weekly-content').innerHTML = html;
+        const arrow = (col) => liveSort.col === col ? (liveSort.dir === -1 ? ' ↓' : ' ↑') : '';
+        const thStyle = 'cursor:pointer;user-select:none;';
+
+        let html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">' +
+          '<span style="background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,0.3);border-radius:99px;font-size:11px;font-family:var(--font-mono);padding:3px 10px;">🔴 LIVE GW' + gw + '</span>' +
+          '<span style="font-size:12px;color:var(--text3);">Scores provisional — bonus points & auto-subs not yet applied</span>' +
+          '</div>' +
+          '<div class="table-wrap"><table id="live-table">' +
+          '<thead><tr>' +
+          '<th style="width:36px">#</th>' +
+          '<th style="' + thStyle + '" data-col="name">Manager' + arrow('name') + '</th>' +
+          '<th style="width:80px;' + thStyle + '" data-col="pts">Live pts' + arrow('pts') + '</th>' +
+          '<th style="width:70px;' + thStyle + '" data-col="total">Total' + arrow('total') + '</th>' +
+          '<th style="width:80px;text-align:center;' + thStyle + '" data-col="owed">🍺 Beers Owed' + arrow('owed') + '</th>' +
+          '<th style="width:80px;text-align:center;" title="Missed shotgun this gameweek">❌ Missed</th>' +
+          '</tr></thead><tbody>';
+
+        sorted.forEach(m => {
+          const rank = rankMap[m.id];
+          const isBottom = m.gwPoints <= bottomThreshold;
+          const owed = getGuinnessOwedAtGW(m.name, gw);
+          const owedCell = owed >= 3
+            ? '<span class="badge" style="background:#7a1a1a;color:#ffb3b3;border:1px solid rgba(255,100,100,0.3);">⚠️ ' + owed + '</span>'
+            : owed >= 2 ? '<span class="badge badge-bot">' + owed + '</span>'
+            : owed === 1 ? '<span style="color:var(--red);font-size:12px;font-family:var(--font-mono);">1</span>'
+            : '<span class="badge-zero">—</span>';
+          const missedLiveCell = didMissGW(m.name, gw)
+            ? '<span style="color:var(--red);font-size:16px;font-weight:bold;">✗</span>'
+            : '<span class="badge-zero">—</span>';
+          const rowCls = rank === 1 ? 'row-1' : rank === 2 ? 'row-2' : rank === 3 ? 'row-3' : isBottom ? 'row-bottom' : '';
+          const chipBadge = m.chip ? ' <span class="badge badge-4" style="font-size:10px;">' + m.chip + '</span>' : '';
+          html += '<tr class="' + rowCls + '">' +
+            '<td><span class="rank-num">' + rank + '</span></td>' +
+            '<td><div class="m-name">' + esc(m.name) + chipBadge + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
+            '<td><span class="pts-val">' + m.gwPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
+            '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
+            '<td style="text-align:center">' + owedCell + '</td>' +
+            '<td style="text-align:center">' + missedLiveCell + '</td>' +
+            '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        document.getElementById('weekly-content').innerHTML = html;
+
+        // Wire up sortable headers
+        document.querySelectorAll('#live-table thead th[data-col]').forEach(th => {
+          th.addEventListener('click', () => {
+            const col = th.dataset.col;
+            if (liveSort.col === col) {
+              liveSort.dir = liveSort.dir === -1 ? 1 : -1;
+            } else {
+              liveSort.col = col;
+              liveSort.dir = -1; // always start desc on new column
+            }
+            renderLiveTable();
+          });
+        });
+      }
+
+      renderLiveTable();
     } catch(e) {
       document.getElementById('weekly-content').innerHTML =
         '<div class="error-state">Failed to load live scores.<small>' + e.message + '</small></div>';
@@ -1845,36 +1893,52 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       let allMatches = [];
       const seen = new Set();
 
-      // FPL cup endpoint variants to try
-      const cupEndpoints = [
-        'leagues-classic/' + LEAGUE_ID + '/cup/',
-        'leagues-classic-cup/' + LEAGUE_ID + '/standings/',
-        'leagues-classic/' + LEAGUE_ID + '/standings/?page_new_entries=1&page_standings=1&phase=1',
-        'entry/' + state.managers[0].id + '/event/' + state.latestGW + '/picks/',
-      ];
-
-      // First try fetching the league info to find cup_league field
+      // Get cup_league ID from the classic league standings
+      let cupLeagueId = null;
       try {
         const leagueData = await fetchFPL('leagues-classic/' + LEAGUE_ID + '/standings/');
-        console.log('League data league field:', JSON.stringify(leagueData.league).slice(0, 300));
-        if (leagueData.league && leagueData.league.cup_league) {
-          console.log('Found cup_league ID:', leagueData.league.cup_league);
-          cupEndpoints.unshift('leagues-h2h/' + leagueData.league.cup_league + '/standings/');
-          cupEndpoints.unshift('leagues-classic/' + leagueData.league.cup_league + '/cup/');
-        }
+        cupLeagueId = leagueData.league && leagueData.league.cup_league;
+        console.log('Cup league ID:', cupLeagueId);
       } catch(e) {
         console.warn('Could not fetch league info:', e.message);
       }
+
+      // The correct FPL cup matches endpoint uses leagues-h2h-matches
+      const cupEndpoints = cupLeagueId ? [
+        'leagues-h2h-matches/league/' + cupLeagueId + '/',
+        'leagues-h2h-matches/league/' + cupLeagueId + '/?page=1',
+        'leagues-h2h/' + cupLeagueId + '/standings/',
+      ] : [];
 
       for (const ep of cupEndpoints) {
         try {
           const data = await fetchFPL(ep);
           console.log('Cup response from', ep, ':', JSON.stringify(data).slice(0, 500));
-          const matches = data.cup_matches || data.results || [];
+          // h2h matches use 'results', cup matches use 'cup_matches'
+          const matches = data.results || data.cup_matches || [];
+          // Also handle paginated results
+          const hasNext = data.has_next || false;
           matches.forEach(m => {
             const key = [m.entry_1_entry, m.entry_2_entry, m.event].sort().join('-');
             if (!seen.has(key)) { seen.add(key); allMatches.push(m); }
           });
+          // Fetch additional pages if needed
+          if (hasNext && ep.includes('page=1')) {
+            let page = 2;
+            while (true) {
+              try {
+                const pageData = await fetchFPL(ep.replace('page=1', 'page=' + page));
+                const pageMatches = pageData.results || [];
+                if (!pageMatches.length) break;
+                pageMatches.forEach(m => {
+                  const key = [m.entry_1_entry, m.entry_2_entry, m.event].sort().join('-');
+                  if (!seen.has(key)) { seen.add(key); allMatches.push(m); }
+                });
+                if (!pageData.has_next) break;
+                page++;
+              } catch(e) { break; }
+            }
+          }
           if (allMatches.length > 0) break;
         } catch(e) {
           console.warn('Cup endpoint failed:', ep, e.message);
@@ -1976,21 +2040,30 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         const isPlayed = pts1 !== null && pts2 !== null;
         const isBye = !m2;
 
-        const row = (manager, pts, isWinner, isBye) => {
+        // Get transfer costs for this GW from gwHistory
+        const getHit = (managerId, event) => {
+          const hist = state.gwHistory[managerId] || [];
+          const entry = hist.find(h => h.event === event);
+          return entry ? entry.event_transfers_cost : 0;
+        };
+
+        const row = (manager, pts, isWinner, isBye, event) => {
           if (!manager) return '';
           const rowClass = !isPlayed ? '' : isWinner ? ' winner' : ' loser';
           const ptsClass = isWinner ? ' high' : '';
           const badge = isWinner ? ' <span class="cup-winner-badge">✓</span>' : '';
+          const hit = manager && event ? getHit(manager.id, event) : 0;
+          const hitStr = hit > 0 ? '<span style="color:var(--red);font-size:10px;font-family:var(--font-mono);margin-left:2px;">(-' + hit + ')</span>' : '';
           return '<div class="cup-match-row' + rowClass + (isBye ? ' bye' : '') + '">' +
             '<div><div class="cup-manager">' + esc(manager.name) + badge + '</div>' +
             '<div class="cup-team">' + esc(manager.team) + '</div></div>' +
-            (isPlayed && pts !== null ? '<div class="cup-pts' + ptsClass + '">' + pts + '</div>' : '') +
+            (isPlayed && pts !== null ? '<div class="cup-pts' + ptsClass + '">' + pts + hitStr + '</div>' : '') +
             '</div>';
         };
 
         html += '<div class="cup-match">';
-        if (m1) html += row(m1, pts1, winner === m1.id, false);
-        if (m2) html += row(m2, pts2, winner === m2.id, false);
+        if (m1) html += row(m1, pts1, winner === m1.id, false, match.event);
+        if (m2) html += row(m2, pts2, winner === m2.id, false, match.event);
         else html += '<div class="cup-match-row bye"><div class="cup-manager">BYE</div></div>';
 
         if (!isPlayed) {
