@@ -2489,14 +2489,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       if (!res.ok) throw new Error('fetch failed');
       const text = await res.text();
       // Extract build timestamp from the raw file
-      const match = text.match(/Built ([\w]+ \d+, \d+ \d+:\d+ [AP]M ET)/);
-      const remoteBuild = match ? match[1] : null;
-      if (!remoteBuild) {
-        el.textContent = 'Built ' + BUILD_TIMESTAMP;
-        el.style.opacity = '0.5';
-        return;
-      }
-      if (remoteBuild === BUILD_TIMESTAMP) {
+      const needle = 'Built ' + BUILD_TIMESTAMP;
+      const found = text.indexOf(needle) !== -1;
+      if (found) {
         el.innerHTML = '✓ Live · Built ' + BUILD_TIMESTAMP;
         el.style.opacity = '0.6';
         el.style.color = 'var(--green)';
