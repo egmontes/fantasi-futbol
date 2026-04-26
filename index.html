@@ -403,10 +403,12 @@
       .container { padding: 1.5rem 1rem 3rem; }
       .tab-btn { padding: 10px 12px; font-size: 13px; }
       .stat-card .s-value { font-size: 26px; }
-      /* Tighter manager column on mobile */
-      .m-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
-      .m-team { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
-      .table-outer td:nth-child(2), .table-outer th:nth-child(2) { max-width: 130px; }
+      /* Tighter manager column on mobile — only truncate if it genuinely overflows */
+      .m-name { font-size: 12px; }
+      .m-team { font-size: 10px; }
+      .table-outer td:nth-child(2), .table-outer th:nth-child(2) { max-width: 38vw; overflow: hidden; }
+      .table-outer td:nth-child(2) .m-name,
+      .table-outer td:nth-child(2) .m-team { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     }
   
       font-size: 11px;
