@@ -2560,22 +2560,41 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     tableOuter.addEventListener('scroll', syncHorizontal, { passive: true });
 
-    // rAF loop during touch to catch rubber-band horizontal movement
-    let _rafLoop = null;
-    tableOuter.addEventListener('touchstart', () => {
-      if (_rafLoop) return;
-      function loop() { syncHorizontal(); _rafLoop = requestAnimationFrame(loop); }
-      _rafLoop = requestAnimationFrame(loop);
+    // Only hide floating header during horizontal touch (rubber-band)
+    // Keep it visible during vertical scrolling
+    let _touchStartX = 0;
+    let _touchStartY = 0;
+    let _isHorizontalTouch = false;
+
+    tableOuter.addEventListener('touchstart', (e) => {
+      _touchStartX = e.touches[0].clientX;
+      _touchStartY = e.touches[0].clientY;
+      _isHorizontalTouch = false;
     }, { passive: true });
-    tableOuter.addEventListener('touchend', () => {
-      if (_rafLoop) { cancelAnimationFrame(_rafLoop); _rafLoop = null; }
-      // Keep syncing during snap-back
-      let snapFrames = 0;
-      function snapLoop() {
-        syncHorizontal();
-        if (++snapFrames < 30) requestAnimationFrame(snapLoop);
+
+    tableOuter.addEventListener('touchmove', (e) => {
+      if (!_isHorizontalTouch) {
+        const dx = Math.abs(e.touches[0].clientX - _touchStartX);
+        const dy = Math.abs(e.touches[0].clientY - _touchStartY);
+        if (dx > dy && dx > 5) {
+          _isHorizontalTouch = true;
+          clone.style.visibility = 'hidden';
+        }
       }
-      requestAnimationFrame(snapLoop);
+    }, { passive: true });
+
+    tableOuter.addEventListener('touchend', () => {
+      if (_isHorizontalTouch) {
+        setTimeout(() => {
+          const theadRect = thead.getBoundingClientRect();
+          const tabsBottom = document.querySelector('.tabs')?.getBoundingClientRect().bottom || 157;
+          if (theadRect.bottom < tabsBottom) {
+            syncHorizontal();
+            clone.style.visibility = 'visible';
+          }
+        }, 150);
+      }
+      _isHorizontalTouch = false;
     }, { passive: true });
 
     // Use IntersectionObserver to show/hide
