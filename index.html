@@ -2376,12 +2376,27 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   });
 
   // STICKY TABLE HEADERS
+  let _stickyScrollContainer = null;
+
+  function getTableOuter(table) {
+    let el = table.parentElement;
+    while (el && !el.classList.contains('table-outer')) el = el.parentElement;
+    return el;
+  }
+
+  function syncStickyScroll() {
+    const stickyEl = document.getElementById('sticky-thead');
+    if (!stickyEl || stickyEl.style.display === 'none') return;
+    const t = stickyEl.querySelector('table');
+    if (t && _stickyScrollContainer) {
+      t.style.marginLeft = '-' + _stickyScrollContainer.scrollLeft + 'px';
+    }
+  }
+
   function updateStickyHeader() {
     const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
-    // For weekly tab, the rendered table could be weekly-table or live-table
     const tableIds = { standings: 'standings-table', weekly: 'weekly-table', live: 'live-table' };
     let tableId = tableIds[activeTab] || null;
-    // If weekly tab is showing live scores, use live-table instead
     if (activeTab === 'weekly') {
       tableId = document.getElementById('live-table') ? 'live-table' :
                 document.getElementById('weekly-table') ? 'weekly-table' : null;
@@ -2391,7 +2406,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const stickyInner = document.getElementById('sticky-thead-inner');
 
     if (!table) { stickyEl.style.display = 'none'; return; }
-
     const thead = table.querySelector('thead');
     if (!thead) { stickyEl.style.display = 'none'; return; }
 
@@ -2399,40 +2413,55 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const siteHeaderHeight = document.querySelector('.site-header')?.offsetHeight || 64;
     const tabsHeight = document.querySelector('.tabs')?.offsetHeight || 45;
     const offset = siteHeaderHeight + tabsHeight;
+    const tableOuter = getTableOuter(table);
 
     if (theadRect.bottom < offset) {
-      // thead has scrolled out of view — show sticky
       stickyEl.style.display = 'block';
       stickyEl.style.top = offset + 'px';
+      stickyEl.style.overflow = 'hidden';
 
-      // Sync column widths
-      const cols = thead.querySelectorAll('th');
-      stickyInner.innerHTML = '';
-      const tr = document.createElement('tr');
-      cols.forEach(th => {
-        const clone = th.cloneNode(true);
-        clone.style.width = th.offsetWidth + 'px';
-        clone.style.minWidth = th.offsetWidth + 'px';
-        // Re-wire sort click
-        const col = th.dataset.col;
-        if (col) {
-          clone.addEventListener('click', () => { th.click(); });
+      // Rebuild cloned header if table changed
+      if (stickyInner.dataset.forTable !== tableId) {
+        stickyInner.dataset.forTable = tableId;
+        const cols = thead.querySelectorAll('th');
+        stickyInner.innerHTML = '';
+        const tr = document.createElement('tr');
+        cols.forEach(th => {
+          const clone = th.cloneNode(true);
+          clone.style.width = th.offsetWidth + 'px';
+          clone.style.minWidth = th.offsetWidth + 'px';
+          if (th.dataset.col) clone.addEventListener('click', () => th.click());
+          tr.appendChild(clone);
+        });
+        stickyInner.appendChild(tr);
+
+        // Wire horizontal scroll sync to this table's scroll container
+        if (_stickyScrollContainer) {
+          _stickyScrollContainer.removeEventListener('scroll', syncStickyScroll);
         }
-        tr.appendChild(clone);
-      });
-      stickyInner.appendChild(tr);
+        _stickyScrollContainer = tableOuter;
+        if (tableOuter) tableOuter.addEventListener('scroll', syncStickyScroll, { passive: true });
+      }
 
-      // Sync table width and left offset
-      const tableRect = table.getBoundingClientRect();
-      stickyEl.style.left = tableRect.left + 'px';
-      stickyEl.style.right = (window.innerWidth - tableRect.right) + 'px';
+      // Position over the scroll container
+      const outerRect = tableOuter ? tableOuter.getBoundingClientRect() : thead.getBoundingClientRect();
+      stickyEl.style.left = outerRect.left + 'px';
+      stickyEl.style.right = (window.innerWidth - outerRect.right) + 'px';
+
+      // Sync scroll position immediately
+      syncStickyScroll();
     } else {
       stickyEl.style.display = 'none';
     }
   }
 
   window.addEventListener('scroll', updateStickyHeader, { passive: true });
-  window.addEventListener('resize', updateStickyHeader, { passive: true });
+  window.addEventListener('resize', () => {
+    if (document.getElementById('sticky-thead-inner')) {
+      document.getElementById('sticky-thead-inner').dataset.forTable = '';
+    }
+    updateStickyHeader();
+  }, { passive: true });
 
   // GW CHANGE
   document.getElementById('gw-select').addEventListener('change', e => {
