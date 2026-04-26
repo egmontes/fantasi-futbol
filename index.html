@@ -79,7 +79,7 @@
       gap: 12px;
       flex-wrap: wrap;
       position: sticky;
-      top: 64px; /* right below site header */
+      top: 116px; /* 64px header + ~52px gw-callout */
       background: var(--bg);
       z-index: 14;
       padding: 10px 0;
@@ -128,7 +128,7 @@
       border-bottom: 1px solid var(--border);
       margin-bottom: 2rem;
       position: sticky;
-      top: 112px; /* 64px header + 48px gw-bar */
+      top: 164px; /* 64px header + 52px gw-callout + 48px gw-bar */
       background: var(--bg);
       z-index: 13;
     }
@@ -200,6 +200,10 @@
     }
     .sticky-clone-header th:nth-child(2) {
       position: sticky; z-index: 4; background: var(--bg2);
+    }
+    /* Override — sticky doesn't work inside fixed, handled by JS */
+    .sticky-clone-header th {
+      position: relative;
     }
 
     /* Sticky first two columns */
@@ -437,6 +441,13 @@
 </header>
 
 <div class="container">
+
+  <div id="gw-callout" style="display:none;position:sticky;top:64px;background:var(--bg);z-index:16;padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:0;">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
+      <span id="gw-callout-label" style="font-size:22px;font-weight:700;color:var(--text);font-family:var(--font-display);"></span>
+      <span id="gw-deadline-label" style="font-size:12px;color:var(--green);font-family:var(--font-mono);"></span>
+    </div>
+  </div>
 
   <div class="gw-bar">
     <label for="gw-select">Gameweek</label>
@@ -781,6 +792,41 @@ async function init() {
       await loadLeague();
       await loadAllHistory();
       await loadGuinnessDebts();
+
+      // Populate GW callout
+      const callout = document.getElementById('gw-callout');
+      const calloutLabel = document.getElementById('gw-callout-label');
+      const deadlineLabel = document.getElementById('gw-deadline-label');
+      if (callout && calloutLabel && deadlineLabel) {
+        // Current/live GW label
+        const currentEvent = bootstrap.events.find(e => e.is_current) ||
+                             bootstrap.events.find(e => e.id === state.latestGW);
+        const nextEvent = bootstrap.events.find(e => e.is_next) ||
+                          bootstrap.events.find(e => e.id === state.latestGW + 1);
+
+        if (currentEvent) {
+          const gwLabel = state.isLive
+            ? 'GW' + currentEvent.id + ' Live'
+            : 'GW' + currentEvent.id + ' Complete';
+          calloutLabel.textContent = gwLabel;
+        }
+
+        // Next GW deadline
+        if (nextEvent && nextEvent.deadline_time) {
+          const deadline = new Date(nextEvent.deadline_time);
+          const etStr = deadline.toLocaleString('en-US', {
+            timeZone: 'America/New_York',
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+          deadlineLabel.textContent = 'GW' + nextEvent.id + ' deadline: ' + etStr + ' ET';
+        }
+        callout.style.display = 'block';
+      }
 
       document.getElementById('header-meta').textContent =
         `League #${LEAGUE_ID} · GW${state.latestGW}`;
@@ -2456,13 +2502,29 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       cloneTable.style.tableLayout = 'fixed';
     }
 
-    // Sync horizontal scroll
-    tableOuter.addEventListener('scroll', () => {
-      cloneTable.style.transform = 'translateX(-' + tableOuter.scrollLeft + 'px)';
-    }, { passive: true });
+    // Sync horizontal scroll — translate all cols, then pin first two back
+    function syncHorizontal() {
+      const scrollLeft = tableOuter.scrollLeft;
+      cloneTable.style.transform = 'translateX(-' + scrollLeft + 'px)';
+      // Pin first two th cells to stay fixed regardless of horizontal scroll
+      const ths = cloneThead.querySelectorAll('th');
+      if (ths[0]) {
+        ths[0].style.transform = 'translateX(' + scrollLeft + 'px)';
+        ths[0].style.position = 'relative';
+        ths[0].style.zIndex = '4';
+      }
+      if (ths[1]) {
+        const th0Width = ths[0] ? ths[0].getBoundingClientRect().width : 36;
+        ths[1].style.transform = 'translateX(' + scrollLeft + 'px)';
+        ths[1].style.position = 'relative';
+        ths[1].style.zIndex = '4';
+      }
+    }
+    tableOuter.addEventListener('scroll', syncHorizontal, { passive: true });
 
     // Use IntersectionObserver to show/hide
     const tabsHeight = (document.querySelector('.site-header')?.offsetHeight || 64) +
+                       (document.getElementById('gw-callout')?.offsetHeight || 52) +
                        (document.querySelector('.gw-bar')?.offsetHeight || 48) +
                        (document.querySelector('.tabs')?.offsetHeight || 45);
 
@@ -2471,7 +2533,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         if (!entry.isIntersecting) {
           syncWidths();
           syncPosition();
-          cloneTable.style.transform = 'translateX(-' + tableOuter.scrollLeft + 'px)';
+          syncHorizontal();
           clone.style.visibility = 'visible';
         } else {
           clone.style.visibility = 'hidden';
