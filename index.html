@@ -166,6 +166,49 @@
     .table-outer thead th {
       background: var(--bg2);
     }
+    /* Sticky first two columns */
+    .table-outer td:nth-child(1),
+    .table-outer th:nth-child(1) {
+      position: sticky;
+      left: 0;
+      background: var(--bg);
+      z-index: 3;
+    }
+    .table-outer td:nth-child(2),
+    .table-outer th:nth-child(2) {
+      position: sticky;
+      left: 36px; /* width of # column */
+      background: var(--bg);
+      z-index: 3;
+    }
+    .table-outer thead th:nth-child(1),
+    .table-outer thead th:nth-child(2) {
+      background: var(--bg2);
+      z-index: 4;
+    }
+    /* Preserve row highlight backgrounds for sticky cols */
+    .row-1 td:nth-child(1), .row-1 td:nth-child(2) { background: var(--bg); }
+    .row-2 td:nth-child(1), .row-2 td:nth-child(2) { background: var(--bg); }
+    .row-3 td:nth-child(1), .row-3 td:nth-child(2) { background: var(--bg); }
+    .row-4 td:nth-child(1), .row-4 td:nth-child(2) { background: var(--bg); }
+    .row-bottom td:nth-child(1), .row-bottom td:nth-child(2) { background: var(--bg); }
+    /* Subtle right shadow to indicate frozen columns */
+    .table-outer th:nth-child(2)::after,
+    .table-outer td:nth-child(2)::after {
+      content: '';
+      position: absolute;
+      top: 0; right: -6px; bottom: 0;
+      width: 6px;
+      background: linear-gradient(to right, rgba(0,0,0,0.15), transparent);
+      pointer-events: none;
+    }
+    .table-outer th:nth-child(2),
+    .table-outer td:nth-child(2) {
+      position: sticky;
+      left: 36px;
+      background: var(--bg);
+      z-index: 3;
+    }
     .sticky-thead {
       position: fixed;
       left: 0; right: 0;
@@ -193,7 +236,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
     thead th {
       text-align: left;
       font-size: 11px;
@@ -222,6 +265,7 @@
     .row-1 td:first-child { border-left: 3px solid var(--amber); }
     .row-2 td:first-child { border-left: 3px solid var(--silver); }
     .row-3 td:first-child { border-left: 3px solid #cd7f32; }
+    .row-4 td:first-child { border-left: 3px solid #60a5fa; }
     .row-bottom td:first-child { border-left: 3px solid var(--red); }
 
     /* BADGES */
@@ -1182,7 +1226,7 @@ async function init() {
           const missedLiveCell = didMissGW(m.name, gw)
             ? '<span style="color:var(--red);font-size:16px;font-weight:bold;">✗</span>'
             : '<span class="badge-zero">—</span>';
-          const rowCls = rank === 1 ? 'row-1' : rank === 2 ? 'row-2' : rank === 3 ? 'row-3' : isBottom ? 'row-bottom' : '';
+          const rowCls = rank === 1 ? 'row-1' : rank === 2 ? 'row-2' : rank === 3 ? 'row-3' : rank === 4 ? 'row-4' : isBottom ? 'row-bottom' : '';
           const chipBadge = m.chip ? ' <span class="badge badge-4" style="font-size:10px;">' + m.chip + '</span>' : '';
           html += '<tr class="' + rowCls + '">' +
             '<td><span class="rank-num">' + rank + '</span></td>' +
@@ -1309,7 +1353,7 @@ async function init() {
         const rank = m._displayRank;
         const isBottom = m._shotgun;
         const hasPrize = m._prize > 0;
-        const rowCls = rank === 1 ? 'row-1' : rank === 2 ? 'row-2' : rank === 3 ? 'row-3' : isBottom ? 'row-bottom' : '';
+        const rowCls = rank === 1 ? 'row-1' : rank === 2 ? 'row-2' : rank === 3 ? 'row-3' : rank === 4 ? 'row-4' : isBottom ? 'row-bottom' : '';
 
         let resultBadge = '';
         if (hasPrize) {
