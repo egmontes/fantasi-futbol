@@ -2540,9 +2540,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     }
 
     function syncHorizontal() {
-      const scrollLeft = tableOuter.scrollLeft;
-      cloneTable.style.transform = 'translateX(-' + scrollLeft + 'px)';
-      // Shift pinned cols to counteract the table translation
+      const scrollLeft = Math.max(0, tableOuter.scrollLeft);
+      cloneTable.style.transform = 'translateX(-' + tableOuter.scrollLeft + 'px)';
+      // Clamp pinned cols so they never move left of their natural position
       const ths = cloneThead.querySelectorAll('th');
       if (ths[0]) ths[0].style.left = scrollLeft + 'px';
       if (ths[1]) ths[1].style.left = (scrollLeft + col0Width) + 'px';
