@@ -122,6 +122,10 @@
       gap: 0;
       border-bottom: 1px solid var(--border);
       margin-bottom: 2rem;
+      position: sticky;
+      top: 64px;
+      background: var(--bg);
+      z-index: 15;
     }
     .tab-btn {
       background: none;
@@ -156,7 +160,39 @@
     .stat-card .s-value { font-family: var(--font-display); font-size: 32px; color: var(--text); line-height: 1; }
 
     /* TABLE */
-    .table-wrap { overflow-x: auto; }
+    .table-outer { overflow-x: auto; }
+    .table-outer table { width: 100%; }
+    .table-wrap { }
+    .table-outer thead th {
+      background: var(--bg2);
+    }
+    .sticky-thead {
+      position: fixed;
+      left: 0; right: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+      display: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .sticky-thead table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      table-layout: fixed;
+    }
+    .sticky-thead th {
+      font-size: 11px;
+      color: var(--text3);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 8px 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     thead th {
       text-align: left;
@@ -334,6 +370,7 @@
 </head>
 <body>
 
+<div class="sticky-thead" id="sticky-thead"><table><thead id="sticky-thead-inner"></thead></table></div>
 <header class="site-header">
   <div class="site-logo">Fantasi <span>Futbol</span></div>
   <div class="header-meta"><span id="header-meta">Loading...</span><span style="margin-left:10px;opacity:0.5;font-size:11px;">Built Apr 26, 2026 11:10 AM ET</span></div>
@@ -927,7 +964,7 @@ async function init() {
       '<div class="stat-card"><div class="s-label">Prize pool</div><div class="s-value">$' + totalPool + '</div></div>' +
       '<div class="stat-card"><div class="s-label">Guinness chugged</div><div class="s-value">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
       '</div>' +
-      '<div class="table-wrap"><table id="standings-table">' +
+      '<div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
       '<thead><tr>' +
       '<th style="width:36px">#</th>' +
       '<th ' + thClass('name') + ' data-col="name">Manager</th>' +
@@ -961,7 +998,7 @@ async function init() {
         '</tr>';
     });
 
-    html += '</tbody></table></div>';
+    html += '</tbody></table></div></div>';
     document.getElementById('standings-content').innerHTML = html;
 
     // Attach sort click handlers
@@ -1002,7 +1039,7 @@ async function init() {
         '</div>';
     }
 
-    html += '</div><div class="table-wrap"><table>' +
+    html += '</div><div class="table-outer"><div class="table-wrap"><table>' +
       '<thead><tr>' +
       '<th style="width:36px">#</th>' +
       '<th>Manager</th>' +
@@ -1026,7 +1063,7 @@ async function init() {
         '</tr>';
     });
 
-    html += '</tbody></table></div>';
+    html += '</tbody></table></div></div>';
     document.getElementById('weekly-content').innerHTML = html;
   }
 
@@ -1123,7 +1160,7 @@ async function init() {
           '<span style="background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,0.3);border-radius:99px;font-size:11px;font-family:var(--font-mono);padding:3px 10px;">🔴 LIVE GW' + gw + '</span>' +
           '<span style="font-size:12px;color:var(--text3);">Scores provisional — bonus points & auto-subs not yet applied</span>' +
           '</div>' +
-          '<div class="table-wrap"><table id="live-table">' +
+          '<div class="table-outer"><div class="table-wrap"><table id="live-table">' +
           '<thead><tr>' +
           '<th style="width:36px">#</th>' +
           '<th style="' + thStyle + '" data-col="name">Manager' + arrow('name') + '</th>' +
@@ -1157,7 +1194,7 @@ async function init() {
             '</tr>';
         });
 
-        html += '</tbody></table></div>';
+        html += '</tbody></table></div></div>';
         document.getElementById('weekly-content').innerHTML = html;
 
         // Wire up sortable headers
@@ -1255,7 +1292,7 @@ async function init() {
         '<span class="badge badge-4">4th $5</span>' +
         '<span class="badge badge-shot" style="margin-left:8px">Shotgun duty</span>' +
         '</div>' +
-        '<div class="table-wrap"><table id="weekly-table">' +
+        '<div class="table-outer"><div class="table-wrap"><table id="weekly-table">' +
         '<thead><tr>' +
         '<th style="width:36px">#</th>' +
         '<th ' + wthClass('name') + ' data-col="name">Manager</th>' +
@@ -1313,7 +1350,7 @@ async function init() {
           '</tr>';
       });
 
-      html += '</tbody></table></div>';
+      html += '</tbody></table></div></div>';
       document.getElementById('weekly-content').innerHTML = html;
 
       // Attach sort handlers
@@ -2137,6 +2174,65 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       if (tab === 'recap') setupRecapTab();
     });
   });
+
+  // STICKY TABLE HEADERS
+  function updateStickyHeader() {
+    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+    // For weekly tab, the rendered table could be weekly-table or live-table
+    const tableIds = { standings: 'standings-table', weekly: 'weekly-table', live: 'live-table' };
+    let tableId = tableIds[activeTab] || null;
+    // If weekly tab is showing live scores, use live-table instead
+    if (activeTab === 'weekly') {
+      tableId = document.getElementById('live-table') ? 'live-table' :
+                document.getElementById('weekly-table') ? 'weekly-table' : null;
+    }
+    const table = tableId ? document.getElementById(tableId) : null;
+    const stickyEl = document.getElementById('sticky-thead');
+    const stickyInner = document.getElementById('sticky-thead-inner');
+
+    if (!table) { stickyEl.style.display = 'none'; return; }
+
+    const thead = table.querySelector('thead');
+    if (!thead) { stickyEl.style.display = 'none'; return; }
+
+    const theadRect = thead.getBoundingClientRect();
+    const siteHeaderHeight = document.querySelector('.site-header')?.offsetHeight || 64;
+    const tabsHeight = document.querySelector('.tabs')?.offsetHeight || 45;
+    const offset = siteHeaderHeight + tabsHeight;
+
+    if (theadRect.bottom < offset) {
+      // thead has scrolled out of view — show sticky
+      stickyEl.style.display = 'block';
+      stickyEl.style.top = offset + 'px';
+
+      // Sync column widths
+      const cols = thead.querySelectorAll('th');
+      stickyInner.innerHTML = '';
+      const tr = document.createElement('tr');
+      cols.forEach(th => {
+        const clone = th.cloneNode(true);
+        clone.style.width = th.offsetWidth + 'px';
+        clone.style.minWidth = th.offsetWidth + 'px';
+        // Re-wire sort click
+        const col = th.dataset.col;
+        if (col) {
+          clone.addEventListener('click', () => { th.click(); });
+        }
+        tr.appendChild(clone);
+      });
+      stickyInner.appendChild(tr);
+
+      // Sync table width and left offset
+      const tableRect = table.getBoundingClientRect();
+      stickyEl.style.left = tableRect.left + 'px';
+      stickyEl.style.right = (window.innerWidth - tableRect.right) + 'px';
+    } else {
+      stickyEl.style.display = 'none';
+    }
+  }
+
+  window.addEventListener('scroll', updateStickyHeader, { passive: true });
+  window.addEventListener('resize', updateStickyHeader, { passive: true });
 
   // GW CHANGE
   document.getElementById('gw-select').addEventListener('change', e => {
