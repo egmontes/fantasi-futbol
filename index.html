@@ -2501,29 +2501,53 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       cloneTable.style.tableLayout = 'fixed';
     }
 
-    // Sync horizontal scroll — translate all cols, then pin first two back
+    // Sync horizontal scroll
+    // For the floating header: translate only cols 3+ left, keep cols 1&2 absolutely pinned
+    let col0Width = 0;
+    let col1Width = 0;
+
+    function pinStickyColsAbsolute() {
+      const ths = cloneThead.querySelectorAll('th');
+      if (!ths[0] || !ths[1]) return;
+      col0Width = ths[0].offsetWidth;
+      col1Width = ths[1].offsetWidth;
+
+      // Pin col 0 absolutely at left:0
+      ths[0].style.position = 'absolute';
+      ths[0].style.left = '0';
+      ths[0].style.top = '0';
+      ths[0].style.height = '100%';
+      ths[0].style.zIndex = '4';
+      ths[0].style.background = 'var(--bg2)';
+      ths[0].style.display = 'flex';
+      ths[0].style.alignItems = 'center';
+
+      // Pin col 1 absolutely right after col 0
+      ths[1].style.position = 'absolute';
+      ths[1].style.left = col0Width + 'px';
+      ths[1].style.top = '0';
+      ths[1].style.height = '100%';
+      ths[1].style.zIndex = '4';
+      ths[1].style.background = 'var(--bg2)';
+      ths[1].style.display = 'flex';
+      ths[1].style.alignItems = 'center';
+
+      // Add left padding to col 2+ so they don't go under the pinned cols
+      const pinnedWidth = col0Width + col1Width;
+      for (let i = 2; i < ths.length; i++) {
+        if (i === 2) ths[i].style.paddingLeft = (pinnedWidth - (ths[i].offsetLeft || 0)) + 'px';
+      }
+    }
+
     function syncHorizontal() {
       const scrollLeft = tableOuter.scrollLeft;
       cloneTable.style.transform = 'translateX(-' + scrollLeft + 'px)';
-      // Pin first two th cells using counter-transform relative to their natural position
+      // Shift pinned cols to counteract the table translation
       const ths = cloneThead.querySelectorAll('th');
-      if (ths[0]) {
-        // col 0 naturally starts at 0, counter-translate to keep it at 0
-        ths[0].style.transform = 'translateX(' + scrollLeft + 'px)';
-        ths[0].style.zIndex = '4';
-        ths[0].style.background = 'var(--bg2)';
-      }
-      if (ths[1]) {
-        // col 1 naturally starts at col0Width, counter-translate to keep it at col0Width
-        const col0Width = ths[0] ? ths[0].offsetWidth : 36;
-        // Its natural position after table translate is: col0Width - scrollLeft
-        // We want it at: col0Width
-        // So extra translate needed: scrollLeft
-        ths[1].style.transform = 'translateX(' + scrollLeft + 'px)';
-        ths[1].style.zIndex = '4';
-        ths[1].style.background = 'var(--bg2)';
-      }
+      if (ths[0]) ths[0].style.left = scrollLeft + 'px';
+      if (ths[1]) ths[1].style.left = (scrollLeft + col0Width) + 'px';
     }
+
     tableOuter.addEventListener('scroll', syncHorizontal, { passive: true });
 
     // Use IntersectionObserver to show/hide
@@ -2537,6 +2561,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         if (!entry.isIntersecting) {
           syncWidths();
           syncPosition();
+          pinStickyColsAbsolute();
           syncHorizontal();
           clone.style.visibility = 'visible';
         } else {
