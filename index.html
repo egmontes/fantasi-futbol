@@ -1055,17 +1055,20 @@ async function init() {
               const playerPts = liveScores[p.element] || 0;
               pts += playerPts * p.multiplier;
             });
-            // Get hit from picks.entry_history (most reliable for live GW)
-            // Falls back to gwHistory if entry_history not available
+            // Get hit cost — try entry_history first, then gwHistory
+            // entry_history.event_transfers_cost is the hit in points (e.g. 4 for one extra transfer)
             let hit = 0;
-            if (picks.entry_history && picks.entry_history.event_transfers_cost !== undefined) {
+            if (picks.entry_history?.event_transfers_cost) {
               hit = picks.entry_history.event_transfers_cost;
             } else {
               const hist = state.gwHistory[m.id] || [];
               const gwEntry = hist.find(h => h.event === gw);
-              hit = gwEntry ? gwEntry.event_transfers_cost : 0;
+              if (gwEntry?.event_transfers_cost) hit = gwEntry.event_transfers_cost;
             }
-            managerScores[m.id] = { pts: pts - hit, rawPts: pts, chip: picks.active_chip, hit };
+            // pts is raw sum of player points × multipliers, subtract hit to get net
+            const netPts = pts - hit;
+            if (hit > 0) console.log(m.name, 'raw:', pts, 'hit:', hit, 'net:', netPts);
+            managerScores[m.id] = { pts: netPts, rawPts: pts, chip: picks.active_chip, hit };
           } catch(e) {
             managerScores[m.id] = { pts: 0, rawPts: 0 };
           }
@@ -1079,7 +1082,8 @@ async function init() {
       const liveEnriched = [...state.managers]
         .map(m => ({
           ...m,
-          gwPoints: managerScores[m.id]?.pts || 0,
+          gwPoints: managerScores[m.id]?.pts || 0,       // net (used for sorting/ranking)
+          rawPoints: managerScores[m.id]?.rawPts || 0,   // raw (displayed to user)
           chip: managerScores[m.id]?.chip,
           transferCost: managerScores[m.id]?.hit || 0,
         }));
@@ -1146,7 +1150,7 @@ async function init() {
           html += '<tr class="' + rowCls + '">' +
             '<td><span class="rank-num">' + rank + '</span></td>' +
             '<td><div class="m-name">' + esc(m.name) + chipBadge + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
-            '<td><span class="pts-val">' + m.gwPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
+            '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost" title="Transfer hit">(-' + m.transferCost + ')</span>' : '') + '</td>' +
             '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
             '<td style="text-align:center">' + owedCell + '</td>' +
             '<td style="text-align:center">' + missedLiveCell + '</td>' +
@@ -1299,7 +1303,7 @@ async function init() {
         html += '<tr class="' + rowCls + '">' +
           '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
           '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + (m.chip ? ' <span class="badge badge-4" style="font-size:10px;margin-left:4px;">' + m.chip + '</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
-          '<td><span class="pts-val">' + m.gwPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
+          '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
           '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
           '<td style="text-align:center">' + hitStr + '</td>' +
           '<td style="text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--text3)">' + m.benchPoints + '</td>' +
@@ -2047,6 +2051,18 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           return entry ? entry.event_transfers_cost : 0;
         };
 
+        // Compute season standings rank for seeding
+        const seasonStats = computeSeasonStats();
+        const seedRanked = [...state.managers]
+          .map(m => ({ id: m.id, total: m.total }))
+          .sort((a, b) => b.total - a.total);
+        const seedMap = {};
+        let seedRank = 1;
+        seedRanked.forEach((m, idx) => {
+          if (idx > 0 && seedRanked[idx].total < seedRanked[idx-1].total) seedRank = idx + 1;
+          seedMap[m.id] = seedRank;
+        });
+
         const row = (manager, pts, isWinner, isBye, event) => {
           if (!manager) return '';
           const rowClass = !isPlayed ? '' : isWinner ? ' winner' : ' loser';
@@ -2054,16 +2070,25 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           const badge = isWinner ? ' <span class="cup-winner-badge">✓</span>' : '';
           const hit = manager && event ? getHit(manager.id, event) : 0;
           const hitStr = hit > 0 ? '<span style="color:var(--red);font-size:10px;font-family:var(--font-mono);margin-left:2px;">(-' + hit + ')</span>' : '';
+          const seed = seedMap[manager.id] || '?';
           return '<div class="cup-match-row' + rowClass + (isBye ? ' bye' : '') + '">' +
+            '<div style="display:flex;align-items:center;gap:8px;">' +
+            '<span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);min-width:18px;text-align:right;">' + seed + '</span>' +
             '<div><div class="cup-manager">' + esc(manager.name) + badge + '</div>' +
             '<div class="cup-team">' + esc(manager.team) + '</div></div>' +
+            '</div>' +
             (isPlayed && pts !== null ? '<div class="cup-pts' + ptsClass + '">' + pts + hitStr + '</div>' : '') +
             '</div>';
         };
 
+        // Always show better seed (lower number) on top
+        let topManager = m1, topPts = pts1, botManager = m2, botPts = pts2;
+        if (m1 && m2 && (seedMap[m2.id] || 999) < (seedMap[m1.id] || 999)) {
+          topManager = m2; topPts = pts2; botManager = m1; botPts = pts1;
+        }
         html += '<div class="cup-match">';
-        if (m1) html += row(m1, pts1, winner === m1.id, false, match.event);
-        if (m2) html += row(m2, pts2, winner === m2.id, false, match.event);
+        if (topManager) html += row(topManager, topPts, winner === topManager.id, false, match.event);
+        if (botManager) html += row(botManager, botPts, winner === botManager.id, false, match.event);
         else html += '<div class="cup-match-row bye"><div class="cup-manager">BYE</div></div>';
 
         if (!isPlayed) {
