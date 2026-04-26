@@ -173,11 +173,10 @@
     }
     /* Sticky clone header — sits inside table-outer so it scrolls horizontally with table */
     .sticky-clone-header {
-      position: sticky;
-      top: 0;
-      z-index: 10;
+      z-index: 50;
       background: var(--bg);
-      display: none;
+      overflow: hidden;
+      visibility: hidden;
     }
     .sticky-clone-header table {
       width: 100%;
@@ -2399,25 +2398,25 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const tableOuter = (() => { let el = table.parentElement; while (el && !el.classList.contains('table-outer')) el = el.parentElement; return el; })();
     if (!tableOuter) return;
 
-    // Remove any existing clone
-    const existing = tableOuter.querySelector('.sticky-clone-header');
+    const existing = document.querySelector('.sticky-clone-header[data-for="' + tableId + '"]');
     if (existing) existing.remove();
+    // Also clean up any orphaned clones
+    document.querySelectorAll('.sticky-clone-header').forEach(el => el.remove());
 
     const thead = table.querySelector('thead');
     if (!thead) return;
 
     const clone = document.createElement('div');
     clone.className = 'sticky-clone-header';
+    clone.dataset.for = tableId;
     const cloneTable = document.createElement('table');
     const cloneThead = thead.cloneNode(true);
 
-    // Set col 2 left offset to match col 1 width
     const th1 = thead.querySelector('th:first-child');
     const th1Width = th1 ? th1.getBoundingClientRect().width : 36;
     const cloneTh2 = cloneThead.querySelector('th:nth-child(2)');
     if (cloneTh2) cloneTh2.style.left = th1Width + 'px';
 
-    // Wire sort clicks
     cloneThead.querySelectorAll('th[data-col]').forEach((th, i) => {
       const realTh = thead.querySelectorAll('th[data-col]')[i];
       if (realTh) th.addEventListener('click', () => realTh.click());
@@ -2425,17 +2424,28 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     cloneTable.appendChild(cloneThead);
     clone.appendChild(cloneTable);
-
-    // Start invisible but in the DOM so widths can be measured
     clone.style.visibility = 'hidden';
-    clone.style.display = 'block';
-    tableOuter.insertBefore(clone, tableOuter.firstChild);
+    // Use position:fixed so it never moves vertically
+    clone.style.position = 'fixed';
+    clone.style.zIndex = '50';
+    clone.style.background = 'var(--bg)';
+    clone.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+    clone.style.borderBottom = '1px solid var(--border)';
+    clone.style.overflow = 'hidden';
+    document.body.appendChild(clone);
 
-    // Sync column widths immediately after insert
+    function syncPosition() {
+      const tabsBottom = document.querySelector('.tabs')?.getBoundingClientRect().bottom || 157;
+      const outerRect = tableOuter.getBoundingClientRect();
+      clone.style.top = tabsBottom + 'px';
+      clone.style.left = outerRect.left + 'px';
+      clone.style.right = (window.innerWidth - outerRect.right) + 'px';
+      clone.style.width = 'auto';
+    }
+
     function syncWidths() {
       const realThs = thead.querySelectorAll('th');
-      const cloneThs = cloneThead.querySelectorAll('th');
-      cloneThs.forEach((th, i) => {
+      cloneThead.querySelectorAll('th').forEach((th, i) => {
         if (realThs[i]) {
           const w = realThs[i].getBoundingClientRect().width;
           th.style.width = w + 'px';
@@ -2443,30 +2453,38 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         }
       });
       cloneTable.style.width = table.getBoundingClientRect().width + 'px';
+      cloneTable.style.tableLayout = 'fixed';
     }
-    syncWidths();
 
-    function onScroll() {
-      const theadRect = thead.getBoundingClientRect();
-      const tabsBottom = document.querySelector('.tabs')?.getBoundingClientRect().bottom || 157;
-      const outerRect = tableOuter.getBoundingClientRect();
-      // Always keep top position up to date so it's ready when it appears
-      clone.style.top = (tabsBottom - outerRect.top + tableOuter.scrollTop) + 'px';
+    // Sync horizontal scroll
+    tableOuter.addEventListener('scroll', () => {
+      cloneTable.style.transform = 'translateX(-' + tableOuter.scrollLeft + 'px)';
+    }, { passive: true });
 
-      if (theadRect.bottom < tabsBottom) {
-        if (clone.style.visibility === 'hidden') {
-          syncWidths(); // re-sync widths right before showing
+    // Use IntersectionObserver to show/hide
+    const tabsHeight = (document.querySelector('.site-header')?.offsetHeight || 64) +
+                       (document.querySelector('.gw-bar')?.offsetHeight || 48) +
+                       (document.querySelector('.tabs')?.offsetHeight || 45);
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) {
+          syncWidths();
+          syncPosition();
+          cloneTable.style.transform = 'translateX(-' + tableOuter.scrollLeft + 'px)';
           clone.style.visibility = 'visible';
+        } else {
+          clone.style.visibility = 'hidden';
         }
-      } else {
-        clone.style.visibility = 'hidden';
-      }
-    }
+      });
+    }, {
+      rootMargin: '-' + tabsHeight + 'px 0px 0px 0px',
+      threshold: 0
+    });
 
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', () => { syncWidths(); onScroll(); }, { passive: true });
-    // Run once to set initial position
-    onScroll();
+    observer.observe(thead);
+
+    window.addEventListener('resize', () => { syncWidths(); syncPosition(); }, { passive: true });
   }
 
   // Call setupStickyHeader whenever a table is rendered
