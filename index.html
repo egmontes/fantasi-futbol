@@ -2552,12 +2552,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const scrollLeft = tableOuter.scrollLeft;
       cloneTable.style.transform = 'translateX(-' + scrollLeft + 'px)';
       const ths = cloneThead.querySelectorAll('th');
-      // When scrollLeft < 0 (rubber-band right), table moves right.
-      // Pinned cols should move right too (not go negative/left).
-      // clamp left to 0 minimum so they travel right with the table but never go left of home.
-      const pinnedOffset = Math.max(0, scrollLeft);
-      if (ths[0]) ths[0].style.left = pinnedOffset + 'px';
-      if (ths[1]) ths[1].style.left = (pinnedOffset + col0Width) + 'px';
+      // Use scrollLeft directly — when negative (rubber-band right),
+      // left becomes negative which moves cols right, matching the table
+      if (ths[0]) ths[0].style.left = scrollLeft + 'px';
+      if (ths[1]) ths[1].style.left = (scrollLeft + col0Width) + 'px';
     }
 
     tableOuter.addEventListener('scroll', syncHorizontal, { passive: true });
