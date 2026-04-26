@@ -336,7 +336,7 @@
 
 <header class="site-header">
   <div class="site-logo">Fantasi <span>Futbol</span></div>
-  <div class="header-meta"><span id="header-meta">Loading...</span><span style="margin-left:10px;opacity:0.5;font-size:11px;">Built Apr 26, 2026 03:06 PM UTC</span></div>
+  <div class="header-meta"><span id="header-meta">Loading...</span><span style="margin-left:10px;opacity:0.5;font-size:11px;">Built Apr 26, 2026 11:10 AM ET</span></div>
 </header>
 
 <div class="container">
@@ -1842,46 +1842,76 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     document.getElementById('cup-content').innerHTML =
       '<div class="loading-state"><span class="spinner"></span>Loading cup bracket...</div>';
     try {
-      // Fetch cup results for each manager
+      // Try the league cup endpoint first
+      let allMatches = [];
+
+      // Fetch cup matches per manager using the correct endpoint
       const BATCH = 5;
-      const cupResults = {}; // managerId -> array of cup matches
+      const seen = new Set();
       for (let i = 0; i < state.managers.length; i += BATCH) {
         const batch = state.managers.slice(i, i + BATCH);
         await Promise.all(batch.map(async m => {
           try {
-            const data = await fetchFPL('entry/' + m.id + '/history/');
-            // Cup data is in the entry history under cups
-            cupResults[m.id] = data.cups || [];
-          } catch(e) { cupResults[m.id] = []; }
+            const data = await fetchFPL('entry/' + m.id + '/cups/');
+            const matches = data.cup_matches || data.cups_matches || [];
+            matches.forEach(match => {
+              const key = [match.entry_1_entry, match.entry_2_entry, match.event].sort().join('-');
+              if (!seen.has(key)) {
+                seen.add(key);
+                allMatches.push(match);
+              }
+            });
+          } catch(e) {
+            // Try alternate endpoint
+            try {
+              const data2 = await fetchFPL('leagues-classic/' + LEAGUE_ID + '/cup/');
+              const matches = data2.cup_matches || data2.results || [];
+              matches.forEach(match => {
+                const key = [match.entry_1_entry, match.entry_2_entry, match.event].sort().join('-');
+                if (!seen.has(key)) {
+                  seen.add(key);
+                  allMatches.push(match);
+                }
+              });
+            } catch(e2) {}
+          }
         }));
         const done = Math.min(i + BATCH, state.managers.length);
         document.getElementById('cup-content').innerHTML =
           '<div class="loading-state"><span class="spinner"></span>Loading cup data... (' + done + '/' + state.managers.length + ')</div>';
       }
-      renderCup(cupResults);
+
+      // If we still have nothing, try the league-level cup endpoint directly
+      if (allMatches.length === 0) {
+        try {
+          const data = await fetchFPL('leagues-classic/' + LEAGUE_ID + '/cup/');
+          allMatches = data.cup_matches || data.results || [];
+          console.log('League cup endpoint response:', JSON.stringify(data).slice(0, 500));
+        } catch(e) {
+          console.warn('League cup endpoint failed:', e.message);
+        }
+      }
+
+      console.log('Total cup matches found:', allMatches.length);
+      if (allMatches.length > 0) console.log('Sample match:', JSON.stringify(allMatches[0]));
+
+      renderCup(allMatches);
     } catch(e) {
       document.getElementById('cup-content').innerHTML =
         '<div class="error-state">Failed to load cup data.<small>' + e.message + '</small></div>';
     }
   }
 
-  function renderCup(cupResults) {
-    // Build match map: roundId -> array of unique matches
+  function renderCup(allMatches) {
+    // Build match map: event -> array of unique matches
     const rounds = {};
-    const seenMatches = new Set();
     const managerById = {};
     state.managers.forEach(m => { managerById[m.id] = m; });
 
-    state.managers.forEach(m => {
-      const matches = cupResults[m.id] || [];
-      matches.forEach(match => {
-        const key = match.id || (match.event + '-' + [match.entry_1_entry, match.entry_2_entry].sort().join('-'));
-        if (seenMatches.has(key)) return;
-        seenMatches.add(key);
-        const round = match.event ? Math.ceil((match.event - 24) / 1) : 1;
-        if (!rounds[match.event]) rounds[match.event] = [];
-        rounds[match.event].push(match);
-      });
+    allMatches.forEach(match => {
+      const event = match.event;
+      if (!rounds[event]) rounds[event] = [];
+      rounds[event].push(match);
     });
 
     const roundEvents = Object.keys(rounds).map(Number).sort((a, b) => a - b);
