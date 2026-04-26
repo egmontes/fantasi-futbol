@@ -79,7 +79,7 @@
       gap: 12px;
       flex-wrap: wrap;
       position: sticky;
-      top: 116px; /* 64px header + ~52px gw-callout */
+      top: calc(var(--header-h, 64px) + var(--callout-h, 52px));
       background: var(--bg);
       z-index: 14;
       padding: 10px 0;
@@ -128,7 +128,7 @@
       border-bottom: 1px solid var(--border);
       margin-bottom: 2rem;
       position: sticky;
-      top: 164px; /* 64px header + 52px gw-callout + 48px gw-bar */
+      top: calc(var(--header-h, 64px) + var(--callout-h, 52px) + var(--gwbar-h, 48px));
       background: var(--bg);
       z-index: 13;
     }
@@ -413,7 +413,8 @@
     .cup-winner-team { font-size: 13px; color: var(--text3); margin-top: 4px; }
 
     @media (max-width: 600px) {
-      .site-header { padding: 0 1rem; }
+      .site-header { padding: 0 1rem; height: 48px; }
+      .site-logo { font-size: 16px !important; }
       .container { padding: 1.5rem 1rem 3rem; }
       .tab-btn { padding: 10px 12px; font-size: 13px; }
       .stat-card .s-value { font-size: 26px; }
@@ -441,7 +442,7 @@
 
 <div class="container">
 
-  <div id="gw-callout" style="display:none;position:sticky;top:64px;background:var(--bg);z-index:16;padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:0;">
+  <div id="gw-callout" style="display:none;position:sticky;top:var(--header-h, 64px);background:var(--bg);z-index:16;padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:0;">
     <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
       <span id="gw-callout-label" style="font-size:22px;font-weight:700;color:var(--text);font-family:var(--font-display);"></span>
       <span id="gw-deadline-label" style="font-size:12px;color:var(--green);font-family:var(--font-mono);"></span>
@@ -825,10 +826,18 @@ async function init() {
           deadlineLabel.textContent = 'GW' + nextEvent.id + ' deadline: ' + etStr + ' ET';
         }
         callout.style.display = 'block';
+        // Set CSS vars for sticky offsets so all sticky elements measure correctly
+        requestAnimationFrame(() => {
+          const headerH = document.querySelector('.site-header')?.offsetHeight || 64;
+          const calloutH = callout.offsetHeight || 52;
+          const gwbarH = document.querySelector('.gw-bar')?.offsetHeight || 48;
+          document.documentElement.style.setProperty('--header-h', headerH + 'px');
+          document.documentElement.style.setProperty('--callout-h', calloutH + 'px');
+          document.documentElement.style.setProperty('--gwbar-h', gwbarH + 'px');
+        });
       }
 
-      document.getElementById('header-meta').textContent =
-        `League #${LEAGUE_ID} · GW${state.latestGW}`;
+      document.getElementById('header-meta').textContent = '';
 
       loadLastUpdated();
       // Restore tab + GW from URL hash
@@ -2543,8 +2552,12 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const scrollLeft = tableOuter.scrollLeft;
       cloneTable.style.transform = 'translateX(-' + scrollLeft + 'px)';
       const ths = cloneThead.querySelectorAll('th');
-      if (ths[0]) ths[0].style.left = scrollLeft + 'px';
-      if (ths[1]) ths[1].style.left = (scrollLeft + col0Width) + 'px';
+      // When scrollLeft < 0 (rubber-band right), table moves right.
+      // Pinned cols should move right too (not go negative/left).
+      // clamp left to 0 minimum so they travel right with the table but never go left of home.
+      const pinnedOffset = Math.max(0, scrollLeft);
+      if (ths[0]) ths[0].style.left = pinnedOffset + 'px';
+      if (ths[1]) ths[1].style.left = (pinnedOffset + col0Width) + 'px';
     }
 
     tableOuter.addEventListener('scroll', syncHorizontal, { passive: true });
@@ -2644,8 +2657,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       await loadLeague();
       await loadAllHistory(true); // force refresh, bypass cache
       await loadGuinnessDebts();
-      document.getElementById('header-meta').textContent =
-        `League #${LEAGUE_ID} · GW${state.latestGW}`;
+      document.getElementById('header-meta').textContent = '';
       // Rebuild dropdown in case GW state changed
       const gwSel = document.getElementById('gw-select');
       const currentVal = gwSel.value;
