@@ -51,13 +51,14 @@
       border-bottom: 1px solid var(--border);
       padding: 0 2rem;
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      min-height: 64px;
-      position: sticky;
+      height: 56px;
+      position: fixed;
       top: 0;
-      background: rgba(13,15,14,0.92);
+      left: 0;
+      right: 0;
+      background: rgba(13,15,14,0.97);
       backdrop-filter: blur(12px);
       z-index: 100;
     }
@@ -71,7 +72,7 @@
     .header-meta { font-size: 12px; color: var(--text3); font-family: var(--font-mono); }
 
     /* MAIN LAYOUT */
-    .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+    .container { max-width: 960px; margin: 0 auto; padding: var(--content-top, 160px) 1.5rem 4rem; }
 
     /* GW SELECTOR */
     .gw-bar {
@@ -79,12 +80,15 @@
       align-items: center;
       gap: 12px;
       flex-wrap: wrap;
-      position: sticky;
-      top: var(--header-h, 64px);
+      position: fixed;
+      top: var(--sticky-gw-bar-top, 56px);
+      left: 0;
+      right: 0;
       background: var(--bg);
-      z-index: 14;
-      padding: 10px 0;
+      z-index: 15;
+      padding: 10px 1.5rem;
       border-bottom: 1px solid var(--border);
+      margin-top: 0;
     }
     .gw-bar label { font-size: 12px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; }
     .gw-bar select {
@@ -128,10 +132,14 @@
       gap: 0;
       border-bottom: 1px solid var(--border);
       margin-bottom: 0;
-      position: sticky;
-      top: calc(var(--header-h, 64px) + var(--gwbar-h, 48px));
+      position: fixed;
+      top: var(--sticky-tabs-top, 104px);
+      left: 0;
+      right: 0;
       background: var(--bg);
-      z-index: 13;
+      z-index: 14;
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
     }
     .tab-btn {
       background: none;
@@ -308,7 +316,7 @@
 
     /* SECTION */
     .section { display: none; }
-    .section.active { display: block; padding-top: 1.5rem; }
+    .section.active { display: block; padding-top: 1.25rem; padding-bottom: 2rem; }
 
     /* LOADING / ERROR */
     .loading-state {
@@ -429,6 +437,14 @@
       font-family: var(--font-mono);
     }
 
+    :root {
+      --header-h: 56px;
+      --callout-h: 40px;
+      --sticky-gw-bar-top: 96px;
+      --sticky-tabs-top: 144px;
+      --sticky-thead-top: 189px;
+      --content-top: 189px;
+    }
 </style>
 </head>
 <body>
@@ -437,28 +453,26 @@
 <header class="site-header">
   <div class="site-logo">Fantasi <span>Futbol</span></div>
   <div class="header-meta"><span id="header-meta">Loading...</span><span id="deploy-status" style="margin-left:10px;font-size:11px;opacity:0.6;" title="Checking deploy status...">Built Apr 26, 2026 04:15 PM ET</span></div>
-  <div id="gw-callout" style="display:none;padding:6px 0 0;width:100%;">
-    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
-      <span id="gw-callout-label" style="font-size:18px;font-weight:700;color:var(--text);font-family:var(--font-display);"></span>
-      <span id="gw-deadline-label" style="font-size:12px;color:var(--green);font-family:var(--font-mono);"></span>
-    </div>
-  </div>
 </header>
-
-<div class="container">
-
-  <div class="gw-bar">
+<div id="gw-callout" style="position:fixed;top:var(--header-h,56px);left:0;right:0;background:var(--bg);z-index:14;padding:8px 2rem;border-bottom:1px solid var(--border);min-height:40px;">
+  <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
+    <span id="gw-callout-label" style="font-size:18px;font-weight:700;color:var(--text);font-family:var(--font-display);"></span>
+    <span id="gw-deadline-label" style="font-size:12px;color:var(--green);font-family:var(--font-mono);"></span>
+  </div>
+</div>
+<div class="gw-bar">
     <label for="gw-select">Gameweek</label>
     <select id="gw-select"></select>
     <button class="btn" id="btn-refresh">↺ Refresh</button>
   </div>
-
-  <div class="tabs">
+<div class="tabs">
     <button class="tab-btn active" data-tab="standings">Season standings</button>
     <button class="tab-btn" data-tab="weekly">Weekly results</button>
     <button class="tab-btn" data-tab="cup">Cup</button>
     <button class="tab-btn" data-tab="recap">Weekly recap</button>
   </div>
+<div class="container">
+
 
   <div id="tab-standings" class="section active">
     <div id="standings-content"><div class="loading-state"><span class="spinner"></span>Loading league data...</div></div>
@@ -1337,6 +1351,7 @@ async function init() {
 
         html += '</tbody></table></div></div>';
         document.getElementById('weekly-content').innerHTML = html;
+        requestAnimationFrame(() => initFloatingHeader('live-table'));
 
         // Wire up sortable headers
         document.querySelectorAll('#live-table thead th[data-col]').forEach(th => {
@@ -1444,10 +1459,10 @@ async function init() {
         '<th style="width:36px">#</th>' +
         '<th ' + wthClass('name') + ' data-col="name">Manager</th>' +
         '<th style="width:70px" ' + wthClass('gwpts') + ' data-col="gwpts">GW pts</th>' +
+        '<th style="width:100px" ' + wthClass('prize') + ' data-col="prize">Result</th>' +
         '<th style="width:70px" ' + wthClass('total') + ' data-col="total">Total</th>' +
         '<th style="width:56px;text-align:center" ' + wthClass('hits') + ' data-col="hits">Hits</th>' +
         '<th style="width:60px;text-align:center" ' + wthClass('bench') + ' data-col="bench">Bench</th>' +
-        '<th style="width:100px" ' + wthClass('prize') + ' data-col="prize">Result</th>' +
         '<th style="width:80px;text-align:center" title="Beers owed this week">🍺 Beers This Week</th>' +
         '<th style="width:80px;text-align:center" title="Missed shotgun this gameweek">❌ Missed</th>' +
         '</tr></thead><tbody>';
@@ -1488,10 +1503,10 @@ async function init() {
           '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
           '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + (m.chip ? '<div><span class="badge-chip">' + chipLabel(m.chip) + '</span></div>' : '') + '</td>' +
           '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
+          '<td>' + (resultBadge || '<span class="badge-zero">—</span>') + '</td>' +
           '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
           '<td style="text-align:center">' + hitStr + '</td>' +
           '<td style="text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--text3)">' + m.benchPoints + '</td>' +
-          '<td>' + (resultBadge || '<span class="badge-zero">—</span>') + '</td>' +
           '<td style="text-align:center">' + owedCell + '</td>' +
           '<td style="text-align:center">' + missedCell + '</td>' +
           '</tr>';
@@ -1499,6 +1514,7 @@ async function init() {
 
       html += '</tbody></table></div></div>';
       document.getElementById('weekly-content').innerHTML = html;
+      requestAnimationFrame(() => initFloatingHeader('weekly-table'));
 
       // Attach sort handlers
       document.querySelectorAll('#weekly-table th.sortable').forEach(th => {
@@ -2511,6 +2527,31 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   }
   // ── END FLOATING TABLE HEADER ────────────────────────────────────────────
 
+  // ── DYNAMIC STICKY OFFSETS ──────────────────────────────────────────────
+  function updateStickyOffsets() {
+    const header = document.querySelector('.site-header');
+    const callout = document.getElementById('gw-callout');
+    const gwBar = document.querySelector('.gw-bar');
+    const tabs = document.querySelector('.tabs');
+    if (!header || !gwBar || !tabs) return;
+
+    const headerH = header.offsetHeight;
+    const calloutH = (callout && callout.style.display !== 'none') ? callout.offsetHeight : 0;
+    const gwBarH = gwBar.offsetHeight;
+    const tabsH = tabs.offsetHeight;
+
+    document.documentElement.style.setProperty('--header-h', headerH + 'px');
+    document.documentElement.style.setProperty('--sticky-gw-bar-top', (headerH + calloutH) + 'px');
+    document.documentElement.style.setProperty('--sticky-tabs-top', (headerH + calloutH + gwBarH) + 'px');
+    document.documentElement.style.setProperty('--gwbar-h', gwBarH + 'px');
+    const contentTop = headerH + calloutH + gwBarH + tabsH;
+    document.documentElement.style.setProperty('--sticky-thead-top', contentTop + 'px');
+    document.documentElement.style.setProperty('--content-top', contentTop + 'px');
+  }
+
+  window.addEventListener('resize', updateStickyOffsets, { passive: true });
+  // ── END DYNAMIC STICKY OFFSETS ───────────────────────────────────────────
+
   // GW CHANGE
   document.getElementById('gw-select').addEventListener('change', e => {
     const active = document.querySelector('.tab-btn.active').dataset.tab;
@@ -2597,6 +2638,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     btn.textContent = '↺ Refresh';
   });
 
+  // Set sticky offsets as early as possible
+  document.addEventListener('DOMContentLoaded', () => {
+    updateStickyOffsets();
+  });
   init();
 </script>
 </body>
