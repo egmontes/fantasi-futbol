@@ -425,7 +425,7 @@
 <div class="sticky-thead" id="sticky-thead"><table><thead id="sticky-thead-inner"></thead></table></div>
 <header class="site-header">
   <div class="site-logo">Fantasi <span>Futbol</span></div>
-  <div class="header-meta"><span id="header-meta">Loading...</span><span style="margin-left:10px;opacity:0.5;font-size:11px;">Built Apr 26, 2026 11:10 AM ET</span></div>
+  <div class="header-meta"><span id="header-meta">Loading...</span><span id="deploy-status" style="margin-left:10px;font-size:11px;opacity:0.6;" title="Checking deploy status...">Built Apr 26, 2026 04:15 PM ET</span></div>
 </header>
 
 <div class="container">
@@ -2475,6 +2475,49 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     }
     updateStickyHeader();
   }, { passive: true });
+
+  // ── DEPLOY STATUS CHECK ─────────────────────────────────────────────────
+  const BUILD_TIMESTAMP = 'Apr 26, 2026 04:15 PM ET';
+  const RAW_URL = 'https://raw.githubusercontent.com/egmontes/fantasi-futbol/main/index.html';
+
+  async function checkDeployStatus() {
+    const el = document.getElementById('deploy-status');
+    if (!el) return;
+    try {
+      // Fetch raw file from GitHub with cache-bust
+      const res = await fetch(RAW_URL + '?nocache=' + Date.now());
+      if (!res.ok) throw new Error('fetch failed');
+      const text = await res.text();
+      // Extract build timestamp from the raw file
+      const match = text.match(/Built ([\w]+ \d+, \d+ \d+:\d+ [AP]M ET)/);
+      const remoteBuild = match ? match[1] : null;
+      if (!remoteBuild) {
+        el.textContent = 'Built ' + BUILD_TIMESTAMP;
+        el.style.opacity = '0.5';
+        return;
+      }
+      if (remoteBuild === BUILD_TIMESTAMP) {
+        el.innerHTML = '✓ Live · Built ' + BUILD_TIMESTAMP;
+        el.style.opacity = '0.6';
+        el.style.color = 'var(--green)';
+        el.title = 'Latest version is live on GitHub Pages';
+      } else {
+        el.innerHTML = '⏳ Deploying...';
+        el.style.opacity = '0.8';
+        el.style.color = 'var(--amber)';
+        el.title = 'Newer version pushed but not yet live. Check back in ~60s.';
+        // Re-check every 15 seconds until it matches
+        setTimeout(checkDeployStatus, 15000);
+      }
+    } catch(e) {
+      el.textContent = 'Built ' + BUILD_TIMESTAMP;
+      el.style.opacity = '0.5';
+    }
+  }
+
+  // Check after a short delay to not block initial load
+  setTimeout(checkDeployStatus, 3000);
+  // ── END DEPLOY STATUS CHECK ─────────────────────────────────────────────
 
   // GW CHANGE
   document.getElementById('gw-select').addEventListener('change', e => {
