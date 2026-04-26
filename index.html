@@ -180,24 +180,8 @@
     .table-outer thead th {
       background: var(--bg2);
     }
-    #floating-header {
-      position: fixed;
-      left: 0; right: 0;
-      z-index: 50;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      overflow: hidden;
-      display: none;
-      pointer-events: none;
-    }
+    #floating-header { pointer-events: none; display: none; }
     #floating-header.visible { display: block; pointer-events: auto; }
-    #floating-header table {
-      border-collapse: separate;
-      border-spacing: 0;
-      font-size: 13px;
-      table-layout: fixed;
-    }
     #floating-header th {
       font-size: 11px;
       color: var(--text3);
@@ -442,14 +426,17 @@
       --callout-h: 40px;
       --sticky-gw-bar-top: 96px;
       --sticky-tabs-top: 144px;
-      --sticky-thead-top: 189px;
-      --content-top: 189px;
+      --sticky-thead-top: 230px;
+      --content-top: 246px;
     }
 </style>
 </head>
 <body>
 
-<div id="floating-header"><table><thead id="floating-header-row"></thead></table></div>
+<div id="floating-header" style="position:fixed;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+  <div id="fh-left" style="position:absolute;left:0;top:0;bottom:0;background:var(--bg2);z-index:2;display:flex;align-items:stretch;"></div>
+  <div id="fh-right" style="overflow:hidden;margin-left:0;"><table id="fh-right-table" style="border-collapse:separate;border-spacing:0;font-size:13px;table-layout:fixed;"><thead id="floating-header-row"></thead></table></div>
+</div>
 <header class="site-header">
   <div class="site-logo">Fantasi <span>Futbol</span></div>
   <div class="header-meta"><span id="header-meta">Loading...</span><span id="deploy-status" style="margin-left:10px;font-size:11px;opacity:0.6;" title="Checking deploy status...">Built Apr 26, 2026 04:15 PM ET</span></div>
@@ -1143,7 +1130,7 @@ async function init() {
 
     html += '</tbody></table></div></div>';
     document.getElementById('standings-content').innerHTML = html;
-    requestAnimationFrame(() => initFloatingHeader('standings-table'));
+    requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('standings-table'); });
 
     // Attach sort click handlers
     document.querySelectorAll('#standings-table th.sortable').forEach(th => {
@@ -1351,7 +1338,7 @@ async function init() {
 
         html += '</tbody></table></div></div>';
         document.getElementById('weekly-content').innerHTML = html;
-        requestAnimationFrame(() => initFloatingHeader('live-table'));
+        requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('live-table'); });
 
         // Wire up sortable headers
         document.querySelectorAll('#live-table thead th[data-col]').forEach(th => {
@@ -1514,7 +1501,7 @@ async function init() {
 
       html += '</tbody></table></div></div>';
       document.getElementById('weekly-content').innerHTML = html;
-      requestAnimationFrame(() => initFloatingHeader('weekly-table'));
+      requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('weekly-table'); });
 
       // Attach sort handlers
       document.querySelectorAll('#weekly-table th.sortable').forEach(th => {
@@ -2469,18 +2456,34 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (!thead || !outer) return;
 
     const fh = document.getElementById('floating-header');
+    const fhLeft = document.getElementById('fh-left');
+    const fhRightTable = document.getElementById('fh-right-table');
     const fhRow = document.getElementById('floating-header-row');
 
-    // Build clone row
+    // Get real ths
+    const realThs = Array.from(thead.querySelectorAll('th'));
+    if (realThs.length < 2) return;
+
+    // Build LEFT section — fixed # and Manager columns as plain divs
+    fhLeft.innerHTML = '';
+    const leftCols = realThs.slice(0, 2);
+    leftCols.forEach((th, i) => {
+      const div = document.createElement('div');
+      div.style.cssText = `display:flex;align-items:center;padding:8px 10px;font-size:11px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap;background:var(--bg2);border-bottom:1px solid var(--border);box-sizing:border-box;`;
+      div.textContent = th.textContent;
+      if (th.dataset.col) div.addEventListener('click', () => th.click());
+      fhLeft.appendChild(div);
+    });
+
+    // Build RIGHT section — remaining columns in a scrollable table
     fhRow.innerHTML = '';
-    const tr = thead.querySelector('tr').cloneNode(true);
-    tr.querySelectorAll('th[data-col]').forEach((th, i) => {
-      const real = thead.querySelectorAll('th[data-col]')[i];
-      if (real) th.addEventListener('click', () => real.click());
+    const tr = document.createElement('tr');
+    realThs.slice(2).forEach((th, i) => {
+      const clone = th.cloneNode(true);
+      if (th.dataset.col) clone.addEventListener('click', () => th.click());
+      tr.appendChild(clone);
     });
     fhRow.appendChild(tr);
-
-    const fhTable = fh.querySelector('table');
 
     function sync() {
       const tabsBottom = document.querySelector('.tabs')?.getBoundingClientRect().bottom || 157;
@@ -2488,27 +2491,41 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const outerRect = outer.getBoundingClientRect();
 
       if (theadRect.bottom < tabsBottom) {
-        // Sync column widths from real ths
-        const realThs = thead.querySelectorAll('th');
-        tr.querySelectorAll('th').forEach((th, i) => {
-          if (realThs[i]) {
-            const r = realThs[i].getBoundingClientRect();
-            th.style.width = r.width + 'px';
-            th.style.minWidth = r.width + 'px';
-          }
-        });
+        const fhHeight = realThs[0].getBoundingClientRect().height || 36;
 
-        // Position floating header over the table-outer container
         fh.style.top = tabsBottom + 'px';
-        fh.style.left = '0';
-        fh.style.right = '0';
+        fh.style.left = outerRect.left + 'px';
+        fh.style.right = (window.innerWidth - outerRect.right) + 'px';
+        fh.style.height = fhHeight + 'px';
         fh.style.overflow = 'hidden';
 
-        // Sync horizontal scroll via transform — matches the real thead exactly
-        const tableWidth = table.getBoundingClientRect().width;
-        fhTable.style.width = tableWidth + 'px';
-        fhTable.style.marginLeft = outerRect.left + 'px';
-        fhTable.style.transform = 'translateX(-' + outer.scrollLeft + 'px)';
+        // Size left fixed columns
+        let leftWidth = 0;
+        leftCols.forEach((th, i) => {
+          const w = th.getBoundingClientRect().width;
+          fhLeft.children[i].style.width = w + 'px';
+          fhLeft.children[i].style.height = fhHeight + 'px';
+          leftWidth += w;
+        });
+        fhLeft.style.width = leftWidth + 'px';
+
+        // Right section fills full width, table starts at leftWidth via transform offset
+        const rightDiv = fhRightTable.parentElement;
+        rightDiv.style.position = 'absolute';
+        rightDiv.style.left = leftWidth + 'px';
+        rightDiv.style.right = '0';
+        rightDiv.style.top = '0';
+        rightDiv.style.bottom = '0';
+        rightDiv.style.overflow = 'hidden';
+
+        // Sync widths for right columns
+        const rightThs = realThs.slice(2);
+        tr.querySelectorAll('th').forEach((th, i) => {
+          if (rightThs[i]) th.style.width = rightThs[i].getBoundingClientRect().width + 'px';
+        });
+
+        // Sync horizontal scroll for right section only
+        fhRightTable.style.transform = 'translateX(-' + outer.scrollLeft + 'px)';
 
         fh.classList.add('visible');
       } else {
@@ -2516,10 +2533,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       }
     }
 
-    // Sync horizontal scroll separately for smooth tracking
     function syncScroll() {
       if (!fh.classList.contains('visible')) return;
-      fhTable.style.transform = 'translateX(-' + outer.scrollLeft + 'px)';
+      fhRightTable.style.transform = 'translateX(-' + outer.scrollLeft + 'px)';
     }
 
     if (_fhScrollContainer) {
@@ -2545,7 +2561,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (!header || !gwBar || !tabs) return;
 
     const headerH = header.offsetHeight;
-    const calloutH = (callout && callout.style.display !== 'none') ? callout.offsetHeight : 0;
+    const calloutH = callout ? callout.offsetHeight : 0;
     const gwBarH = gwBar.offsetHeight;
     const tabsH = tabs.offsetHeight;
 
@@ -2555,11 +2571,18 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     document.documentElement.style.setProperty('--gwbar-h', gwBarH + 'px');
     const contentTop = headerH + calloutH + gwBarH + tabsH;
     document.documentElement.style.setProperty('--sticky-thead-top', contentTop + 'px');
-    // Add a small buffer so first row isn't right against the tabs
-    document.documentElement.style.setProperty('--content-top', (contentTop + 8) + 'px');
+    const finalContentTop = contentTop + 16;
+    document.documentElement.style.setProperty('--content-top', finalContentTop + 'px');
+    // Also set directly on the container so it takes effect immediately
+    const container = document.querySelector('.container');
+    if (container) container.style.paddingTop = finalContentTop + 'px';
   }
 
-  window.addEventListener('resize', updateStickyOffsets, { passive: true });
+  window.addEventListener('resize', () => {
+    updateStickyOffsets();
+    // Re-run after a frame to catch any reflow from resize
+    requestAnimationFrame(updateStickyOffsets);
+  }, { passive: true });
   // ── END DYNAMIC STICKY OFFSETS ───────────────────────────────────────────
 
   // GW CHANGE
