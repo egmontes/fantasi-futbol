@@ -840,12 +840,13 @@ async function init() {
     return prizes;
   }
 
-  function computeSeasonStats() {
+  function computeSeasonStats(maxGW) {
+    const upTo = maxGW !== undefined ? maxGW : state.latestGW;
     const stats = {};
     state.managers.forEach(m => {
       stats[m.id] = { top4: 0, bottom2: 0, moneyWon: 0 };
     });
-    for (let gw = 1; gw <= state.latestGW; gw++) {
+    for (let gw = 1; gw <= upTo; gw++) {
       const ranked = getWeeklyRankings(gw);
       if (ranked.length < 2) continue;
       const prizes = computeWeeklyPrizes(ranked);
@@ -1416,7 +1417,7 @@ function groupByPoints(ranked) {
 }
 
 async function buildPrompt(gw) {
-    const stats = computeSeasonStats();
+    const stats = computeSeasonStats(gw);
     const ranked = getWeeklyRankings(gw);
     const weekPrizes = computeWeeklyPrizes(ranked);
     const n = ranked.length;
@@ -1513,7 +1514,10 @@ async function buildPrompt(gw) {
         const dangerStr = isKickedOut(m.name) ? ' KICKED OUT OF LEAGUE' : (gmissCount >= 3 ? ' WARNING: ONE MORE MISS AND THEY ARE KICKED OUT' : '');
         extras.push('Guinness owed: ' + gmissCount + gwStr + dangerStr);
       }
-      let line = m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts | Season total: ' + m.total + ' | Top-4 finishes: ' + s.top4 + ' | Bottom-2 finishes: ' + s.bottom2 + ' | ' + result;
+      // Compute season total up to this GW from history
+      const hist = state.gwHistory[m.id] || [];
+      const gwTotal = hist.filter(h => h.event <= gw).reduce((sum, h) => sum + h.points - h.event_transfers_cost, 0);
+      let line = m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts | Season total: ' + gwTotal + ' | Top-4 finishes: ' + s.top4 + ' | Bottom-2 finishes: ' + s.bottom2 + ' | ' + result;
       if (extras.length > 0) line += ' | ' + extras.join(' | ');
       return line;
     }).join('\n');
