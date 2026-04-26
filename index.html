@@ -1996,6 +1996,17 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     const roundEvents = Object.keys(rounds).map(Number).sort((a, b) => a - b);
 
+    // Build seed map once for the whole bracket
+    const seedRanked = [...state.managers]
+      .map(m => ({ id: m.id, total: m.total }))
+      .sort((a, b) => b.total - a.total);
+    const seedMap = {};
+    let seedRank = 1;
+    seedRanked.forEach((m, i) => {
+      if (i > 0 && seedRanked[i].total < seedRanked[i-1].total) seedRank = i + 1;
+      seedMap[m.id] = seedRank;
+    });
+
     if (roundEvents.length === 0) {
       document.getElementById('cup-content').innerHTML =
         '<div class="loading-state" style="color:var(--text3);">No cup data found. The cup may not have started yet for this league.</div>';
@@ -2035,7 +2046,24 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         '<div class="cup-round-label">' + roundName + ' · ' + gwLabel + '</div>' +
         '<div class="cup-matches">';
 
-      matches.forEach(match => {
+      // Sort matches: byes to bottom, then by best seed (lowest number) ascending
+      const sortedMatches = [...matches].sort((a, b) => {
+        const a1 = state.managers.find(m => m.id === a.entry_1_entry);
+        const a2 = state.managers.find(m => m.id === a.entry_2_entry);
+        const b1 = state.managers.find(m => m.id === b.entry_1_entry);
+        const b2 = state.managers.find(m => m.id === b.entry_2_entry);
+        const aIsBye = !a2;
+        const bIsBye = !b2;
+        // Byes go to the bottom
+        if (aIsBye && !bIsBye) return 1;
+        if (!aIsBye && bIsBye) return -1;
+        // Sort by best seed in the matchup (lower = better)
+        const aBestSeed = Math.min(seedMap[a1?.id] || 999, seedMap[a2?.id] || 999);
+        const bBestSeed = Math.min(seedMap[b1?.id] || 999, seedMap[b2?.id] || 999);
+        return aBestSeed - bBestSeed;
+      });
+
+      sortedMatches.forEach(match => {
         const m1 = state.managers.find(m => m.id === match.entry_1_entry);
         const m2 = state.managers.find(m => m.id === match.entry_2_entry);
         const pts1 = match.entry_1_points;
@@ -2050,18 +2078,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           const entry = hist.find(h => h.event === event);
           return entry ? entry.event_transfers_cost : 0;
         };
-
-        // Compute season standings rank for seeding
-        const seasonStats = computeSeasonStats();
-        const seedRanked = [...state.managers]
-          .map(m => ({ id: m.id, total: m.total }))
-          .sort((a, b) => b.total - a.total);
-        const seedMap = {};
-        let seedRank = 1;
-        seedRanked.forEach((m, idx) => {
-          if (idx > 0 && seedRanked[idx].total < seedRanked[idx-1].total) seedRank = idx + 1;
-          seedMap[m.id] = seedRank;
-        });
 
         const row = (manager, pts, isWinner, isBye, event) => {
           if (!manager) return '';
