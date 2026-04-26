@@ -291,6 +291,33 @@
     th.sortable.sort-asc::after { content: ' ↑'; color: var(--green); }
     th.sortable.sort-desc::after { content: ' ↓'; color: var(--green); }
 
+    /* CUP BRACKET */
+    .cup-round { margin-bottom: 2rem; }
+    .cup-round-label { font-size: 11px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; }
+    .cup-matches { display: flex; flex-wrap: wrap; gap: 10px; }
+    .cup-match {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0; overflow: hidden; min-width: 220px; flex: 1 1 220px; max-width: 320px;
+    }
+    .cup-match-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; gap: 8px;
+    }
+    .cup-match-row + .cup-match-row { border-top: 1px solid var(--border); }
+    .cup-match-row.winner { background: rgba(74,222,128,0.06); }
+    .cup-match-row.loser { opacity: 0.5; }
+    .cup-match-row.bye { opacity: 0.4; font-style: italic; }
+    .cup-manager { font-size: 13px; font-weight: 500; flex: 1; }
+    .cup-team { font-size: 11px; color: var(--text3); }
+    .cup-pts { font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
+    .cup-pts.high { color: var(--green); }
+    .cup-winner-badge { font-size: 10px; color: var(--amber); margin-left: 4px; }
+    .cup-status { font-size: 11px; color: var(--text3); font-family: var(--font-mono); padding: 4px 12px; background: var(--bg3); text-align: center; }
+    .cup-trophy { font-size: 32px; text-align: center; margin-bottom: 8px; }
+    .cup-winner-card { background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.05)); border: 1px solid rgba(251,191,36,0.3); border-radius: 10px; padding: 1.5rem; text-align: center; margin-bottom: 2rem; }
+    .cup-winner-name { font-size: 20px; font-weight: 600; color: var(--amber); }
+    .cup-winner-team { font-size: 13px; color: var(--text3); margin-top: 4px; }
+
     @media (max-width: 600px) {
       .site-header { padding: 0 1rem; }
       .container { padding: 1.5rem 1rem 3rem; }
@@ -324,6 +351,7 @@
   <div class="tabs">
     <button class="tab-btn active" data-tab="standings">Season standings</button>
     <button class="tab-btn" data-tab="weekly">Weekly results</button>
+    <button class="tab-btn" data-tab="cup">Cup</button>
     <button class="tab-btn" data-tab="recap">Weekly recap</button>
   </div>
 
@@ -1802,6 +1830,137 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   }
 
   // TAB SWITCHING
+  // ── CUP ──────────────────────────────────────────────────────────────────
+  const ROUND_NAMES = {
+    1: 'Round of 64', 2: 'Round of 32', 3: 'Round of 16',
+    4: 'Quarter-finals', 5: 'Semi-finals', 6: 'Final'
+  };
+
+  async function loadCupData() {
+    document.getElementById('cup-content').innerHTML =
+      '<div class="loading-state"><span class="spinner"></span>Loading cup bracket...</div>';
+    try {
+      // Fetch cup results for each manager
+      const BATCH = 5;
+      const cupResults = {}; // managerId -> array of cup matches
+      for (let i = 0; i < state.managers.length; i += BATCH) {
+        const batch = state.managers.slice(i, i + BATCH);
+        await Promise.all(batch.map(async m => {
+          try {
+            const data = await fetchFPL('entry/' + m.id + '/cups/');
+            cupResults[m.id] = data.cup_matches || [];
+          } catch(e) { cupResults[m.id] = []; }
+        }));
+        const done = Math.min(i + BATCH, state.managers.length);
+        document.getElementById('cup-content').innerHTML =
+          '<div class="loading-state"><span class="spinner"></span>Loading cup data... (' + done + '/' + state.managers.length + ')</div>';
+      }
+      renderCup(cupResults);
+    } catch(e) {
+      document.getElementById('cup-content').innerHTML =
+        '<div class="error-state">Failed to load cup data.<small>' + e.message + '</small></div>';
+    }
+  }
+
+  function renderCup(cupResults) {
+    // Build match map: roundId -> array of unique matches
+    const rounds = {};
+    const seenMatches = new Set();
+    const managerById = {};
+    state.managers.forEach(m => { managerById[m.id] = m; });
+
+    state.managers.forEach(m => {
+      const matches = cupResults[m.id] || [];
+      matches.forEach(match => {
+        const key = match.id || (match.event + '-' + [match.entry_1_entry, match.entry_2_entry].sort().join('-'));
+        if (seenMatches.has(key)) return;
+        seenMatches.add(key);
+        const round = match.event ? Math.ceil((match.event - 24) / 1) : 1;
+        if (!rounds[match.event]) rounds[match.event] = [];
+        rounds[match.event].push(match);
+      });
+    });
+
+    const roundEvents = Object.keys(rounds).map(Number).sort((a, b) => a - b);
+
+    if (roundEvents.length === 0) {
+      document.getElementById('cup-content').innerHTML =
+        '<div class="loading-state" style="color:var(--text3);">No cup data found. The cup may not have started yet for this league.</div>';
+      return;
+    }
+
+    // Check for a winner (someone who won the last round)
+    let cupWinner = null;
+    const lastRoundMatches = rounds[roundEvents[roundEvents.length - 1]] || [];
+    lastRoundMatches.forEach(m => {
+      if (m.winner) {
+        const wm = state.managers.find(mgr => mgr.id === m.winner);
+        if (wm) cupWinner = wm;
+      }
+    });
+
+    let html = '';
+
+    if (cupWinner) {
+      html += '<div class="cup-winner-card">' +
+        '<div class="cup-trophy">🏆</div>' +
+        '<div class="cup-winner-name">' + esc(cupWinner.name) + '</div>' +
+        '<div class="cup-winner-team">' + esc(cupWinner.team) + ' — Cup Champion</div>' +
+        '</div>';
+    }
+
+    // Render rounds in reverse (final first, then semis, etc.)
+    const displayRounds = [...roundEvents].reverse();
+
+    displayRounds.forEach((event, idx) => {
+      const matches = rounds[event];
+      const roundNum = displayRounds.length - idx;
+      const roundName = ROUND_NAMES[roundNum] || ('Round ' + roundNum);
+      const gwLabel = 'GW' + event;
+
+      html += '<div class="cup-round">' +
+        '<div class="cup-round-label">' + roundName + ' · ' + gwLabel + '</div>' +
+        '<div class="cup-matches">';
+
+      matches.forEach(match => {
+        const m1 = state.managers.find(m => m.id === match.entry_1_entry);
+        const m2 = state.managers.find(m => m.id === match.entry_2_entry);
+        const pts1 = match.entry_1_points;
+        const pts2 = match.entry_2_points;
+        const winner = match.winner;
+        const isPlayed = pts1 !== null && pts2 !== null;
+        const isBye = !m2;
+
+        const row = (manager, pts, isWinner, isBye) => {
+          if (!manager) return '';
+          const rowClass = !isPlayed ? '' : isWinner ? ' winner' : ' loser';
+          const ptsClass = isWinner ? ' high' : '';
+          const badge = isWinner ? ' <span class="cup-winner-badge">✓</span>' : '';
+          return '<div class="cup-match-row' + rowClass + (isBye ? ' bye' : '') + '">' +
+            '<div><div class="cup-manager">' + esc(manager.name) + badge + '</div>' +
+            '<div class="cup-team">' + esc(manager.team) + '</div></div>' +
+            (isPlayed && pts !== null ? '<div class="cup-pts' + ptsClass + '">' + pts + '</div>' : '') +
+            '</div>';
+        };
+
+        html += '<div class="cup-match">';
+        if (m1) html += row(m1, pts1, winner === m1.id, false);
+        if (m2) html += row(m2, pts2, winner === m2.id, false);
+        else html += '<div class="cup-match-row bye"><div class="cup-manager">BYE</div></div>';
+
+        if (!isPlayed) {
+          html += '<div class="cup-status">Upcoming</div>';
+        }
+        html += '</div>';
+      });
+
+      html += '</div></div>';
+    });
+
+    document.getElementById('cup-content').innerHTML = html;
+  }
+  // ── END CUP ───────────────────────────────────────────────────────────────
+
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1815,6 +1974,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         else if (val === 'live') renderLive();
         else renderWeekly(parseInt(val)).catch(console.error);
       }
+      if (tab === 'cup') loadCupData();
       if (tab === 'recap') setupRecapTab();
     });
   });
