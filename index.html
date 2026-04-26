@@ -1204,6 +1204,7 @@ async function init() {
           if (liveSort.col === 'pts')    return liveSort.dir === -1 ? b.gwPoints - a.gwPoints : a.gwPoints - b.gwPoints;
           if (liveSort.col === 'name')   return liveSort.dir === -1 ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name);
           if (liveSort.col === 'total')  return liveSort.dir === -1 ? b.total - a.total : a.total - b.total;
+          if (liveSort.col === 'hits')   return liveSort.dir === -1 ? b.transferCost - a.transferCost : a.transferCost - b.transferCost;
           if (liveSort.col === 'owed')   return liveSort.dir === -1
             ? getGuinnessOwedAtGW(b.name, gw) - getGuinnessOwedAtGW(a.name, gw)
             : getGuinnessOwedAtGW(a.name, gw) - getGuinnessOwedAtGW(b.name, gw);
@@ -1232,9 +1233,11 @@ async function init() {
           '<thead><tr>' +
           '<th style="width:36px">#</th>' +
           '<th style="' + thStyle + '" data-col="name">Manager' + arrow('name') + '</th>' +
-          '<th style="width:80px;' + thStyle + '" data-col="pts">Live pts' + arrow('pts') + '</th>' +
+          '<th style="width:70px;' + thStyle + '" data-col="pts">GW pts' + arrow('pts') + '</th>' +
           '<th style="width:70px;' + thStyle + '" data-col="total">Total' + arrow('total') + '</th>' +
-          '<th style="width:80px;text-align:center;' + thStyle + '" data-col="owed">🍺 Beers Owed' + arrow('owed') + '</th>' +
+          '<th style="width:56px;text-align:center;' + thStyle + '" data-col="hits">Hits' + arrow('hits') + '</th>' +
+          '<th style="width:60px;text-align:center;" title="Bench points">Bench</th>' +
+          '<th style="width:80px;text-align:center;' + thStyle + '" data-col="owed">🍺 Beers This Week' + arrow('owed') + '</th>' +
           '<th style="width:80px;text-align:center;" title="Missed shotgun this gameweek">❌ Missed</th>' +
           '</tr></thead><tbody>';
 
@@ -1252,11 +1255,19 @@ async function init() {
             : '<span class="badge-zero">—</span>';
           const rowCls = rank === 1 ? 'row-1' : rank === 2 ? 'row-2' : rank === 3 ? 'row-3' : rank === 4 ? 'row-4' : isBottom ? 'row-bottom' : '';
           const chipBadge = m.chip ? '<div><span class="badge-chip">' + chipLabel(m.chip) + '</span></div>' : '';
+          const hitStr = m.transferCost > 0
+            ? '<span style="color:var(--red);font-family:var(--font-mono);font-size:12px;">-' + m.transferCost + '</span>'
+            : '<span class="badge-zero">—</span>';
+          // Bench points from gwHistory if available (may be 0 for live GW)
+          const liveHist = (state.gwHistory[m.id] || []).find(h => h.event === gw);
+          const benchPts = liveHist ? liveHist.points_on_bench : '—';
           html += '<tr class="' + rowCls + '">' +
             '<td><span class="rank-num">' + rank + '</span></td>' +
             '<td><div class="m-name">' + esc(m.name) + '</div><div class="m-team">' + esc(m.team) + '</div>' + chipBadge + '</td>' +
             '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost" title="Transfer hit">(-' + m.transferCost + ')</span>' : '') + '</td>' +
             '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
+            '<td style="text-align:center;font-family:var(--font-mono);font-size:12px;">' + hitStr + '</td>' +
+            '<td style="text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--text3)">' + benchPts + '</td>' +
             '<td style="text-align:center">' + owedCell + '</td>' +
             '<td style="text-align:center">' + missedLiveCell + '</td>' +
             '</tr>';
