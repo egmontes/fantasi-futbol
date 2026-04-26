@@ -77,8 +77,13 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 2rem;
       flex-wrap: wrap;
+      position: sticky;
+      top: 64px; /* right below site header */
+      background: var(--bg);
+      z-index: 14;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
     }
     .gw-bar label { font-size: 12px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; }
     .gw-bar select {
@@ -123,9 +128,9 @@
       border-bottom: 1px solid var(--border);
       margin-bottom: 2rem;
       position: sticky;
-      top: 64px;
+      top: 112px; /* 64px header + 48px gw-bar */
       background: var(--bg);
-      z-index: 15;
+      z-index: 13;
     }
     .tab-btn {
       background: none;
@@ -166,6 +171,38 @@
     .table-outer thead th {
       background: var(--bg2);
     }
+    /* Sticky clone header — sits inside table-outer so it scrolls horizontally with table */
+    .sticky-clone-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg);
+      display: none;
+    }
+    .sticky-clone-header table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13px;
+    }
+    .sticky-clone-header th {
+      font-size: 11px;
+      color: var(--text3);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 8px 10px;
+      white-space: nowrap;
+      background: var(--bg2);
+      box-shadow: 0 1px 0 var(--border);
+    }
+    .sticky-clone-header th:nth-child(1) {
+      position: sticky; left: 0; z-index: 4; background: var(--bg2);
+    }
+    .sticky-clone-header th:nth-child(2) {
+      position: sticky; z-index: 4; background: var(--bg2);
+    }
+
     /* Sticky first two columns */
     .table-outer td:nth-child(1),
     .table-outer th:nth-child(1) {
@@ -209,34 +246,7 @@
       background: var(--bg);
       z-index: 3;
     }
-    .sticky-thead {
-      position: fixed;
-      left: 0; right: 0;
-      z-index: 100;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-      overflow: hidden;
-      display: none;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-    .sticky-thead table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      font-size: 13px;
-      table-layout: fixed;
-    }
-    .sticky-thead th {
-      font-size: 11px;
-      color: var(--text3);
-      font-family: var(--font-mono);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 8px 10px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+
     table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
     thead th {
       text-align: left;
@@ -422,7 +432,6 @@
 </head>
 <body>
 
-<div class="sticky-thead" id="sticky-thead"><table><thead id="sticky-thead-inner"></thead></table></div>
 <header class="site-header">
   <div class="site-logo">Fantasi <span>Futbol</span></div>
   <div class="header-meta"><span id="header-meta">Loading...</span><span id="deploy-status" style="margin-left:10px;font-size:11px;opacity:0.6;" title="Checking deploy status...">Built Apr 26, 2026 04:15 PM ET</span></div>
@@ -1030,7 +1039,7 @@ async function init() {
     let html = '<div class="stat-grid">' +
       '<div class="stat-card"><div class="s-label">Managers</div><div class="s-value">' + state.managers.length + '</div></div>' +
       '<div class="stat-card"><div class="s-label">GWs played</div><div class="s-value">' + state.latestGW + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">Prize pool</div><div class="s-value">$' + totalPool + '</div></div>' +
+      '<div class="stat-card"><div class="s-label">Payouts So Far</div><div class="s-value">$' + totalPool + '</div></div>' +
       '<div class="stat-card"><div class="s-label">Guinness chugged</div><div class="s-value">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
       '</div>' +
       '<div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
@@ -1069,6 +1078,7 @@ async function init() {
 
     html += '</tbody></table></div></div>';
     document.getElementById('standings-content').innerHTML = html;
+    requestAnimationFrame(() => setupStickyHeader('standings-table'));
 
     // Attach sort click handlers
     document.querySelectorAll('#standings-table th.sortable').forEach(th => {
@@ -1276,6 +1286,7 @@ async function init() {
 
         html += '</tbody></table></div></div>';
         document.getElementById('weekly-content').innerHTML = html;
+        requestAnimationFrame(() => setupStickyHeader('live-table'));
 
         // Wire up sortable headers
         document.querySelectorAll('#live-table thead th[data-col]').forEach(th => {
@@ -1438,6 +1449,7 @@ async function init() {
 
       html += '</tbody></table></div></div>';
       document.getElementById('weekly-content').innerHTML = html;
+      requestAnimationFrame(() => setupStickyHeader('weekly-table'));
 
       // Attach sort handlers
       document.querySelectorAll('#weekly-table th.sortable').forEach(th => {
@@ -2379,142 +2391,87 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   });
 
   // STICKY TABLE HEADERS
-  let _stickyScrollContainer = null;
 
-  function getTableOuter(table) {
-    let el = table.parentElement;
-    while (el && !el.classList.contains('table-outer')) el = el.parentElement;
-    return el;
-  }
+    // ── STICKY TABLE HEADERS ──────────────────────────────────────────────
+  function setupStickyHeader(tableId) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const tableOuter = (() => { let el = table.parentElement; while (el && !el.classList.contains('table-outer')) el = el.parentElement; return el; })();
+    if (!tableOuter) return;
 
-  function syncStickyScroll() {
-    const stickyEl = document.getElementById('sticky-thead');
-    if (!stickyEl || stickyEl.style.display === 'none') return;
-    const t = stickyEl.querySelector('table');
-    if (t && _stickyScrollContainer) {
-      t.style.marginLeft = '-' + _stickyScrollContainer.scrollLeft + 'px';
-    }
-  }
+    // Remove any existing clone
+    const existing = tableOuter.querySelector('.sticky-clone-header');
+    if (existing) existing.remove();
 
-  function updateStickyHeader() {
-    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
-    const tableIds = { standings: 'standings-table', weekly: 'weekly-table', live: 'live-table' };
-    let tableId = tableIds[activeTab] || null;
-    if (activeTab === 'weekly') {
-      tableId = document.getElementById('live-table') ? 'live-table' :
-                document.getElementById('weekly-table') ? 'weekly-table' : null;
-    }
-    const table = tableId ? document.getElementById(tableId) : null;
-    const stickyEl = document.getElementById('sticky-thead');
-    const stickyInner = document.getElementById('sticky-thead-inner');
-
-    if (!table) { stickyEl.style.display = 'none'; return; }
     const thead = table.querySelector('thead');
-    if (!thead) { stickyEl.style.display = 'none'; return; }
+    if (!thead) return;
 
-    const theadRect = thead.getBoundingClientRect();
-    const siteHeaderHeight = document.querySelector('.site-header')?.offsetHeight || 64;
-    const tabsHeight = document.querySelector('.tabs')?.offsetHeight || 45;
-    const offset = siteHeaderHeight + tabsHeight;
-    const tableOuter = getTableOuter(table);
+    const clone = document.createElement('div');
+    clone.className = 'sticky-clone-header';
+    const cloneTable = document.createElement('table');
+    const cloneThead = thead.cloneNode(true);
 
-    if (theadRect.bottom < offset) {
-      stickyEl.style.display = 'block';
-      stickyEl.style.top = offset + 'px';
-      stickyEl.style.overflow = 'hidden';
+    // Set col 2 left offset to match col 1 width
+    const th1 = thead.querySelector('th:first-child');
+    const th1Width = th1 ? th1.getBoundingClientRect().width : 36;
+    const cloneTh2 = cloneThead.querySelector('th:nth-child(2)');
+    if (cloneTh2) cloneTh2.style.left = th1Width + 'px';
 
-      // Rebuild cloned header if table changed
-      if (stickyInner.dataset.forTable !== tableId) {
-        stickyInner.dataset.forTable = tableId;
-        const cols = thead.querySelectorAll('th');
-        stickyInner.innerHTML = '';
-        const tr = document.createElement('tr');
-        cols.forEach((th, i) => {
-          const clone = th.cloneNode(true);
-          clone.style.width = th.offsetWidth + 'px';
-          clone.style.minWidth = th.offsetWidth + 'px';
-          // Keep first two columns sticky within the floating header too
-          if (i === 0) {
-            clone.style.position = 'sticky';
-            clone.style.left = '0';
-            clone.style.zIndex = '6';
-            clone.style.background = 'var(--bg2)';
-          } else if (i === 1) {
-            clone.style.position = 'sticky';
-            clone.style.left = th.closest('table').querySelector('thead th:first-child').offsetWidth + 'px';
-            clone.style.zIndex = '6';
-            clone.style.background = 'var(--bg2)';
-          }
-          if (th.dataset.col) clone.addEventListener('click', () => th.click());
-          tr.appendChild(clone);
-        });
-        stickyInner.appendChild(tr);
+    // Wire sort clicks
+    cloneThead.querySelectorAll('th[data-col]').forEach((th, i) => {
+      const realTh = thead.querySelectorAll('th[data-col]')[i];
+      if (realTh) th.addEventListener('click', () => realTh.click());
+    });
 
-        // Wire horizontal scroll sync to this table's scroll container
-        if (_stickyScrollContainer) {
-          _stickyScrollContainer.removeEventListener('scroll', syncStickyScroll);
+    cloneTable.appendChild(cloneThead);
+    clone.appendChild(cloneTable);
+
+    // Start invisible but in the DOM so widths can be measured
+    clone.style.visibility = 'hidden';
+    clone.style.display = 'block';
+    tableOuter.insertBefore(clone, tableOuter.firstChild);
+
+    // Sync column widths immediately after insert
+    function syncWidths() {
+      const realThs = thead.querySelectorAll('th');
+      const cloneThs = cloneThead.querySelectorAll('th');
+      cloneThs.forEach((th, i) => {
+        if (realThs[i]) {
+          const w = realThs[i].getBoundingClientRect().width;
+          th.style.width = w + 'px';
+          th.style.minWidth = w + 'px';
         }
-        _stickyScrollContainer = tableOuter;
-        if (tableOuter) tableOuter.addEventListener('scroll', syncStickyScroll, { passive: true });
-      }
-
-      // Position over the scroll container
-      const outerRect = tableOuter ? tableOuter.getBoundingClientRect() : thead.getBoundingClientRect();
-      stickyEl.style.left = outerRect.left + 'px';
-      stickyEl.style.right = (window.innerWidth - outerRect.right) + 'px';
-
-      // Sync scroll position immediately
-      syncStickyScroll();
-    } else {
-      stickyEl.style.display = 'none';
+      });
+      cloneTable.style.width = table.getBoundingClientRect().width + 'px';
     }
-  }
+    syncWidths();
 
-  window.addEventListener('scroll', updateStickyHeader, { passive: true });
-  window.addEventListener('resize', () => {
-    if (document.getElementById('sticky-thead-inner')) {
-      document.getElementById('sticky-thead-inner').dataset.forTable = '';
-    }
-    updateStickyHeader();
-  }, { passive: true });
+    function onScroll() {
+      const theadRect = thead.getBoundingClientRect();
+      const tabsBottom = document.querySelector('.tabs')?.getBoundingClientRect().bottom || 157;
+      const outerRect = tableOuter.getBoundingClientRect();
+      // Always keep top position up to date so it's ready when it appears
+      clone.style.top = (tabsBottom - outerRect.top + tableOuter.scrollTop) + 'px';
 
-  // ── DEPLOY STATUS CHECK ─────────────────────────────────────────────────
-  const BUILD_TIMESTAMP = 'Apr 26, 2026 04:15 PM ET';
-  const RAW_URL = 'https://raw.githubusercontent.com/egmontes/fantasi-futbol/main/index.html';
-
-  async function checkDeployStatus() {
-    const el = document.getElementById('deploy-status');
-    if (!el) return;
-    try {
-      // Fetch raw file from GitHub with cache-bust
-      const res = await fetch(RAW_URL + '?nocache=' + Date.now());
-      if (!res.ok) throw new Error('fetch failed');
-      const text = await res.text();
-      // Extract build timestamp from the raw file
-      const needle = 'Built ' + BUILD_TIMESTAMP;
-      const found = text.indexOf(needle) !== -1;
-      if (found) {
-        el.innerHTML = '✓ Live · Built ' + BUILD_TIMESTAMP;
-        el.style.opacity = '0.6';
-        el.style.color = 'var(--green)';
-        el.title = 'Latest version is live on GitHub Pages';
+      if (theadRect.bottom < tabsBottom) {
+        if (clone.style.visibility === 'hidden') {
+          syncWidths(); // re-sync widths right before showing
+          clone.style.visibility = 'visible';
+        }
       } else {
-        el.innerHTML = '⏳ Deploying...';
-        el.style.opacity = '0.8';
-        el.style.color = 'var(--amber)';
-        el.title = 'Newer version pushed but not yet live. Check back in ~60s.';
-        // Re-check every 15 seconds until it matches
-        setTimeout(checkDeployStatus, 15000);
+        clone.style.visibility = 'hidden';
       }
-    } catch(e) {
-      el.textContent = 'Built ' + BUILD_TIMESTAMP;
-      el.style.opacity = '0.5';
     }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', () => { syncWidths(); onScroll(); }, { passive: true });
+    // Run once to set initial position
+    onScroll();
   }
 
-  // Check after a short delay to not block initial load
-  setTimeout(checkDeployStatus, 3000);
-  // ── END DEPLOY STATUS CHECK ─────────────────────────────────────────────
+  // Call setupStickyHeader whenever a table is rendered
+  const _origRenderStandings = renderStandings;
+  // ── END STICKY TABLE HEADERS ────────────────────────────────────────────
 
   // GW CHANGE
   document.getElementById('gw-select').addEventListener('change', e => {
