@@ -2540,15 +2540,32 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     }
 
     function syncHorizontal() {
-      const scrollLeft = Math.max(0, tableOuter.scrollLeft);
-      cloneTable.style.transform = 'translateX(-' + tableOuter.scrollLeft + 'px)';
-      // Clamp pinned cols so they never move left of their natural position
+      const scrollLeft = tableOuter.scrollLeft;
+      cloneTable.style.transform = 'translateX(-' + scrollLeft + 'px)';
       const ths = cloneThead.querySelectorAll('th');
       if (ths[0]) ths[0].style.left = scrollLeft + 'px';
       if (ths[1]) ths[1].style.left = (scrollLeft + col0Width) + 'px';
     }
 
     tableOuter.addEventListener('scroll', syncHorizontal, { passive: true });
+
+    // rAF loop during touch to catch rubber-band horizontal movement
+    let _rafLoop = null;
+    tableOuter.addEventListener('touchstart', () => {
+      if (_rafLoop) return;
+      function loop() { syncHorizontal(); _rafLoop = requestAnimationFrame(loop); }
+      _rafLoop = requestAnimationFrame(loop);
+    }, { passive: true });
+    tableOuter.addEventListener('touchend', () => {
+      if (_rafLoop) { cancelAnimationFrame(_rafLoop); _rafLoop = null; }
+      // Keep syncing during snap-back
+      let snapFrames = 0;
+      function snapLoop() {
+        syncHorizontal();
+        if (++snapFrames < 30) requestAnimationFrame(snapLoop);
+      }
+      requestAnimationFrame(snapLoop);
+    }, { passive: true });
 
     // Use IntersectionObserver to show/hide
     const tabsHeight = (document.querySelector('.site-header')?.offsetHeight || 64) +
