@@ -2322,7 +2322,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           const ptsClass = isWinner ? ' high' : '';
           const badge = isWinner ? ' <span class="cup-winner-badge">✓</span>' : '';
           const hit = manager && event ? getHit(manager.id, event) : 0;
-          const hitStr = hit > 0 ? '<span style="color:var(--red);font-size:10px;font-family:var(--font-mono);margin-left:2px;">(-' + hit + ')</span>' : '';
+          // pts from FPL cup data is net (hit already deducted), so raw = pts + hit
+          const rawPts = pts !== null ? pts + hit : null;
+          const hitStr = hit > 0 ? '<span class="hit-cost">(-' + hit + ')</span>' : '';
           const seed = seedMap[manager.id] || '?';
           return '<div class="cup-match-row' + rowClass + (isBye ? ' bye' : '') + '">' +
             '<div style="display:flex;align-items:center;gap:8px;">' +
@@ -2330,7 +2332,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
             '<div><div class="cup-manager">' + esc(manager.name) + badge + '</div>' +
             '<div class="cup-team">' + esc(manager.team) + '</div></div>' +
             '</div>' +
-            (isPlayed && pts !== null ? '<div class="cup-pts' + ptsClass + '">' + pts + hitStr + '</div>' : '') +
+            (isPlayed && rawPts !== null ? '<div class="cup-pts' + ptsClass + '">' + rawPts + hitStr + '</div>' : '') +
             '</div>';
         };
 
