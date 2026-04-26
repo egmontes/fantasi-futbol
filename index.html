@@ -2485,9 +2485,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     function sync() {
       const tabsBottom = document.querySelector('.tabs')?.getBoundingClientRect().bottom || 157;
       const theadRect = thead.getBoundingClientRect();
+      const outerRect = outer.getBoundingClientRect();
 
       if (theadRect.bottom < tabsBottom) {
-        // Get the exact bounding rect of each real th and apply to clone
+        // Sync column widths from real ths
         const realThs = thead.querySelectorAll('th');
         tr.querySelectorAll('th').forEach((th, i) => {
           if (realThs[i]) {
@@ -2497,17 +2498,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           }
         });
 
-        // Position the floating header to cover exactly where the real thead would be
-        // if it hadn't scrolled off — i.e. stick it at tabsBottom
-        const firstTh = thead.querySelector('th');
-        const lastTh = thead.querySelectorAll('th')[thead.querySelectorAll('th').length - 1];
-        const firstRect = firstTh.getBoundingClientRect();
-        const lastRect = lastTh.getBoundingClientRect();
-
+        // Position using outer container bounds — more reliable on mobile
         fh.style.top = tabsBottom + 'px';
-        fh.style.left = firstRect.left + 'px';
-        fh.style.right = (window.innerWidth - lastRect.right) + 'px';
-        fhTable.style.width = (lastRect.right - firstRect.left) + 'px';
+        fh.style.left = Math.max(0, outerRect.left) + 'px';
+        fh.style.right = Math.max(0, window.innerWidth - outerRect.right) + 'px';
+        fhTable.style.width = table.getBoundingClientRect().width + 'px';
 
         fh.classList.add('visible');
       } else {
@@ -2522,6 +2517,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     outer.addEventListener('scroll', sync, { passive: true });
     window.addEventListener('scroll', sync, { passive: true });
     window.addEventListener('resize', sync, { passive: true });
+    // touchmove for mobile — fires more reliably than scroll during fast swipes
+    window.addEventListener('touchmove', sync, { passive: true });
 
     sync();
   }
