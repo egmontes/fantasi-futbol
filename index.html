@@ -171,20 +171,25 @@
     .table-outer thead th {
       background: var(--bg2);
     }
-    /* Sticky clone header — sits inside table-outer so it scrolls horizontally with table */
-    .sticky-clone-header {
+    #floating-header {
+      position: fixed;
+      left: 0; right: 0;
       z-index: 50;
       background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       overflow: hidden;
-      visibility: hidden;
+      display: none;
+      pointer-events: none;
     }
-    .sticky-clone-header table {
-      width: 100%;
+    #floating-header.visible { display: block; pointer-events: auto; }
+    #floating-header table {
       border-collapse: separate;
       border-spacing: 0;
       font-size: 13px;
+      table-layout: fixed;
     }
-    .sticky-clone-header th {
+    #floating-header th {
       font-size: 11px;
       color: var(--text3);
       font-family: var(--font-mono);
@@ -193,17 +198,9 @@
       padding: 8px 10px;
       white-space: nowrap;
       background: var(--bg2);
-      box-shadow: 0 1px 0 var(--border);
     }
-    .sticky-clone-header th:nth-child(1),
-    .sticky-clone-header th:nth-child(2) {
-      background: var(--bg2);
-      z-index: 4;
-    }
-    /* Override — sticky doesn't work inside fixed, handled by JS */
-    .sticky-clone-header th {
-      position: relative;
-    }
+    /* Sticky clone header — sits inside table-outer so it scrolls horizontally with table */
+
 
     /* Sticky first two columns */
     .table-outer td:nth-child(1),
@@ -216,7 +213,7 @@
     .table-outer td:nth-child(2),
     .table-outer th:nth-child(2) {
       position: sticky;
-      left: 36px; /* width of # column */
+      left: 36px;
       background: var(--bg);
       z-index: 3;
     }
@@ -435,6 +432,7 @@
 </head>
 <body>
 
+<div id="floating-header"><table><thead id="floating-header-row"></thead></table></div>
 <header class="site-header">
   <div class="site-logo">Fantasi <span>Futbol</span></div>
   <div class="header-meta"><span id="header-meta">Loading...</span><span id="deploy-status" style="margin-left:10px;font-size:11px;opacity:0.6;" title="Checking deploy status...">Built Apr 26, 2026 04:15 PM ET</span></div>
@@ -831,9 +829,11 @@ async function init() {
           const headerH = document.querySelector('.site-header')?.offsetHeight || 64;
           const calloutH = callout.offsetHeight || 52;
           const gwbarH = document.querySelector('.gw-bar')?.offsetHeight || 48;
+          const tabsH = document.querySelector('.tabs')?.offsetHeight || 45;
           document.documentElement.style.setProperty('--header-h', headerH + 'px');
           document.documentElement.style.setProperty('--callout-h', calloutH + 'px');
           document.documentElement.style.setProperty('--gwbar-h', gwbarH + 'px');
+          document.documentElement.style.setProperty('--sticky-thead-top', (headerH + calloutH + gwbarH + tabsH) + 'px');
         });
       }
 
@@ -1131,7 +1131,7 @@ async function init() {
 
     html += '</tbody></table></div></div>';
     document.getElementById('standings-content').innerHTML = html;
-    requestAnimationFrame(() => setupStickyHeader('standings-table'));
+    requestAnimationFrame(() => initFloatingHeader('standings-table'));
 
     // Attach sort click handlers
     document.querySelectorAll('#standings-table th.sortable').forEach(th => {
@@ -1339,7 +1339,6 @@ async function init() {
 
         html += '</tbody></table></div></div>';
         document.getElementById('weekly-content').innerHTML = html;
-        requestAnimationFrame(() => setupStickyHeader('live-table'));
 
         // Wire up sortable headers
         document.querySelectorAll('#live-table thead th[data-col]').forEach(th => {
@@ -1502,7 +1501,6 @@ async function init() {
 
       html += '</tbody></table></div></div>';
       document.getElementById('weekly-content').innerHTML = html;
-      requestAnimationFrame(() => setupStickyHeader('weekly-table'));
 
       // Attach sort handlers
       document.querySelectorAll('#weekly-table th.sortable').forEach(th => {
@@ -2432,6 +2430,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const tab = btn.dataset.tab;
       document.getElementById('tab-' + tab).classList.add('active');
       setHashState(tab);
+      document.getElementById('floating-header').classList.remove('visible');
       if (tab === 'weekly') {
         const val = document.getElementById('gw-select').value;
         if (val === 'preview') renderPreview();
@@ -2445,189 +2444,74 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   // STICKY TABLE HEADERS
 
-    // ── STICKY TABLE HEADERS ──────────────────────────────────────────────
-  function setupStickyHeader(tableId) {
+    // ── FLOATING TABLE HEADER ──────────────────────────────────────────────
+  let _fhScrollContainer = null;
+
+  function initFloatingHeader(tableId) {
     const table = document.getElementById(tableId);
     if (!table) return;
-    const tableOuter = (() => { let el = table.parentElement; while (el && !el.classList.contains('table-outer')) el = el.parentElement; return el; })();
-    if (!tableOuter) return;
-
-    const existing = document.querySelector('.sticky-clone-header[data-for="' + tableId + '"]');
-    if (existing) existing.remove();
-    // Also clean up any orphaned clones
-    document.querySelectorAll('.sticky-clone-header').forEach(el => el.remove());
-
+    const outer = (() => { let el = table.parentElement; while(el && !el.classList.contains('table-outer')) el = el.parentElement; return el; })();
     const thead = table.querySelector('thead');
-    if (!thead) return;
+    if (!thead || !outer) return;
 
-    const clone = document.createElement('div');
-    clone.className = 'sticky-clone-header';
-    clone.dataset.for = tableId;
-    const cloneTable = document.createElement('table');
-    const cloneThead = thead.cloneNode(true);
+    const fh = document.getElementById('floating-header');
+    const fhRow = document.getElementById('floating-header-row');
 
-    const th1 = thead.querySelector('th:first-child');
-    const th1Width = th1 ? th1.getBoundingClientRect().width : 36;
-    const cloneTh2 = cloneThead.querySelector('th:nth-child(2)');
-    if (cloneTh2) cloneTh2.style.left = th1Width + 'px';
-
-    cloneThead.querySelectorAll('th[data-col]').forEach((th, i) => {
-      const realTh = thead.querySelectorAll('th[data-col]')[i];
-      if (realTh) th.addEventListener('click', () => realTh.click());
+    // Build clone row
+    fhRow.innerHTML = '';
+    const tr = thead.querySelector('tr').cloneNode(true);
+    tr.querySelectorAll('th[data-col]').forEach((th, i) => {
+      const real = thead.querySelectorAll('th[data-col]')[i];
+      if (real) th.addEventListener('click', () => real.click());
     });
+    fhRow.appendChild(tr);
 
-    cloneTable.appendChild(cloneThead);
-    clone.appendChild(cloneTable);
-    clone.style.visibility = 'hidden';
-    // Use position:fixed so it never moves vertically
-    clone.style.position = 'fixed';
-    clone.style.zIndex = '50';
-    clone.style.background = 'var(--bg)';
-    clone.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-    clone.style.borderBottom = '1px solid var(--border)';
-    clone.style.overflow = 'hidden';
-    document.body.appendChild(clone);
+    const fhTable = fh.querySelector('table');
 
-    function syncPosition() {
+    function sync() {
       const tabsBottom = document.querySelector('.tabs')?.getBoundingClientRect().bottom || 157;
-      const outerRect = tableOuter.getBoundingClientRect();
-      clone.style.top = tabsBottom + 'px';
-      clone.style.left = outerRect.left + 'px';
-      clone.style.right = (window.innerWidth - outerRect.right) + 'px';
-      clone.style.width = 'auto';
-    }
+      const theadRect = thead.getBoundingClientRect();
 
-    function syncWidths() {
-      const realThs = thead.querySelectorAll('th');
-      cloneThead.querySelectorAll('th').forEach((th, i) => {
-        if (realThs[i]) {
-          const w = realThs[i].getBoundingClientRect().width;
-          th.style.width = w + 'px';
-          th.style.minWidth = w + 'px';
-        }
-      });
-      cloneTable.style.width = table.getBoundingClientRect().width + 'px';
-      cloneTable.style.tableLayout = 'fixed';
-    }
-
-    // Sync horizontal scroll
-    // For the floating header: translate only cols 3+ left, keep cols 1&2 absolutely pinned
-    let col0Width = 0;
-    let col1Width = 0;
-
-    function pinStickyColsAbsolute() {
-      const ths = cloneThead.querySelectorAll('th');
-      if (!ths[0] || !ths[1]) return;
-      col0Width = ths[0].offsetWidth;
-      col1Width = ths[1].offsetWidth;
-
-      // Pin col 0 absolutely at left:0
-      ths[0].style.position = 'absolute';
-      ths[0].style.left = '0';
-      ths[0].style.top = '0';
-      ths[0].style.height = '100%';
-      ths[0].style.zIndex = '4';
-      ths[0].style.background = 'var(--bg2)';
-      ths[0].style.display = 'flex';
-      ths[0].style.alignItems = 'center';
-
-      // Pin col 1 absolutely right after col 0
-      ths[1].style.position = 'absolute';
-      ths[1].style.left = col0Width + 'px';
-      ths[1].style.top = '0';
-      ths[1].style.height = '100%';
-      ths[1].style.zIndex = '4';
-      ths[1].style.background = 'var(--bg2)';
-      ths[1].style.display = 'flex';
-      ths[1].style.alignItems = 'center';
-
-      // Add left padding to col 2+ so they don't go under the pinned cols
-      const pinnedWidth = col0Width + col1Width;
-      for (let i = 2; i < ths.length; i++) {
-        if (i === 2) ths[i].style.paddingLeft = (pinnedWidth - (ths[i].offsetLeft || 0)) + 'px';
-      }
-    }
-
-    function syncHorizontal() {
-      const scrollLeft = tableOuter.scrollLeft;
-      cloneTable.style.transform = 'translateX(-' + scrollLeft + 'px)';
-      const ths = cloneThead.querySelectorAll('th');
-      // Use scrollLeft directly — when negative (rubber-band right),
-      // left becomes negative which moves cols right, matching the table
-      if (ths[0]) ths[0].style.left = scrollLeft + 'px';
-      if (ths[1]) ths[1].style.left = (scrollLeft + col0Width) + 'px';
-    }
-
-    tableOuter.addEventListener('scroll', syncHorizontal, { passive: true });
-
-    // Only hide floating header during horizontal touch (rubber-band)
-    // Keep it visible during vertical scrolling
-    let _touchStartX = 0;
-    let _touchStartY = 0;
-    let _isHorizontalTouch = false;
-
-    tableOuter.addEventListener('touchstart', (e) => {
-      _touchStartX = e.touches[0].clientX;
-      _touchStartY = e.touches[0].clientY;
-      _isHorizontalTouch = false;
-    }, { passive: true });
-
-    tableOuter.addEventListener('touchmove', (e) => {
-      if (!_isHorizontalTouch) {
-        const dx = Math.abs(e.touches[0].clientX - _touchStartX);
-        const dy = Math.abs(e.touches[0].clientY - _touchStartY);
-        if (dx > dy && dx > 5) {
-          _isHorizontalTouch = true;
-          clone.style.visibility = 'hidden';
-        }
-      }
-    }, { passive: true });
-
-    tableOuter.addEventListener('touchend', () => {
-      if (_isHorizontalTouch) {
-        setTimeout(() => {
-          const theadRect = thead.getBoundingClientRect();
-          const tabsBottom = document.querySelector('.tabs')?.getBoundingClientRect().bottom || 157;
-          if (theadRect.bottom < tabsBottom) {
-            syncHorizontal();
-            clone.style.visibility = 'visible';
+      if (theadRect.bottom < tabsBottom) {
+        // Get the exact bounding rect of each real th and apply to clone
+        const realThs = thead.querySelectorAll('th');
+        tr.querySelectorAll('th').forEach((th, i) => {
+          if (realThs[i]) {
+            const r = realThs[i].getBoundingClientRect();
+            th.style.width = r.width + 'px';
+            th.style.minWidth = r.width + 'px';
           }
-        }, 150);
+        });
+
+        // Position the floating header to cover exactly where the real thead would be
+        // if it hadn't scrolled off — i.e. stick it at tabsBottom
+        const firstTh = thead.querySelector('th');
+        const lastTh = thead.querySelectorAll('th')[thead.querySelectorAll('th').length - 1];
+        const firstRect = firstTh.getBoundingClientRect();
+        const lastRect = lastTh.getBoundingClientRect();
+
+        fh.style.top = tabsBottom + 'px';
+        fh.style.left = firstRect.left + 'px';
+        fh.style.right = (window.innerWidth - lastRect.right) + 'px';
+        fhTable.style.width = (lastRect.right - firstRect.left) + 'px';
+
+        fh.classList.add('visible');
+      } else {
+        fh.classList.remove('visible');
       }
-      _isHorizontalTouch = false;
-    }, { passive: true });
+    }
 
-    // Use IntersectionObserver to show/hide
-    const tabsHeight = (document.querySelector('.site-header')?.offsetHeight || 64) +
-                       (document.getElementById('gw-callout')?.offsetHeight || 52) +
-                       (document.querySelector('.gw-bar')?.offsetHeight || 48) +
-                       (document.querySelector('.tabs')?.offsetHeight || 45);
+    if (_fhScrollContainer) {
+      _fhScrollContainer.removeEventListener('scroll', sync);
+    }
+    _fhScrollContainer = outer;
+    outer.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync, { passive: true });
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (!entry.isIntersecting) {
-          syncWidths();
-          syncPosition();
-          pinStickyColsAbsolute();
-          syncHorizontal();
-          clone.style.visibility = 'visible';
-        } else {
-          clone.style.visibility = 'hidden';
-        }
-      });
-    }, {
-      rootMargin: '-' + tabsHeight + 'px 0px 0px 0px',
-      threshold: 0
-    });
-
-    observer.observe(thead);
-
-    window.addEventListener('resize', () => { syncWidths(); syncPosition(); }, { passive: true });
+    sync();
   }
-
-  // Call setupStickyHeader whenever a table is rendered
-  const _origRenderStandings = renderStandings;
-  // ── END STICKY TABLE HEADERS ────────────────────────────────────────────
+  // ── END FLOATING TABLE HEADER ────────────────────────────────────────────
 
   // GW CHANGE
   document.getElementById('gw-select').addEventListener('change', e => {
