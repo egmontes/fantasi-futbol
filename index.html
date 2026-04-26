@@ -325,7 +325,6 @@
       .stat-card .s-value { font-size: 26px; }
     }
   
-    #last-updated {
       font-size: 11px;
       color: var(--text3);
       font-family: var(--font-mono);
@@ -337,7 +336,7 @@
 
 <header class="site-header">
   <div class="site-logo">Fantasi <span>Futbol</span></div>
-  <div class="header-meta"><span id="header-meta">Loading...</span><span id="last-updated" style="margin-left:10px; opacity:0.7;"></span></div>
+  <div class="header-meta"><span id="header-meta">Loading...</span><span style="margin-left:10px;opacity:0.5;font-size:11px;">Built Apr 26, 2026 03:06 PM UTC</span></div>
 </header>
 
 <div class="container">
@@ -361,6 +360,10 @@
 
   <div id="tab-weekly" class="section">
     <div id="weekly-content"><div class="loading-state"><span class="spinner"></span>Loading gameweek data...</div></div>
+  </div>
+
+  <div id="tab-cup" class="section">
+    <div id="cup-content"><div class="loading-state">Click the Cup tab to load bracket data.</div></div>
   </div>
 
   <div id="tab-recap" class="section">
@@ -622,7 +625,6 @@ async function loadLastUpdated() {
       minute: '2-digit'
     });
 
-    document.getElementById('last-updated').textContent = `Updated ${formatted}`;
   } catch (e) {
     console.warn('Failed to load last updated time');
   }
@@ -1847,8 +1849,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         const batch = state.managers.slice(i, i + BATCH);
         await Promise.all(batch.map(async m => {
           try {
-            const data = await fetchFPL('entry/' + m.id + '/cups/');
-            cupResults[m.id] = data.cup_matches || [];
+            const data = await fetchFPL('entry/' + m.id + '/history/');
+            // Cup data is in the entry history under cups
+            cupResults[m.id] = data.cups || [];
           } catch(e) { cupResults[m.id] = []; }
         }));
         const done = Math.min(i + BATCH, state.managers.length);
