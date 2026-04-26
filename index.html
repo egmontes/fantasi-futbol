@@ -776,11 +776,28 @@ async function init() {
         `League #${LEAGUE_ID} · GW${state.latestGW}`;
 
       loadLastUpdated();
+      // Restore tab + GW from URL hash
+      const activeTab = restoreHashState();
+
       renderStandings();
-      if (state.isLive) renderLive();
-      else if (state.showPreview) renderPreview();
-      else renderWeekly(state.latestGW);
-      setupRecapTab();
+      if (activeTab === 'weekly') {
+        const gwVal = document.getElementById('gw-select').value;
+        if (gwVal === 'live') renderLive();
+        else if (gwVal === 'preview') renderPreview();
+        else renderWeekly(parseInt(gwVal));
+      } else if (activeTab === 'cup') {
+        loadCupData();
+      } else if (activeTab === 'recap') {
+        setupRecapTab();
+      } else {
+        // Default to weekly tab initial state if on standings
+        if (state.isLive) {
+          // don't auto-switch, just prep the GW selector
+        } else if (state.showPreview) {
+          // same
+        }
+      }
+      if (activeTab !== 'recap') setupRecapTab();
 
     } catch (e) {
       const errHtml = `<div class="error-state">Failed to load league data — the FPL API or CORS proxy may be temporarily unavailable.<small>${e.message}</small><br><br>Try hitting ↺ Refresh, or wait a moment and reload the page.</div>`;
@@ -2046,6 +2063,44 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       .replace(/"/g, '&quot;');
   }
 
+  // ── URL HASH STATE ─────────────────────────────────────────────────────
+  function getHashState() {
+    const hash = window.location.hash.slice(1);
+    const parts = hash.split('/');
+    return { tab: parts[0] || 'standings', gw: parts[1] || null };
+  }
+
+  function setHashState(tab, gw) {
+    const gwVal = gw || document.getElementById('gw-select').value;
+    window.location.replace('#' + tab + (gwVal ? '/' + gwVal : ''));
+  }
+
+  // Restore state from hash on load
+  function restoreHashState() {
+    const { tab, gw } = getHashState();
+
+    // Set GW select
+    const gwSel = document.getElementById('gw-select');
+    if (gw) {
+      // Check if the option exists
+      const opt = Array.from(gwSel.options).find(o => o.value === gw);
+      if (opt) gwSel.value = gw;
+    }
+
+    // Set active tab
+    const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+    if (btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      const section = document.getElementById('tab-' + tab);
+      if (section) section.classList.add('active');
+      return tab;
+    }
+    return 'standings';
+  }
+  // ── END URL HASH STATE ───────────────────────────────────────────────────
+
   // TAB SWITCHING
   // ── CUP ──────────────────────────────────────────────────────────────────
   const ROUND_NAMES = {
@@ -2290,6 +2345,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       btn.classList.add('active');
       const tab = btn.dataset.tab;
       document.getElementById('tab-' + tab).classList.add('active');
+      setHashState(tab);
       if (tab === 'weekly') {
         const val = document.getElementById('gw-select').value;
         if (val === 'preview') renderPreview();
@@ -2363,6 +2419,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   // GW CHANGE
   document.getElementById('gw-select').addEventListener('change', e => {
     const active = document.querySelector('.tab-btn.active').dataset.tab;
+    setHashState(active, e.target.value);
     if (active === 'weekly') {
       const val = e.target.value;
       if (val === 'preview') renderPreview();
