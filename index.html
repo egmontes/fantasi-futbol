@@ -2511,8 +2511,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
         // Right section fills full width, table starts at leftWidth via transform offset
         const rightDiv = fhRightTable.parentElement;
+        const leftWidthCeil = Math.ceil(leftWidth);
         rightDiv.style.position = 'absolute';
-        rightDiv.style.left = leftWidth + 'px';
+        rightDiv.style.left = Math.max(0, leftWidthCeil - 1) + 'px';
         rightDiv.style.right = '0';
         rightDiv.style.top = '0';
         rightDiv.style.bottom = '0';
