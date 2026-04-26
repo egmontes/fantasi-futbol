@@ -51,9 +51,10 @@
       border-bottom: 1px solid var(--border);
       padding: 0 2rem;
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      height: 64px;
+      min-height: 64px;
       position: sticky;
       top: 0;
       background: rgba(13,15,14,0.92);
@@ -79,7 +80,7 @@
       gap: 12px;
       flex-wrap: wrap;
       position: sticky;
-      top: calc(var(--header-h, 64px) + var(--callout-h, 52px));
+      top: var(--header-h, 64px);
       background: var(--bg);
       z-index: 14;
       padding: 10px 0;
@@ -126,9 +127,9 @@
       display: flex;
       gap: 0;
       border-bottom: 1px solid var(--border);
-      margin-bottom: 2rem;
+      margin-bottom: 0;
       position: sticky;
-      top: calc(var(--header-h, 64px) + var(--callout-h, 52px) + var(--gwbar-h, 48px));
+      top: calc(var(--header-h, 64px) + var(--gwbar-h, 48px));
       background: var(--bg);
       z-index: 13;
     }
@@ -307,7 +308,7 @@
 
     /* SECTION */
     .section { display: none; }
-    .section.active { display: block; }
+    .section.active { display: block; padding-top: 1.5rem; }
 
     /* LOADING / ERROR */
     .loading-state {
@@ -436,16 +437,15 @@
 <header class="site-header">
   <div class="site-logo">Fantasi <span>Futbol</span></div>
   <div class="header-meta"><span id="header-meta">Loading...</span><span id="deploy-status" style="margin-left:10px;font-size:11px;opacity:0.6;" title="Checking deploy status...">Built Apr 26, 2026 04:15 PM ET</span></div>
-</header>
-
-<div class="container">
-
-  <div id="gw-callout" style="display:none;position:sticky;top:var(--header-h, 64px);background:var(--bg);z-index:16;padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:0;">
+  <div id="gw-callout" style="display:none;padding:6px 0 0;width:100%;">
     <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
-      <span id="gw-callout-label" style="font-size:22px;font-weight:700;color:var(--text);font-family:var(--font-display);"></span>
+      <span id="gw-callout-label" style="font-size:18px;font-weight:700;color:var(--text);font-family:var(--font-display);"></span>
       <span id="gw-deadline-label" style="font-size:12px;color:var(--green);font-family:var(--font-mono);"></span>
     </div>
   </div>
+</header>
+
+<div class="container">
 
   <div class="gw-bar">
     <label for="gw-select">Gameweek</label>
@@ -831,9 +831,7 @@ async function init() {
           const gwbarH = document.querySelector('.gw-bar')?.offsetHeight || 48;
           const tabsH = document.querySelector('.tabs')?.offsetHeight || 45;
           document.documentElement.style.setProperty('--header-h', headerH + 'px');
-          document.documentElement.style.setProperty('--callout-h', calloutH + 'px');
           document.documentElement.style.setProperty('--gwbar-h', gwbarH + 'px');
-          document.documentElement.style.setProperty('--sticky-thead-top', (headerH + calloutH + gwbarH + tabsH) + 'px');
         });
       }
 
