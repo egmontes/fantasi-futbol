@@ -1842,59 +1842,58 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     document.getElementById('cup-content').innerHTML =
       '<div class="loading-state"><span class="spinner"></span>Loading cup bracket...</div>';
     try {
-      // Try the league cup endpoint first
       let allMatches = [];
-
-      // Fetch cup matches per manager using the correct endpoint
-      const BATCH = 5;
       const seen = new Set();
-      for (let i = 0; i < state.managers.length; i += BATCH) {
-        const batch = state.managers.slice(i, i + BATCH);
-        await Promise.all(batch.map(async m => {
-          try {
-            const data = await fetchFPL('entry/' + m.id + '/cups/');
-            const matches = data.cup_matches || data.cups_matches || [];
-            matches.forEach(match => {
-              const key = [match.entry_1_entry, match.entry_2_entry, match.event].sort().join('-');
-              if (!seen.has(key)) {
-                seen.add(key);
-                allMatches.push(match);
-              }
-            });
-          } catch(e) {
-            // Try alternate endpoint
-            try {
-              const data2 = await fetchFPL('leagues-classic/' + LEAGUE_ID + '/cup/');
-              const matches = data2.cup_matches || data2.results || [];
-              matches.forEach(match => {
-                const key = [match.entry_1_entry, match.entry_2_entry, match.event].sort().join('-');
-                if (!seen.has(key)) {
-                  seen.add(key);
-                  allMatches.push(match);
-                }
-              });
-            } catch(e2) {}
-          }
-        }));
-        const done = Math.min(i + BATCH, state.managers.length);
-        document.getElementById('cup-content').innerHTML =
-          '<div class="loading-state"><span class="spinner"></span>Loading cup data... (' + done + '/' + state.managers.length + ')</div>';
-      }
 
-      // If we still have nothing, try the league-level cup endpoint directly
-      if (allMatches.length === 0) {
+      // The correct FPL cup endpoints to try
+      const endpoints = [
+        'leagues-cup/' + LEAGUE_ID + '/standings/',
+        'leagues-cup/' + LEAGUE_ID + '/',
+        'entry/' + state.managers[0].id + '/history/',
+      ];
+
+      for (const ep of endpoints) {
         try {
-          const data = await fetchFPL('leagues-classic/' + LEAGUE_ID + '/cup/');
-          allMatches = data.cup_matches || data.results || [];
-          console.log('League cup endpoint response:', JSON.stringify(data).slice(0, 500));
+          const data = await fetchFPL(ep);
+          console.log('Cup endpoint', ep, ':', JSON.stringify(data).slice(0, 300));
+          const matches = data.cup_matches || data.results || data.standings?.results || [];
+          // Also check history cups field
+          if (ep.includes('history') && data.cups) {
+            data.cups.forEach(m => {
+              const key = [m.entry_1_entry, m.entry_2_entry, m.event].sort().join('-');
+              if (!seen.has(key)) { seen.add(key); allMatches.push(m); }
+            });
+          }
+          matches.forEach(m => {
+            const key = [m.entry_1_entry || m.id, m.entry_2_entry || '', m.event || ''].sort().join('-');
+            if (!seen.has(key)) { seen.add(key); allMatches.push(m); }
+          });
+          if (allMatches.length > 0) break;
         } catch(e) {
-          console.warn('League cup endpoint failed:', e.message);
+          console.warn('Cup endpoint failed:', ep, e.message);
         }
       }
 
-      console.log('Total cup matches found:', allMatches.length);
-      if (allMatches.length > 0) console.log('Sample match:', JSON.stringify(allMatches[0]));
+      // If still nothing, fetch history for all managers and collect cups
+      if (allMatches.length === 0) {
+        document.getElementById('cup-content').innerHTML =
+          '<div class="loading-state"><span class="spinner"></span>Fetching cup history from managers...</div>';
+        const BATCH = 5;
+        for (let i = 0; i < state.managers.length; i += BATCH) {
+          const batch = state.managers.slice(i, i + BATCH);
+          await Promise.all(batch.map(async m => {
+            try {
+              // history endpoint has cups array
+              const hist = state.gwHistory[m.id] || [];
+              // Also try the entry directly
+              const data = await fetchFPL('entry/' + m.id + '/');
+              console.log('Entry data keys:', Object.keys(data));
+            } catch(e) {}
+          }));
+        }
+      }
 
+      console.log('Total cup matches:', allMatches.length, allMatches[0] ? JSON.stringify(allMatches[0]) : 'none');
       renderCup(allMatches);
     } catch(e) {
       document.getElementById('cup-content').innerHTML =
