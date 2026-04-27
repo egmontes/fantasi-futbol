@@ -1446,7 +1446,9 @@ async function init() {
       const enriched = ranked.map((m, idx) => {
         if (idx > 0 && ranked[idx].gwPoints < ranked[idx-1].gwPoints) displayRank = idx + 1;
         const p = weekPrizes[m.id];
-        return { ...m, _displayRank: displayRank, _prize: p.prize, _shotgun: p.shotgun, _ineligible: p.ineligible, chip: chips[m.id] || null };
+        const gwHistEntry = (state.gwHistory[m.id] || []).find(h => h.event === gw);
+        const gwTotal = gwHistEntry ? gwHistEntry.total_points : m.total;
+        return { ...m, _displayRank: displayRank, _prize: p.prize, _shotgun: p.shotgun, _ineligible: p.ineligible, chip: chips[m.id] || null, gwTotal };
       });
 
       // Sort by selected column
@@ -1455,7 +1457,7 @@ async function init() {
         if (wsort.col === 'name')  return wdir * a.name.localeCompare(b.name);
         if (wsort.col === 'gwpts') return wdir * (a.gwPoints - b.gwPoints);
         if (wsort.col === 'captain') { const ca = (_captainCache[gw]||{})[a.id]?.name||''; const cb = (_captainCache[gw]||{})[b.id]?.name||''; return wdir * ca.localeCompare(cb); }
-        if (wsort.col === 'total') return wdir * (a.total - b.total);
+        if (wsort.col === 'total') return wdir * (a.gwTotal - b.gwTotal);
         if (wsort.col === 'hits')  return wdir * (a.transferCost - b.transferCost);
         if (wsort.col === 'bench') return wdir * (a.benchPoints - b.benchPoints);
         if (wsort.col === 'prize') return wdir * (a._prize - b._prize);
@@ -1479,7 +1481,7 @@ async function init() {
         '<th style="width:70px" ' + wthClass('gwpts') + ' data-col="gwpts">GW pts</th>' +
         '<th style="width:90px" ' + wthClass('captain') + ' data-col="captain">Captain</th>' +
         '<th style="width:100px" ' + wthClass('prize') + ' data-col="prize">Result</th>' +
-        '<th style="width:70px" ' + wthClass('total') + ' data-col="total">Total</th>' +
+        '<th style="width:70px" ' + wthClass('total') + ' data-col="total">Total GW' + gw + '</th>' +
         '<th style="width:56px;text-align:center" ' + wthClass('hits') + ' data-col="hits">Hits</th>' +
         '<th style="width:60px;text-align:center" ' + wthClass('bench') + ' data-col="bench">Bench</th>' +
         '<th style="width:80px;text-align:center" title="Beers owed this week">🍺 Beers This Week</th>' +
@@ -1524,7 +1526,7 @@ async function init() {
           '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
           '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = (_captainCache[gw] || {})[m.id]; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
           '<td>' + (resultBadge || '<span class="badge-zero">—</span>') + '</td>' +
-          '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
+          '<td><span class="pts-val" style="color:var(--text2)">' + m.gwTotal + '</span></td>' +
           '<td style="text-align:center">' + hitStr + '</td>' +
           '<td style="text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--text3)">' + m.benchPoints + '</td>' +
           '<td style="text-align:center">' + owedCell + '</td>' +
