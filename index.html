@@ -265,6 +265,37 @@
     .pts-val { font-family: var(--font-mono); font-weight: 500; }
 
     /* ROW ACCENTS */
+    /* CUSTOM TOOLTIP */
+    .tip {
+      position: relative;
+      display: inline-block;
+      cursor: default;
+    }
+    .tip .tip-text {
+      visibility: hidden;
+      opacity: 0;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      padding: 5px 8px;
+      white-space: nowrap;
+      position: absolute;
+      bottom: 130%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      transition: opacity 0.15s;
+      pointer-events: none;
+    }
+    .tip:hover .tip-text,
+    .tip.active .tip-text {
+      visibility: visible;
+      opacity: 1;
+    }
     /* BADGES */
     .badge {
       display: inline-flex;
@@ -1071,8 +1102,10 @@ async function init() {
     const totalShotguns = state.latestGW * 2;
 
     const currentGW = state.isLive ? state.liveGW : state.latestGW;
-    // Fetch chips and captains for current GW
-    const standingsChips = await fetchChipsForGW(currentGW).catch(() => ({}));
+
+    // Render immediately with cached data (or empty chips/captains)
+    // Then fetch chips/captains in background and re-render
+    const standingsChips = _chipCache[currentGW] || {};
     const standingsCaptains = _captainCache[currentGW] || {};
 
     const rows = state.managers.map(m => {
@@ -1081,9 +1114,11 @@ async function init() {
       const totalG = getTotalGuinnesses(m.name, s.bottom2 || 0);
       const latestHist = (state.gwHistory[m.id] || []).find(h => h.event === currentGW);
       const gwLatestPts = latestHist ? (latestHist.points - (latestHist.event_transfers_cost || 0)) : null;
+      const gwRawPts = latestHist ? latestHist.points : null;
+      const gwHit = latestHist ? (latestHist.event_transfers_cost || 0) : 0;
       const chip = standingsChips[m.id] || null;
       const captain = standingsCaptains[m.id] || null;
-      return { ...m, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, totalG, gwLatestPts, chip, captain };
+      return { ...m, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain };
     });
 
     const col = standingsSort.col;
@@ -1123,6 +1158,16 @@ async function init() {
       '<th style="width:70px;text-align:center" ' + thClass('totalg') + ' data-col="totalg" title="Total Guinnesses shotgunned this season">🍺 Total</th>' +
       '</tr></thead><tbody>';
 
+    // Compute GW rank for medal display (always by gwLatestPts desc)
+    const gwRanked = [...rows].filter(m => m.gwLatestPts !== null)
+      .sort((a, b) => (b.gwLatestPts||0) - (a.gwLatestPts||0));
+    const gwRankMap = {};
+    let gwRank = 1;
+    gwRanked.forEach((m, i) => {
+      if (i > 0 && gwRanked[i].gwLatestPts < gwRanked[i-1].gwLatestPts) gwRank = i + 1;
+      gwRankMap[m.id] = gwRank;
+    });
+
     rows.forEach((m, idx) => {
       const pos = idx + 1;
       const rowCls = pos === 1 ? 'row-1' : pos === 2 ? 'row-2' : pos === 3 ? 'row-3' : '';
@@ -1140,12 +1185,14 @@ async function init() {
         '<td>' + (() => {
           if (m.gwLatestPts === null) return '<span class="pts-val">—</span>';
           const rank = gwRankMap[m.id];
-          const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
-          const prizes = { 1: '$30', 2: '$15', 3: '$10' };
+          const medals = { 1: '🥇', 2: '🥈', 3: '🥉', 4: '4️⃣' };
+          const prizes = { 1: '$30', 2: '$15', 3: '$10', 4: '$5' };
           const medal = medals[rank];
           const prize = prizes[rank];
-          const tip = medal ? ' <span title="Currently in ' + rank + (rank===1?'st':rank===2?'nd':'rd') + ' place · Expected payout: ' + prize + '" style="cursor:default;font-size:13px;">' + medal + '</span>' : '';
-          return '<span class="pts-val">' + m.gwLatestPts + '</span>' + tip;
+          const rankSuffix = rank===1?'st':rank===2?'nd':'rd';
+          const tip = medal ? ' <span class="tip" style="font-size:13px;">' + medal + '<span class="tip-text">' + rank + rankSuffix + ' place · Payout: ' + prize + '</span></span>' : '';
+          const hitBadge = m.gwHit > 0 ? '<span class="hit-cost">(-' + m.gwHit + ')</span>' : '';
+          return '<span class="pts-val">' + m.gwRawPts + '</span>' + hitBadge + tip;
         })() + '</td>' +
         '<td><span class="pts-val">' + m.total + '</span></td>' +
         '<td style="text-align:center">' + (m.top4 > 0 ? '<span class="badge badge-top">' + m.top4 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
@@ -1159,6 +1206,14 @@ async function init() {
     html += '</tbody></table></div></div>';
     document.getElementById('standings-content').innerHTML = html;
     requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('standings-table'); });
+
+    // Fetch chips/captains in background after a delay if not already cached
+    // Delay ensures it doesn't compete with initial page render
+    if (!_chipCache[currentGW]) {
+      setTimeout(() => {
+        fetchChipsForGW(currentGW).then(() => renderStandings()).catch(() => {});
+      }, 2000);
+    }
 
     // Attach sort click handlers
     document.querySelectorAll('#standings-table th.sortable').forEach(th => {
@@ -1220,11 +1275,12 @@ async function init() {
         '<td>' + (() => {
           if (m.gwLatestPts === null) return '<span class="pts-val">—</span>';
           const rank = gwRankMap[m.id];
-          const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
-          const prizes = { 1: '$30', 2: '$15', 3: '$10' };
+          const medals = { 1: '🥇', 2: '🥈', 3: '🥉', 4: '4️⃣' };
+          const prizes = { 1: '$30', 2: '$15', 3: '$10', 4: '$5' };
           const medal = medals[rank];
           const prize = prizes[rank];
-          const tip = medal ? ' <span title="Currently in ' + rank + (rank===1?'st':rank===2?'nd':'rd') + ' place · Expected payout: ' + prize + '" style="cursor:default;font-size:13px;">' + medal + '</span>' : '';
+          const rankSuffix = rank===1?'st':rank===2?'nd':'rd';
+          const tip = medal ? ' <span class="tip" style="font-size:13px;">' + medal + '<span class="tip-text">' + rank + rankSuffix + ' place · Payout: ' + prize + '</span></span>' : '';
           return '<span class="pts-val">' + m.gwLatestPts + '</span>' + tip;
         })() + '</td>' +
         '<td><span class="pts-val">' + m.total + '</span></td>' +
@@ -1422,65 +1478,77 @@ async function init() {
     if (_chipCache[gw]) return _chipCache[gw];
     const chips = {};
     const captains = {};
-    const BATCH = 5;
-    for (let i = 0; i < state.managers.length; i += BATCH) {
-      const batch = state.managers.slice(i, i + BATCH);
-      await Promise.all(batch.map(async m => {
-        try {
-          const picks = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/');
-          chips[m.id] = picks.active_chip || null;
-          // Get captain and vice captain
-          const captainPick = picks.picks.find(p => p.is_captain);
-          const vcPick = picks.picks.find(p => p.is_vice_captain);
-          const captainId = captainPick?.element;
-          const vcId = vcPick?.element;
-          // For past GWs, check if captain played via live stats
-          let captainName = captainId ? (state.bootstrapPlayers[captainId] || '?') : null;
-          let isVC = false;
-          try {
-            const liveStats = await fetchFPL('event/' + gw + '/live/');
-            const statsMap = {};
-            liveStats.elements.forEach(e => { statsMap[e.id] = e.stats; });
 
-            // Get fixtures for this GW to know which teams have actually played or have a fixture
-            const fixturesData = await fetchFPL('fixtures/?event=' + gw);
-            const teamsWithFixture = new Set();
-            const finishedTeams = new Set();
-            fixturesData.forEach(f => {
-              teamsWithFixture.add(f.team_h);
-              teamsWithFixture.add(f.team_a);
-              if (f.finished || f.started) {
-                finishedTeams.add(f.team_h);
-                finishedTeams.add(f.team_a);
-              }
-            });
+    // Fetch live stats + fixtures ONCE upfront, in parallel with all picks
+    const [liveStatsRes, fixturesRes, ...picksRes] = await Promise.allSettled([
+      fetchFPL('event/' + gw + '/live/'),
+      fetchFPL('fixtures/?event=' + gw),
+      ...state.managers.map(m => fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/')
+        .then(d => ({ managerId: m.id, data: d }))
+        .catch(() => ({ managerId: m.id, data: null })))
+    ]);
 
-            const captainTeamId = captainId ? (state.playerTeams?.[captainId]) : null;
-            const vcTeamId = vcId ? (state.playerTeams?.[vcId]) : null;
-            const captainHasFixture = captainTeamId && teamsWithFixture.has(captainTeamId);
-            const vcHasFixture = vcTeamId && teamsWithFixture.has(vcTeamId);
-
-            if (!captainHasFixture) {
-              // Captain has no match this GW — use VC if they have a fixture
-              if (vcId && vcHasFixture) {
-                captainName = state.bootstrapPlayers[vcId] || '?';
-                isVC = true;
-              }
-              // else keep captain (both have no fixture)
-            } else {
-              // Captain has a fixture — only replace if match played and 0 minutes
-              const captainMatchPlayed = finishedTeams.has(captainTeamId);
-              const captainPlayed = captainMatchPlayed && (statsMap[captainId]?.minutes || 0) > 0;
-              if (captainMatchPlayed && !captainPlayed && vcId) {
-                captainName = state.bootstrapPlayers[vcId] || '?';
-                isVC = true;
-              }
-            }
-          } catch(e) {}
-          captains[m.id] = { name: captainName, isVC };
-        } catch(e) { chips[m.id] = null; captains[m.id] = { name: null, isVC: false }; }
-      }));
+    // Build stats and fixture maps
+    const statsMap = {};
+    if (liveStatsRes.status === 'fulfilled') {
+      liveStatsRes.value.elements.forEach(e => { statsMap[e.id] = e.stats; });
     }
+
+    const teamsWithFixture = new Set();
+    const finishedTeams = new Set();
+    if (fixturesRes.status === 'fulfilled') {
+      fixturesRes.value.forEach(f => {
+        teamsWithFixture.add(f.team_h);
+        teamsWithFixture.add(f.team_a);
+        if (f.finished || f.started) {
+          finishedTeams.add(f.team_h);
+          finishedTeams.add(f.team_a);
+        }
+      });
+    }
+
+    // Process each manager's picks
+    picksRes.forEach(res => {
+      if (res.status !== 'fulfilled' || !res.value.data) {
+        const mid = res.value?.managerId;
+        if (mid) { chips[mid] = null; captains[mid] = { name: null, isVC: false }; }
+        return;
+      }
+      const { managerId, data: picks } = res.value;
+      chips[managerId] = picks.active_chip || null;
+
+      const captainPick = picks.picks.find(p => p.is_captain);
+      const vcPick = picks.picks.find(p => p.is_vice_captain);
+      const captainId = captainPick?.element;
+      const vcId = vcPick?.element;
+
+      let captainName = captainId ? (state.bootstrapPlayers[captainId] || '?') : null;
+      let isVC = false;
+
+      if (captainId) {
+        const captainTeamId = state.playerTeams?.[captainId];
+        const vcTeamId = vcId ? state.playerTeams?.[vcId] : null;
+        const captainHasFixture = captainTeamId && teamsWithFixture.has(captainTeamId);
+        const vcHasFixture = vcTeamId && teamsWithFixture.has(vcTeamId);
+
+        if (!captainHasFixture) {
+          if (vcId && vcHasFixture) {
+            captainName = state.bootstrapPlayers[vcId] || '?';
+            isVC = true;
+          }
+        } else {
+          const captainMatchPlayed = finishedTeams.has(captainTeamId);
+          const captainPlayed = captainMatchPlayed && (statsMap[captainId]?.minutes || 0) > 0;
+          if (captainMatchPlayed && !captainPlayed && vcId) {
+            captainName = state.bootstrapPlayers[vcId] || '?';
+            isVC = true;
+          }
+        }
+      }
+
+      captains[managerId] = { name: captainName, isVC };
+    });
+
     _chipCache[gw] = chips;
     _captainCache[gw] = captains;
     return chips;
@@ -2696,6 +2764,13 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     requestAnimationFrame(updateStickyOffsets);
   }, { passive: true });
   // ── END DYNAMIC STICKY OFFSETS ───────────────────────────────────────────
+
+  // TOOLTIP TAP SUPPORT (mobile)
+  document.addEventListener('click', e => {
+    const tip = e.target.closest('.tip');
+    document.querySelectorAll('.tip.active').forEach(t => { if (t !== tip) t.classList.remove('active'); });
+    if (tip) { tip.classList.toggle('active'); e.stopPropagation(); }
+  });
 
   // GW CHANGE
   document.getElementById('gw-select').addEventListener('change', e => {
