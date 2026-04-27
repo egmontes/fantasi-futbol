@@ -90,6 +90,7 @@
       border-bottom: 1px solid var(--border);
       margin-top: 0;
     }
+    .gw-bar.hidden { display: none; }
     .gw-bar label { font-size: 12px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; }
     .gw-bar select {
       background: var(--surface);
@@ -891,6 +892,12 @@ async function init() {
       // Now show tabs with correct label
       const mainTabs = document.getElementById('main-tabs');
       if (mainTabs) mainTabs.style.visibility = 'visible';
+      // Hide gw-bar if on standings tab
+      const activeTabOnLoad = document.querySelector('.tab-btn.active')?.dataset.tab;
+      const gwBarEl = document.querySelector('.gw-bar');
+      if (gwBarEl && activeTabOnLoad === 'standings') {
+        gwBarEl.classList.add('hidden');
+      }
 
       // Restore tab + GW from URL hash
       const activeTab = restoreHashState();
@@ -2388,6 +2395,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       if (section) section.classList.add('active');
       return tab;
     }
+    // Default — standings is active, hide gw-bar
+    const gwBarEl = document.querySelector('.gw-bar');
+    if (gwBarEl) gwBarEl.classList.add('hidden');
     return 'standings';
   }
   // ── END URL HASH STATE ───────────────────────────────────────────────────
@@ -2654,6 +2664,12 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       document.getElementById('tab-' + tab).classList.add('active');
       setHashState(tab);
       document.getElementById('floating-header').classList.remove('visible');
+      // Hide gw-bar on standings tab
+      const gwBarEl = document.querySelector('.gw-bar');
+      if (gwBarEl) {
+        gwBarEl.classList.toggle('hidden', tab === 'standings');
+        updateStickyOffsets();
+      }
       if (tab === 'weekly') {
         const val = document.getElementById('gw-select').value;
         if (val === 'preview') renderPreview();
@@ -2787,7 +2803,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const headerH = header.offsetHeight;
     const calloutH = callout ? callout.offsetHeight : 0;
     const tabsH = tabs.offsetHeight;
-    const gwBarH = gwBar.offsetHeight;
+    const gwBarH = (gwBar && !gwBar.classList.contains('hidden')) ? gwBar.offsetHeight : 0;
 
     document.documentElement.style.setProperty('--header-h', headerH + 'px');
     document.documentElement.style.setProperty('--sticky-tabs-top', (headerH + calloutH) + 'px');
