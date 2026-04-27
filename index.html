@@ -307,8 +307,9 @@
       vertical-align: middle;
     }
     .tip.active .tip-close { display: inline; }
+    /* Tooltips desktop only */
     @media (hover: none) {
-      .tip:hover .tip-text { visibility: hidden; opacity: 0; }
+      .tip .tip-text { display: none !important; }
     }
     /* BADGES */
     .badge {
@@ -1216,8 +1217,8 @@ async function init() {
           const medal = medals[rank];
           const prize = prizes[rank];
           const rankSuffix = rank===1?'st':rank===2?'nd':'rd';
-          const tip = medal ? ' <span class="tip" style="font-size:13px;">' + medal + '<span class="tip-text">' + rank + rankSuffix + ' place · Payout: ' + prize + '<span class="tip-close">✕</span></span></span>' : '';
-          const beerTip = gwBottomMap[m.id] ? ' <span class="tip" style="font-size:13px;">🍺<span class="tip-text">Bottom 2 · Shotgun duty!<span class="tip-close">✕</span></span></span>' : '';
+          const tip = medal ? ' <span class="tip" style="font-size:13px;">' + medal + '<span class="tip-text">' + rank + rankSuffix + ' place · Payout: ' + prize + '</span></span>' : '';
+          const beerTip = gwBottomMap[m.id] ? ' <span class="tip" style="font-size:13px;">🍺<span class="tip-text">Bottom 2 · Shotgun duty!</span></span>' : '';
           const hitBadge = m.gwHit > 0 ? '<span class="hit-cost">(-' + m.gwHit + ')</span>' : '';
           return '<span class="pts-val">' + m.gwRawPts + '</span>' + hitBadge + tip + beerTip;
         })() + '</td>' +
@@ -2792,35 +2793,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   }, { passive: true });
   // ── END DYNAMIC STICKY OFFSETS ───────────────────────────────────────────
 
-  // TOOLTIP TAP SUPPORT (mobile)
-  document.addEventListener('click', e => {
-    // Close button
-    if (e.target.classList.contains('tip-close')) {
-      e.target.closest('.tip')?.classList.remove('active');
-      e.stopPropagation();
-      return;
-    }
-    const tip = e.target.closest('.tip');
-    // Close all others
-    document.querySelectorAll('.tip.active').forEach(t => { if (t !== tip) t.classList.remove('active'); });
-    if (tip) {
-      const wasActive = tip.classList.contains('active');
-      tip.classList.toggle('active');
-      if (!wasActive) {
-        // Position tooltip using fixed coords so it's never behind sticky columns
-        const tipText = tip.querySelector('.tip-text');
-        const rect = tip.getBoundingClientRect();
-        const tw = tipText.offsetWidth || 160;
-        // Place above the emoji, centered, but clamp to viewport
-        let left = rect.left + rect.width / 2 - tw / 2;
-        left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
-        const top = rect.top - tipText.offsetHeight - 8;
-        tipText.style.left = left + 'px';
-        tipText.style.top = Math.max(8, top) + 'px';
-      }
-      e.stopPropagation();
-    }
-  });
+  // Tooltip desktop only — position on hover using fixed coords
 
   // GW CHANGE
   document.getElementById('gw-select').addEventListener('change', e => {
