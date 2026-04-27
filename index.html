@@ -2707,6 +2707,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const weeklyToggleEl = document.getElementById('weekly-toggle-bar');
       if (weeklyToggleEl) weeklyToggleEl.style.display = tab === 'weekly' ? 'block' : 'none';
       updateStickyOffsets();
+      if (tab === 'weekly') {
         const val = document.getElementById('gw-select').value;
         const gw = parseInt(val) || state.latestGW;
         const tableBtn = document.getElementById('weekly-toggle-table');
