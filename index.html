@@ -474,6 +474,12 @@
 </head>
 <body>
 
+<div id="page-loader" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+  <div style="font-family:var(--font-display);font-size:36px;letter-spacing:1px;color:var(--text);">Fantasi <span style="color:var(--green)">Futbol</span></div>
+  <div id="page-loader-status" style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text3);font-family:var(--font-mono);">
+    <span class="spinner"></span><span id="page-loader-text">Connecting to FPL...</span>
+  </div>
+</div>
 <div id="floating-header" style="position:fixed;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,0.3);">
   <div id="fh-left" style="position:absolute;left:0;top:0;bottom:0;background:var(--bg2);z-index:2;display:flex;align-items:stretch;"></div>
   <div id="fh-right" style="overflow:hidden;margin-left:0;"><table id="fh-right-table" style="border-collapse:separate;border-spacing:0;font-size:13px;table-layout:fixed;"><thead id="floating-header-row"></thead></table></div>
@@ -494,7 +500,7 @@
     <button class="tab-btn" data-tab="recap">Weekly Recaps</button>
     <button class="tab-btn" data-tab="cup">Cup 🏆</button>
   </div>
-<div class="gw-bar">
+<div class="gw-bar hidden">
     <label for="gw-select">Gameweek</label>
     <select id="gw-select"></select>
     <button class="btn" id="btn-refresh">↺ Refresh</button>
@@ -503,7 +509,7 @@
 
 
   <div id="tab-standings" class="section active">
-    <div id="standings-content"><div class="loading-state"><span class="spinner"></span>Loading league data...</div></div>
+    <div id="standings-content"></div>
   </div>
 
   <div id="tab-weekly" class="section">
@@ -781,6 +787,7 @@ async function loadLastUpdated() {
 
 async function init() {
     try {
+      document.getElementById('page-loader-text').textContent = 'Loading league data...';
       const bootstrap = await fetchFPL('bootstrap-static/');
 
       // Index player names by id for captain lookup
@@ -832,8 +839,11 @@ async function init() {
         gwSel.appendChild(prevOpt);
       }
 
+      document.getElementById('page-loader-text').textContent = 'Loading managers...';
       await loadLeague();
+      document.getElementById('page-loader-text').textContent = 'Loading gameweek history...';
       await loadAllHistory();
+      document.getElementById('page-loader-text').textContent = 'Almost ready...';
       await loadGuinnessDebts();
 
       // Populate GW callout
@@ -892,6 +902,9 @@ async function init() {
       // Now show tabs with correct label
       const mainTabs = document.getElementById('main-tabs');
       if (mainTabs) mainTabs.style.visibility = 'visible';
+      // Dismiss page loader
+      const pageLoader = document.getElementById('page-loader');
+      if (pageLoader) pageLoader.style.display = 'none';
       // Hide gw-bar if on standings tab
       const activeTabOnLoad = document.querySelector('.tab-btn.active')?.dataset.tab;
       const gwBarEl = document.querySelector('.gw-bar');
@@ -995,8 +1008,8 @@ async function init() {
         }
       }));
       const done = Math.min(i + BATCH, managers.length);
-      const el = document.getElementById('standings-content');
-      if (el) el.innerHTML = '<div class="loading-state"><span class="spinner"></span>Loading manager data... (' + done + '/' + managers.length + ')</div>';
+      const el = document.getElementById('page-loader-text');
+      if (el) el.textContent = 'Loading manager history... (' + done + '/' + managers.length + ')';
     }
 
     // Save to cache
@@ -2850,6 +2863,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     state.workingProxy = null;
     try {
       // Re-fetch bootstrap to pick up any new gameweeks
+      document.getElementById('page-loader-text').textContent = 'Loading league data...';
       const bootstrap = await fetchFPL('bootstrap-static/');
       bootstrap.elements.forEach(p => { state.bootstrapPlayers[p.id] = p.web_name; });
       const finished = bootstrap.events.filter(e => e.finished || e.data_checked);
@@ -2869,8 +2883,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         }
       }
 
+      document.getElementById('page-loader-text').textContent = 'Loading managers...';
       await loadLeague();
       await loadAllHistory(true); // force refresh, bypass cache
+      document.getElementById('page-loader-text').textContent = 'Almost ready...';
       await loadGuinnessDebts();
       document.getElementById('header-meta').textContent = '';
       // Rebuild dropdown in case GW state changed
