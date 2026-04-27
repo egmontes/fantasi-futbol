@@ -492,7 +492,7 @@
     <select id="gw-select"></select>
     <button class="btn" id="btn-refresh">↺ Refresh</button>
   </div>
-<div class="tabs">
+<div class="tabs" id="main-tabs" style="visibility:hidden;">
     <button class="tab-btn active" data-tab="standings" id="standings-tab-btn">Season standings</button>
     <button class="tab-btn" data-tab="weekly">Weekly results</button>
     <button class="tab-btn" data-tab="cup">Cup</button>
@@ -888,6 +888,9 @@ async function init() {
         const displayGW = state.isLive ? state.liveGW : state.latestGW;
         standingsTabBtn.textContent = 'Gameweek ' + displayGW;
       }
+      // Now show tabs with correct label
+      const mainTabs = document.getElementById('main-tabs');
+      if (mainTabs) mainTabs.style.visibility = 'visible';
 
       // Restore tab + GW from URL hash
       const activeTab = restoreHashState();
@@ -910,7 +913,7 @@ async function init() {
           // same
         }
       }
-      if (activeTab !== 'recap') setupRecapTab();
+      if (activeTab === 'recap') setupRecapTab();
 
     } catch (e) {
       const errHtml = `<div class="error-state">Failed to load league data — the FPL API or CORS proxy may be temporarily unavailable.<small>${e.message}</small><br><br>Try hitting ↺ Refresh, or wait a moment and reload the page.</div>`;
@@ -1118,8 +1121,14 @@ async function init() {
 
     const currentGW = state.isLive ? state.liveGW : state.latestGW;
 
-    // Render immediately with cached data (or empty chips/captains)
-    // Then fetch chips/captains in background and re-render
+    // Show loading state while fetching chips/captains
+    if (!_chipCache[currentGW]) {
+      document.getElementById('standings-content').innerHTML =
+        '<div class="loading-state"><span class="spinner"></span>Loading GW' + currentGW + ' data...</div>';
+    }
+
+    // Always wait for chips/captains before rendering
+    await fetchChipsForGW(currentGW).catch(() => {});
     const standingsChips = _chipCache[currentGW] || {};
     const standingsCaptains = _captainCache[currentGW] || {};
 
@@ -1234,14 +1243,6 @@ async function init() {
     html += '</tbody></table></div></div>';
     document.getElementById('standings-content').innerHTML = html;
     requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('standings-table'); });
-
-    // Fetch chips/captains in background after a delay if not already cached
-    // Delay ensures it doesn't compete with initial page render
-    if (!_chipCache[currentGW]) {
-      setTimeout(() => {
-        fetchChipsForGW(currentGW).then(() => renderStandings()).catch(() => {});
-      }, 2000);
-    }
 
     // Attach sort click handlers
     document.querySelectorAll('#standings-table th.sortable').forEach(th => {
