@@ -511,6 +511,12 @@
     <button id="toggle-recap" onclick="switchStandingsView('recap')" style="padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);">GW Recap</button>
   </div>
 </div>
+<div id="weekly-toggle-bar" style="display:none;position:fixed;left:0;right:0;background:var(--bg);z-index:13;padding:10px 1.5rem;border-bottom:1px solid var(--border);top:var(--sticky-gw-bar-bottom,170px);">
+  <div style="display:inline-flex;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:3px;">
+    <button id="weekly-toggle-table" onclick="switchWeeklyView('table')" style="padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--green-dim);color:var(--green);font-weight:600;">GW League Table</button>
+    <button id="weekly-toggle-recap" onclick="switchWeeklyView('recap')" style="padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);">GW Recap</button>
+  </div>
+</div>
 <div class="container">
 
 
@@ -521,6 +527,7 @@
 
   <div id="tab-weekly" class="section">
     <div id="weekly-content"><div class="loading-state"><span class="spinner"></span>Loading gameweek data...</div></div>
+    <div id="weekly-recap-content" style="display:none;"></div>
   </div>
 
   <div id="tab-cup" class="section">
@@ -2417,6 +2424,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const toggleBarEl = document.getElementById('standings-toggle-bar');
       if (gwBarEl) gwBarEl.classList.toggle('hidden', tab === 'standings');
       if (toggleBarEl) toggleBarEl.style.display = tab === 'standings' ? 'block' : 'none';
+      const weeklyToggleEl = document.getElementById('weekly-toggle-bar');
+      if (weeklyToggleEl) weeklyToggleEl.style.display = tab === 'weekly' ? 'block' : 'none';
       return tab;
     }
     // Default — standings is active, hide gw-bar, show toggle
@@ -2695,9 +2704,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const toggleBarEl = document.getElementById('standings-toggle-bar');
       if (gwBarEl) gwBarEl.classList.toggle('hidden', tab === 'standings');
       if (toggleBarEl) toggleBarEl.style.display = tab === 'standings' ? 'block' : 'none';
+      const weeklyToggleEl = document.getElementById('weekly-toggle-bar');
+      if (weeklyToggleEl) weeklyToggleEl.style.display = tab === 'weekly' ? 'block' : 'none';
       updateStickyOffsets();
-      if (tab === 'weekly') {
         const val = document.getElementById('gw-select').value;
+        const gw = parseInt(val) || state.latestGW;
+        const tableBtn = document.getElementById('weekly-toggle-table');
+        const recapBtn = document.getElementById('weekly-toggle-recap');
+        if (tableBtn) tableBtn.textContent = 'GW' + gw + ' League Table';
+        if (recapBtn) recapBtn.textContent = 'GW' + gw + ' Recap';
+        switchWeeklyView('table');
         if (val === 'preview') renderPreview();
         else if (val === 'live') renderLive();
         else renderWeekly(parseInt(val)).catch(console.error);
@@ -2751,8 +2767,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     function sync() {
       const toggleBar = document.getElementById('standings-toggle-bar');
+      const weeklyToggleBar = document.getElementById('weekly-toggle-bar');
       const gwBar = document.querySelector('.gw-bar');
       const tabsBottom =
+        (weeklyToggleBar && weeklyToggleBar.style.display !== 'none' ? weeklyToggleBar.getBoundingClientRect().bottom : 0) ||
         (toggleBar && toggleBar.style.display !== 'none' ? toggleBar.getBoundingClientRect().bottom : 0) ||
         (gwBar && !gwBar.classList.contains('hidden') ? gwBar.getBoundingClientRect().bottom : 0) ||
         document.querySelector('.tabs')?.getBoundingClientRect().bottom || 157;
@@ -2841,12 +2859,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     document.documentElement.style.setProperty('--gwbar-h', gwBarH + 'px');
     const toggleBar = document.getElementById('standings-toggle-bar');
     const toggleBarH = (toggleBar && toggleBar.style.display !== 'none') ? toggleBar.offsetHeight : 0;
+    const weeklyToggleBar = document.getElementById('weekly-toggle-bar');
+    const weeklyToggleBarH = (weeklyToggleBar && weeklyToggleBar.style.display !== 'none') ? weeklyToggleBar.offsetHeight : 0;
 
     // standings toggle bar sits right below the tabs (no gw-bar on standings)
     const toggleTop = headerH + calloutH + tabsH;
     document.documentElement.style.setProperty('--sticky-toggle-top', toggleTop + 'px');
+    const gwBarBottom = headerH + calloutH + tabsH + gwBarH;
+    document.documentElement.style.setProperty('--sticky-gw-bar-bottom', gwBarBottom + 'px');
 
-    const contentTop = headerH + calloutH + tabsH + gwBarH + toggleBarH;
+    const contentTop = headerH + calloutH + tabsH + gwBarH + toggleBarH + weeklyToggleBarH;
     document.documentElement.style.setProperty('--sticky-thead-top', contentTop + 'px');
     const finalContentTop = contentTop + 16;
     document.documentElement.style.setProperty('--content-top', finalContentTop + 'px');
@@ -3036,12 +3058,168 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   }
   // ── END STANDINGS VIEW TOGGLE ─────────────────────────────────────────────
 
+  // ── WEEKLY VIEW TOGGLE ───────────────────────────────────────────────────
+  let _weeklyRecapGW = null;
+
+  function switchWeeklyView(view) {
+    const tableBtn = document.getElementById('weekly-toggle-table');
+    const recapBtn = document.getElementById('weekly-toggle-recap');
+    const tableContent = document.getElementById('weekly-content');
+    const recapContent = document.getElementById('weekly-recap-content');
+
+    if (view === 'table') {
+      tableContent.style.display = '';
+      recapContent.style.display = 'none';
+      tableBtn.style.background = 'var(--green-dim)';
+      tableBtn.style.color = 'var(--green)';
+      tableBtn.style.fontWeight = '600';
+      recapBtn.style.background = 'transparent';
+      recapBtn.style.color = 'var(--text3)';
+      recapBtn.style.fontWeight = '400';
+    } else {
+      tableContent.style.display = 'none';
+      recapContent.style.display = '';
+      recapBtn.style.background = 'var(--green-dim)';
+      recapBtn.style.color = 'var(--green)';
+      recapBtn.style.fontWeight = '600';
+      tableBtn.style.background = 'transparent';
+      tableBtn.style.color = 'var(--text3)';
+      tableBtn.style.fontWeight = '400';
+      // Get current selected GW
+      const gwVal = document.getElementById('gw-select').value;
+      const gw = parseInt(gwVal) || state.latestGW;
+      // Re-setup if GW changed
+      if (_weeklyRecapGW !== gw) {
+        _weeklyRecapGW = gw;
+        setupWeeklyRecap(gw, recapContent);
+      }
+    }
+  }
+
+  async function setupWeeklyRecap(gw, container) {
+    const saved = await loadSavedRecap(gw);
+    let html = '';
+
+    if (saved) html += '<div id="weekly-recap-display" style="margin-bottom:2rem;"></div>';
+
+    const generateLabel = saved ? 'Need a new recap?' : 'Generate GW' + gw + ' recap';
+    html += '<div style="margin-bottom:1rem;"><button id="weekly-toggle-generate-btn" style="background:none;border:none;cursor:pointer;padding:0;font-size:' + (saved ? '13px' : '14px') + ';color:' + (saved ? 'var(--text3)' : 'var(--text)') + ';font-weight:' + (saved ? '400' : '600') + ';display:flex;align-items:center;gap:6px;">' + (saved ? '↩ ' + generateLabel : generateLabel) + '</button></div>';
+    html += '<div id="weekly-generate-section" style="display:' + (saved ? 'none' : 'block') + ';">';
+    html += '<div style="display:flex;gap:10px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;"><button class="btn btn-primary" id="weekly-prepare-prompt-btn">Prepare GW' + gw + ' prompt →</button><span id="weekly-prepare-confirm" style="font-size:13px;color:var(--text3);display:none;"></span></div>';
+    html += '<div id="weekly-prompt-preview-area" style="display:none;margin-bottom:1.5rem;"><label style="font-size:12px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:8px;">Prompt ready — select all and copy</label><textarea id="weekly-prompt-preview" readonly style="width:100%;min-height:120px;background:var(--bg2);color:var(--text2);border:1px solid var(--border2);border-radius:8px;padding:12px;font-family:var(--font-mono);font-size:12px;line-height:1.5;resize:vertical;"></textarea><div style="display:flex;gap:10px;margin-top:8px;"><button class="btn btn-primary" id="weekly-copy-prompt-btn">Copy to clipboard</button><span id="weekly-copy-confirm" style="font-size:13px;color:var(--green);display:none;">✓ Copied!</span></div></div>';
+    html += '<div style="margin-bottom:1.5rem;"><label style="font-size:12px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:8px;">Paste recap here</label><textarea id="weekly-recap-paste" placeholder="Paste the recap from Claude here..." style="width:100%;min-height:220px;background:var(--bg2);color:var(--text);border:1px solid var(--border2);border-radius:8px;padding:12px;font-family:var(--font-body);font-size:14px;line-height:1.6;resize:vertical;">' + esc(saved || '') + '</textarea><div style="display:flex;gap:10px;margin-top:10px;"><button class="btn btn-primary" id="weekly-save-recap-btn">Save recap</button><button class="btn" id="weekly-clear-recap-btn" style="' + (saved ? '' : 'display:none') + '">Clear</button></div></div>';
+    html += '</div>';
+    html += '<div style="margin-top:3rem;padding-top:1rem;border-top:1px solid var(--border);"><button id="weekly-toggle-instructions-btn" style="background:none;border:none;cursor:pointer;padding:0;font-size:11px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;display:flex;align-items:center;gap:4px;">▸ How to use</button><div id="weekly-instructions-section" style="display:none;margin-top:10px;"><p style="font-size:13px;color:var(--text3);line-height:1.6;margin:0;">Copy the prompt below, paste it into <a href="https://claude.ai" target="_blank" style="color:var(--green)">claude.ai</a>, then paste the response back here. Hitting <strong style="color:var(--text2);">Save recap</strong> will display it and automatically download a file — drag it into your <code style="font-family:var(--font-mono);font-size:12px;color:var(--green);">recaps/</code> folder and push to GitHub.</p></div></div>';
+
+    container.innerHTML = html;
+
+    if (saved) {
+      const temp = document.createElement('div');
+      temp.id = 'recap-display';
+      document.body.appendChild(temp);
+      renderRecapDisplay(gw, saved);
+      const displayDiv = document.getElementById('weekly-recap-display');
+      if (displayDiv) displayDiv.innerHTML = temp.innerHTML;
+      document.body.removeChild(temp);
+    }
+
+    document.getElementById('weekly-toggle-generate-btn').addEventListener('click', () => {
+      const sec = document.getElementById('weekly-generate-section');
+      const btn = document.getElementById('weekly-toggle-generate-btn');
+      const open = sec.style.display !== 'none';
+      sec.style.display = open ? 'none' : 'block';
+      if (saved) btn.textContent = (open ? '↩ ' : '↪ ') + generateLabel;
+    });
+
+    document.getElementById('weekly-toggle-instructions-btn').addEventListener('click', () => {
+      const sec = document.getElementById('weekly-instructions-section');
+      const btn = document.getElementById('weekly-toggle-instructions-btn');
+      const open = sec.style.display !== 'none';
+      sec.style.display = open ? 'none' : 'block';
+      btn.textContent = (open ? '▸' : '▾') + ' How to use';
+    });
+
+    document.getElementById('weekly-prepare-prompt-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('weekly-prepare-prompt-btn');
+      const status = document.getElementById('weekly-prepare-confirm');
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = 'Fetching player data...';
+      status.textContent = 'Fetching picks & transfers...'; status.style.display = 'inline';
+      try {
+        const prompt = await buildPrompt(gw);
+        document.getElementById('weekly-prompt-preview').value = prompt;
+        document.getElementById('weekly-prompt-preview-area').style.display = 'block';
+        status.textContent = '✓ Ready to copy!'; btn.textContent = 'Refresh prompt →';
+        document.getElementById('weekly-prompt-preview').select();
+      } catch(e) { status.textContent = '✗ Failed: ' + e.message; }
+      btn.disabled = false;
+    });
+
+    document.getElementById('weekly-copy-prompt-btn').addEventListener('click', () => {
+      const ta = document.getElementById('weekly-prompt-preview');
+      if (!ta || !ta.value) return;
+      navigator.clipboard.writeText(ta.value).then(() => {
+        const c = document.getElementById('weekly-copy-confirm');
+        c.style.display = 'inline'; setTimeout(() => c.style.display = 'none', 2500);
+      });
+    });
+
+    document.getElementById('weekly-save-recap-btn').addEventListener('click', () => {
+      const text = document.getElementById('weekly-recap-paste').value.trim();
+      if (!text) return;
+      localStorage.setItem('recap-gw-' + gw, text);
+      let displayDiv = document.getElementById('weekly-recap-display');
+      if (!displayDiv) {
+        displayDiv = document.createElement('div');
+        displayDiv.id = 'weekly-recap-display';
+        displayDiv.style.marginBottom = '2rem';
+        container.prepend(displayDiv);
+      }
+      const temp = document.createElement('div');
+      temp.id = 'recap-display';
+      document.body.appendChild(temp);
+      renderRecapDisplay(gw, text);
+      displayDiv.innerHTML = temp.innerHTML;
+      document.body.removeChild(temp);
+      document.getElementById('weekly-clear-recap-btn').style.display = 'inline-block';
+      const season = 2025;
+      const gwPadded = String(gw).padStart(2, '0');
+      const filename = season + '-gw' + gwPadded + '.txt';
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+      const btn = document.getElementById('weekly-save-recap-btn');
+      btn.textContent = '✓ Saved & downloaded ' + filename;
+      setTimeout(() => btn.textContent = 'Save recap', 3000);
+    });
+
+    document.getElementById('weekly-clear-recap-btn').addEventListener('click', () => {
+      localStorage.removeItem('recap-gw-' + gw);
+      document.getElementById('weekly-recap-paste').value = '';
+      const d = document.getElementById('weekly-recap-display');
+      if (d) d.innerHTML = '';
+      document.getElementById('weekly-clear-recap-btn').style.display = 'none';
+    });
+  }
+  // ── END WEEKLY VIEW TOGGLE ────────────────────────────────────────────────
+
   // GW CHANGE
   document.getElementById('gw-select').addEventListener('change', e => {
     const active = document.querySelector('.tab-btn.active').dataset.tab;
     setHashState(active, e.target.value);
     if (active === 'weekly') {
       const val = e.target.value;
+      const gw = parseInt(val) || state.latestGW;
+      // Update toggle labels
+      const tableBtn = document.getElementById('weekly-toggle-table');
+      const recapBtn = document.getElementById('weekly-toggle-recap');
+      if (tableBtn) tableBtn.textContent = 'GW' + gw + ' League Table';
+      if (recapBtn) recapBtn.textContent = 'GW' + gw + ' Recap';
+      // Reset recap so it reloads for new GW
+      _weeklyRecapGW = null;
+      // Switch back to table view on GW change
+      switchWeeklyView('table');
       if (val === 'preview') renderPreview();
       else if (val === 'live') renderLive();
       else renderWeekly(parseInt(val)).catch(console.error);
