@@ -130,7 +130,7 @@
     /* TABS */
     .tabs {
       display: flex;
-      gap: 0;
+      gap: 6px;
       border-bottom: 1px solid var(--border);
       margin-bottom: 0;
       position: fixed;
@@ -139,24 +139,25 @@
       right: 0;
       background: var(--bg);
       z-index: 14;
-      padding-left: 1.5rem;
-      padding-right: 1.5rem;
+      padding: 8px 1.5rem;
     }
     .tab-btn {
-      background: none;
-      border: none;
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border2);
       color: var(--text3);
       font-family: var(--font-body);
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
-      padding: 10px 20px;
+      padding: 7px 16px;
       cursor: pointer;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
-      transition: color 0.15s;
+      border-radius: 99px;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+      text-align: center;
     }
-    .tab-btn:hover { color: var(--text2); }
-    .tab-btn.active { color: var(--green); border-bottom-color: var(--green); }
+    .tab-btn:hover { color: var(--text2); background: var(--bg2); }
+    .tab-btn.active { background: var(--green-dim); color: var(--green); border-color: rgba(74,222,128,0.3); font-weight: 600; }
 
     /* STAT CARDS */
     .stat-grid {
@@ -504,16 +505,16 @@
     <select id="gw-select"></select>
     <button class="btn" id="btn-refresh">↺ Refresh</button>
   </div>
-<div id="standings-toggle-bar" style="display:none;position:fixed;left:0;right:0;background:var(--bg);z-index:13;padding:10px 1.5rem;border-bottom:1px solid var(--border);top:var(--sticky-toggle-top,150px);">
-  <div style="display:inline-flex;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:3px;">
-    <button id="toggle-league" onclick="switchStandingsView('league')" style="padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--green-dim);color:var(--green);font-weight:600;">League Table</button>
-    <button id="toggle-recap" onclick="switchStandingsView('recap')" style="padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);">GW Recap</button>
+<div id="standings-toggle-bar" style="display:none;position:fixed;left:0;right:0;background:var(--bg);z-index:13;padding:10px 1.5rem;border-bottom:1px solid var(--border);top:var(--sticky-toggle-top,150px);justify-content:center;">
+  <div style="display:flex;width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:3px;">
+    <button id="toggle-league" onclick="switchStandingsView('league')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--green-dim);color:var(--green);font-weight:600;text-align:center;">League Table</button>
+    <button id="toggle-recap" onclick="switchStandingsView('recap')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
   </div>
 </div>
-<div id="weekly-toggle-bar" style="display:none;position:fixed;left:0;right:0;background:var(--bg);z-index:13;padding:10px 1.5rem;border-bottom:1px solid var(--border);top:var(--sticky-gw-bar-bottom,170px);">
-  <div style="display:inline-flex;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:3px;">
-    <button id="weekly-toggle-table" onclick="switchWeeklyView('table')" style="padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--green-dim);color:var(--green);font-weight:600;">GW League Table</button>
-    <button id="weekly-toggle-recap" onclick="switchWeeklyView('recap')" style="padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);">GW Recap</button>
+<div id="weekly-toggle-bar" style="display:none;position:fixed;left:0;right:0;background:var(--bg);z-index:13;padding:10px 1.5rem;border-bottom:1px solid var(--border);top:var(--sticky-gw-bar-bottom,170px);justify-content:center;">
+  <div style="display:flex;width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:3px;">
+    <button id="weekly-toggle-table" onclick="switchWeeklyView('table')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--green-dim);color:var(--green);font-weight:600;text-align:center;">GW League Table</button>
+    <button id="weekly-toggle-recap" onclick="switchWeeklyView('recap')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
   </div>
 </div>
 <div class="container">
@@ -2420,16 +2421,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const gwBarEl = document.querySelector('.gw-bar');
       const toggleBarEl = document.getElementById('standings-toggle-bar');
       if (gwBarEl) gwBarEl.classList.toggle('hidden', tab === 'standings');
-      if (toggleBarEl) toggleBarEl.style.display = tab === 'standings' ? 'block' : 'none';
+      if (toggleBarEl) toggleBarEl.style.display = tab === 'standings' ? 'flex' : 'none';
       const weeklyToggleEl = document.getElementById('weekly-toggle-bar');
-      if (weeklyToggleEl) weeklyToggleEl.style.display = tab === 'weekly' ? 'block' : 'none';
+      if (weeklyToggleEl) weeklyToggleEl.style.display = tab === 'weekly' ? 'flex' : 'none';
       return tab;
     }
     // Default — standings is active, hide gw-bar, show toggle
     const gwBarEl = document.querySelector('.gw-bar');
     if (gwBarEl) gwBarEl.classList.add('hidden');
     const toggleBarEl = document.getElementById('standings-toggle-bar');
-    if (toggleBarEl) toggleBarEl.style.display = 'block';
+    if (toggleBarEl) toggleBarEl.style.display = 'flex';
     return 'standings';
   }
   // ── END URL HASH STATE ───────────────────────────────────────────────────
@@ -2700,9 +2701,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const gwBarEl = document.querySelector('.gw-bar');
       const toggleBarEl = document.getElementById('standings-toggle-bar');
       if (gwBarEl) gwBarEl.classList.toggle('hidden', tab === 'standings');
-      if (toggleBarEl) toggleBarEl.style.display = tab === 'standings' ? 'block' : 'none';
+      if (toggleBarEl) toggleBarEl.style.display = tab === 'standings' ? 'flex' : 'none';
       const weeklyToggleEl = document.getElementById('weekly-toggle-bar');
-      if (weeklyToggleEl) weeklyToggleEl.style.display = tab === 'weekly' ? 'block' : 'none';
+      if (weeklyToggleEl) weeklyToggleEl.style.display = tab === 'weekly' ? 'flex' : 'none';
       updateStickyOffsets();
       // Re-init floating header for the active tab's table
       if (tab === 'standings') requestAnimationFrame(() => initFloatingHeader('standings-table'));
