@@ -244,14 +244,16 @@
     table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
     thead th {
       text-align: left;
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text3);
       font-family: var(--font-mono);
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 8px 10px;
+      letter-spacing: 0.04em;
+      padding: 6px 4px;
       border-bottom: 1px solid var(--border);
-      white-space: nowrap;
+      white-space: normal;
+      line-height: 1.2;
+      vertical-align: bottom;
     }
     tbody td {
       padding: 12px 10px;
@@ -453,9 +455,10 @@
       /* Tighter manager column on mobile — only truncate if it genuinely overflows */
       .m-name { font-size: 12px; }
       .m-team { font-size: 10px; }
-      .table-outer td:nth-child(2), .table-outer th:nth-child(2) { max-width: 38vw; overflow: hidden; }
+      .table-outer td:nth-child(2), .table-outer th:nth-child(2) { max-width: 26vw; overflow: hidden; }
       .table-outer td:nth-child(2) .m-name,
-      .table-outer td:nth-child(2) .m-team { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .table-outer td:nth-child(2) .m-team,
+      .table-outer td:nth-child(2) .badge-chip { max-width: 24vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
     }
   
       font-size: 11px;
@@ -1236,9 +1239,9 @@ async function init() {
       '<thead><tr>' +
       '<th style="width:36px">#</th>' +
       '<th ' + thClass('name') + ' data-col="name">Manager</th>' +
-      '<th style="width:90px" ' + thClass('captain') + ' data-col="captain">Captain</th>' +
-      '<th style="width:70px" ' + thClass('gwpts') + ' data-col="gwpts">GW' + (state.isLive ? state.liveGW : state.latestGW) + ' Pts</th>' +
-      '<th style="width:70px" ' + thClass('pts') + ' data-col="pts">Total PTS</th>' +
+      '<th style="width:40px;" ' + thClass('captain') + ' data-col="captain">Capt.</th>' +
+      '<th style="width:38px;" ' + thClass('gwpts') + ' data-col="gwpts">GW<br>Pts</th>' +
+      '<th style="width:70px" ' + thClass('pts') + ' data-col="pts">Total<br>PTS</th>' +
       '<th style="width:60px;text-align:center" ' + thClass('top4') + ' data-col="top4" title="Top-4 finishes">Top 4</th>' +
       '<th style="width:60px;text-align:center" ' + thClass('bot2') + ' data-col="bot2" title="Bottom-2 finishes">Bot 2</th>' +
       '<th style="width:80px" ' + thClass('earned') + ' data-col="earned">Earned</th>' +
@@ -1281,7 +1284,7 @@ async function init() {
       html += '<tr class="' + rowCls + '">' +
         '<td><span class="rank-num">' + pos + '</span></td>' +
         '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + (m.chip ? '<div><span class="badge-chip">' + chipLabel(m.chip) + '</span></div>' : '') + '</td>' +
-        '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = m.captain; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
+        '<td style="font-size:11px;color:var(--text2);max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (() => { const c = m.captain; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
         '<td>' + (() => {
           if (m.gwLatestPts === null) return '<span class="pts-val">—</span>';
           const rank = gwRankMap[m.id];
@@ -1493,9 +1496,9 @@ async function init() {
           '<thead><tr>' +
           '<th style="width:36px">#</th>' +
           '<th style="' + thStyle + '" data-col="name">Manager' + arrow('name') + '</th>' +
-          '<th style="width:70px;' + thStyle + '" data-col="pts">GW pts' + arrow('pts') + '</th>' +
-          '<th style="width:100px;">Captain</th>' +
-          '<th style="width:70px;' + thStyle + '" data-col="total">Total' + arrow('total') + '</th>' +
+          '<th style="width:38px;' + thStyle + '" data-col="pts">GW Pts' + arrow('pts') + '</th>' +
+          '<th style="width:52px;">Captain</th>' +
+          '<th style="width:38px;' + thStyle + '" data-col="total">Total<br>Pts' + arrow('total') + '</th>' +
           '<th style="width:56px;text-align:center;' + thStyle + '" data-col="hits">Hits' + arrow('hits') + '</th>' +
           '<th style="width:60px;text-align:center;" title="Bench points">Bench</th>' +
           '<th style="width:80px;text-align:center;' + thStyle + '" data-col="owed">🍺 Beers This Week' + arrow('owed') + '</th>' +
@@ -1526,7 +1529,7 @@ async function init() {
             '<td><span class="rank-num">' + rank + '</span></td>' +
             '<td><div class="m-name">' + esc(m.name) + '</div><div class="m-team">' + esc(m.team) + '</div>' + chipBadge + '</td>' +
             '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost" title="Transfer hit">(-' + m.transferCost + ')</span>' : '') + '</td>' +
-            '<td style="font-size:12px;color:var(--text2);">' + (m.captainName ? esc(m.captainName) : '<span class="badge-zero">—</span>') + '</td>' +
+            '<td style="font-size:11px;color:var(--text2);max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (m.captainName ? esc(m.captainName) : '<span class="badge-zero">—</span>') + '</td>' +
             '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
             '<td style="text-align:center;font-family:var(--font-mono);font-size:12px;">' + hitStr + '</td>' +
             '<td style="text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--text3)">' + benchPts + '</td>' +
@@ -1717,10 +1720,10 @@ async function init() {
         '<thead><tr>' +
         '<th style="width:36px">#</th>' +
         '<th ' + wthClass('name') + ' data-col="name">Manager</th>' +
-        '<th style="width:70px" ' + wthClass('gwpts') + ' data-col="gwpts">GW pts</th>' +
-        '<th style="width:90px" ' + wthClass('captain') + ' data-col="captain">Captain</th>' +
+        '<th style="width:38px;" ' + wthClass('gwpts') + ' data-col="gwpts">GW<br>Pts</th>' +
+        '<th style="width:40px;" ' + wthClass('captain') + ' data-col="captain">Capt.</th>' +
         '<th style="width:100px" ' + wthClass('prize') + ' data-col="prize">Result</th>' +
-        '<th style="width:70px" ' + wthClass('total') + ' data-col="total">Total GW' + gw + '</th>' +
+        '<th style="width:38px;" ' + wthClass('total') + ' data-col="total">GW<br>Total</th>' +
         '<th style="width:56px;text-align:center" ' + wthClass('hits') + ' data-col="hits">Hits</th>' +
         '<th style="width:60px;text-align:center" ' + wthClass('bench') + ' data-col="bench">Bench</th>' +
         '<th style="width:80px;text-align:center" title="Beers owed this week">🍺 Beers This Week</th>' +
@@ -1763,7 +1766,7 @@ async function init() {
           '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
           '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + (m.chip ? '<div><span class="badge-chip">' + chipLabel(m.chip) + '</span></div>' : '') + '</td>' +
           '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
-          '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = (_captainCache[gw] || {})[m.id]; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
+          '<td style="font-size:11px;color:var(--text2);max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (() => { const c = (_captainCache[gw] || {})[m.id]; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
           '<td>' + (resultBadge || '<span class="badge-zero">—</span>') + '</td>' +
           '<td><span class="pts-val" style="color:var(--text2)">' + m.gwTotal + '</span></td>' +
           '<td style="text-align:center">' + hitStr + '</td>' +
