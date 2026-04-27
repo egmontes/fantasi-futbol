@@ -453,7 +453,7 @@
     <button class="btn" id="btn-refresh">↺ Refresh</button>
   </div>
 <div class="tabs">
-    <button class="tab-btn active" data-tab="standings">Season standings</button>
+    <button class="tab-btn active" data-tab="standings" id="standings-tab-btn">Season standings</button>
     <button class="tab-btn" data-tab="weekly">Weekly results</button>
     <button class="tab-btn" data-tab="cup">Cup</button>
     <button class="tab-btn" data-tab="recap">Weekly recap</button>
@@ -758,9 +758,10 @@ async function init() {
       // Show preview if next GW exists and deadline hasn't passed yet (no matches started)
       state.showPreview = nextGWEvent && nextDeadline && now < nextDeadline;
       state.nextGW = state.latestGW + 1;
-      // Show live if current GW has started but isn't finished yet
+      // Show live if current GW has started (deadline passed) but isn't finished yet
       const currentGWEvent = bootstrap.events.find(e => e.is_current);
-      state.isLive = currentGWEvent && !currentGWEvent.finished && !currentGWEvent.data_checked;
+      const currentDeadline = currentGWEvent ? new Date(currentGWEvent.deadline_time).getTime() : null;
+      state.isLive = currentGWEvent && !currentGWEvent.finished && !currentGWEvent.data_checked && currentDeadline && now >= currentDeadline;
       if (state.isLive) state.liveGW = currentGWEvent.id;
 
       const gwSel = document.getElementById('gw-select');
@@ -839,6 +840,13 @@ async function init() {
       document.getElementById('header-meta').textContent = '';
 
       loadLastUpdated();
+      // Update standings tab label with live GW
+      const standingsTabBtn = document.getElementById('standings-tab-btn');
+      if (standingsTabBtn) {
+        const displayGW = state.isLive ? state.liveGW : state.latestGW;
+        standingsTabBtn.textContent = 'Gameweek ' + displayGW;
+      }
+
       // Restore tab + GW from URL hash
       const activeTab = restoreHashState();
 
@@ -1070,13 +1078,17 @@ async function init() {
       const s = stats[m.id] || {};
       const gmisses = getGuinnessOwed(m.name);
       const totalG = getTotalGuinnesses(m.name, s.bottom2 || 0);
-      return { ...m, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, totalG };
+      const currentGW = state.isLive ? state.liveGW : state.latestGW;
+      const latestHist = (state.gwHistory[m.id] || []).find(h => h.event === currentGW);
+      const gwLatestPts = latestHist ? (latestHist.points - (latestHist.event_transfers_cost || 0)) : null;
+      return { ...m, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, totalG, gwLatestPts };
     });
 
     const col = standingsSort.col;
     const dir = standingsSort.dir === 'asc' ? 1 : -1;
     rows.sort((a, b) => {
       if (col === 'name') return dir * a.name.localeCompare(b.name);
+      if (col === 'gwpts') return dir * ((a.gwLatestPts||0) - (b.gwLatestPts||0));
       if (col === 'pts')  return dir * (a.total - b.total);
       if (col === 'top4') return dir * (a.top4 - b.top4);
       if (col === 'bot2') return dir * (a.bottom2 - b.bottom2);
@@ -1098,7 +1110,8 @@ async function init() {
       '<thead><tr>' +
       '<th style="width:36px">#</th>' +
       '<th ' + thClass('name') + ' data-col="name">Manager</th>' +
-      '<th style="width:60px" ' + thClass('pts') + ' data-col="pts">Pts</th>' +
+      '<th style="width:70px" ' + thClass('gwpts') + ' data-col="gwpts">GW' + (state.isLive ? state.liveGW : state.latestGW) + ' Pts</th>' +
+      '<th style="width:70px" ' + thClass('pts') + ' data-col="pts">Total PTS</th>' +
       '<th style="width:60px;text-align:center" ' + thClass('top4') + ' data-col="top4" title="Top-4 finishes">Top 4</th>' +
       '<th style="width:60px;text-align:center" ' + thClass('bot2') + ' data-col="bot2" title="Bottom-2 finishes">Bot 2</th>' +
       '<th style="width:80px" ' + thClass('earned') + ' data-col="earned">Earned</th>' +
@@ -1119,6 +1132,7 @@ async function init() {
       html += '<tr class="' + rowCls + '">' +
         '<td><span class="rank-num">' + pos + '</span></td>' +
         '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
+        '<td><span class="pts-val">' + (m.gwLatestPts !== null ? m.gwLatestPts : '—') + '</span></td>' +
         '<td><span class="pts-val">' + m.total + '</span></td>' +
         '<td style="text-align:center">' + (m.top4 > 0 ? '<span class="badge badge-top">' + m.top4 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
         '<td style="text-align:center">' + (m.bottom2 > 0 ? '<span class="badge badge-bot">' + m.bottom2 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
@@ -1189,6 +1203,7 @@ async function init() {
       html += '<tr>' +
         '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
         '<td><div class="m-name" style="' + kickedStyle + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
+        '<td><span class="pts-val">' + (m.gwLatestPts !== null ? m.gwLatestPts : '—') + '</span></td>' +
         '<td><span class="pts-val">' + m.total + '</span></td>' +
         '<td style="text-align:center">' + owedCell + '</td>' +
         '</tr>';
