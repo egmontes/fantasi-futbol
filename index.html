@@ -1137,7 +1137,16 @@ async function init() {
         '<td><span class="rank-num">' + pos + '</span></td>' +
         '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + (m.chip ? '<div><span class="badge-chip">' + chipLabel(m.chip) + '</span></div>' : '') + '</td>' +
         '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = m.captain; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
-        '<td><span class="pts-val">' + (m.gwLatestPts !== null ? m.gwLatestPts : '—') + '</span></td>' +
+        '<td>' + (() => {
+          if (m.gwLatestPts === null) return '<span class="pts-val">—</span>';
+          const rank = gwRankMap[m.id];
+          const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+          const prizes = { 1: '$30', 2: '$15', 3: '$10' };
+          const medal = medals[rank];
+          const prize = prizes[rank];
+          const tip = medal ? ' <span title="Currently in ' + rank + (rank===1?'st':rank===2?'nd':'rd') + ' place · Expected payout: ' + prize + '" style="cursor:default;font-size:13px;">' + medal + '</span>' : '';
+          return '<span class="pts-val">' + m.gwLatestPts + '</span>' + tip;
+        })() + '</td>' +
         '<td><span class="pts-val">' + m.total + '</span></td>' +
         '<td style="text-align:center">' + (m.top4 > 0 ? '<span class="badge badge-top">' + m.top4 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
         '<td style="text-align:center">' + (m.bottom2 > 0 ? '<span class="badge badge-bot">' + m.bottom2 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
@@ -1208,7 +1217,16 @@ async function init() {
       html += '<tr>' +
         '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
         '<td><div class="m-name" style="' + kickedStyle + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
-        '<td><span class="pts-val">' + (m.gwLatestPts !== null ? m.gwLatestPts : '—') + '</span></td>' +
+        '<td>' + (() => {
+          if (m.gwLatestPts === null) return '<span class="pts-val">—</span>';
+          const rank = gwRankMap[m.id];
+          const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+          const prizes = { 1: '$30', 2: '$15', 3: '$10' };
+          const medal = medals[rank];
+          const prize = prizes[rank];
+          const tip = medal ? ' <span title="Currently in ' + rank + (rank===1?'st':rank===2?'nd':'rd') + ' place · Expected payout: ' + prize + '" style="cursor:default;font-size:13px;">' + medal + '</span>' : '';
+          return '<span class="pts-val">' + m.gwLatestPts + '</span>' + tip;
+        })() + '</td>' +
         '<td><span class="pts-val">' + m.total + '</span></td>' +
         '<td style="text-align:center">' + owedCell + '</td>' +
         '</tr>';
