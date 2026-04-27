@@ -342,7 +342,7 @@
 
     /* SECTION */
     .section { display: none; }
-    .section.active { display: block; padding-top: 0.5rem; padding-bottom: 2rem; }
+    .section.active { display: block; padding-top: 0; padding-bottom: 2rem; }
 
     /* LOADING / ERROR */
     .loading-state {
@@ -404,8 +404,8 @@
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-bottom: 0.75rem;
-      margin-top: 0;
+      margin-bottom: 6px;
+      margin-top: 6px;
       align-items: center;
     }
     .prize-key-label { font-size: 11px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-right: 4px; }
@@ -448,6 +448,8 @@
     @media (max-width: 600px) {
       .site-header { padding: 0 1rem; height: 48px; }
       .site-logo { font-size: 16px !important; }
+      .prize-key .badge { font-size: 10px; padding: 2px 6px; }
+      .prize-key-label { font-size: 10px; }
       .container { padding: 1.5rem 1rem 3rem; }
       .tab-btn { padding: 10px 12px; font-size: 13px; }
       .stat-card .s-value { font-size: 26px; }
@@ -512,7 +514,7 @@
     <button id="toggle-recap" onclick="switchStandingsView('recap')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
   </div>
 </div>
-<div id="weekly-toggle-bar" style="display:none;position:fixed;left:0;right:0;background:var(--bg);z-index:13;padding:10px 1.5rem;border-bottom:1px solid var(--border);top:var(--sticky-gw-bar-bottom,170px);justify-content:center;">
+<div id="weekly-toggle-bar" style="display:none;position:fixed;left:0;right:0;background:var(--bg);z-index:13;padding:6px 1.5rem;border-bottom:1px solid var(--border);top:var(--sticky-gw-bar-bottom,170px);justify-content:center;">
   <div style="display:flex;width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:3px;">
     <button id="weekly-toggle-table" onclick="switchWeeklyView('table')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--green-dim);color:var(--green);font-weight:600;text-align:center;">GW League Table</button>
     <button id="weekly-toggle-recap" onclick="switchWeeklyView('recap')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
@@ -2922,7 +2924,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     const contentTop = headerH + calloutH + tabsH + gwBarH + toggleBarH + weeklyToggleBarH;
     document.documentElement.style.setProperty('--sticky-thead-top', contentTop + 'px');
-    const finalContentTop = contentTop + 16;
+    const finalContentTop = contentTop + 4;
     document.documentElement.style.setProperty('--content-top', finalContentTop + 'px');
     // Also set directly on the container so it takes effect immediately
     const container = document.querySelector('.container');
