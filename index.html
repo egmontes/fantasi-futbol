@@ -1225,7 +1225,7 @@ async function init() {
       '<div class="stat-card"><div class="s-label">Payouts So Far</div><div class="s-value">$' + totalPool + '</div></div>' +
       '<div class="stat-card"><div class="s-label">Guinness chugged</div><div class="s-value">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
       '</div>' +
-      '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:right;">' + (state.isLive ? '<span style="color:var(--green);margin-right:8px;">● Live scores</span>' : '') + 'Updated: ' + new Date().toLocaleString('en-US', {timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) + ' ET</div>' +
+      '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:right;">' + (state.isLive ? '<span style="color:var(--red);margin-right:8px;">● Live scores</span>' : '<span style="color:var(--green);margin-right:8px;">✓ GW Scores Final</span>') + 'Updated: ' + new Date().toLocaleString('en-US', {timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) + ' ET</div>' +
       '<div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
       '<thead><tr>' +
       '<th style="width:36px">#</th>' +
