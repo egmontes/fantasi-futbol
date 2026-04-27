@@ -1277,7 +1277,7 @@ async function init() {
 
     // Attach sort click handlers
     document.querySelectorAll('#standings-table th.sortable').forEach(th => {
-      th.addEventListener('click', () => {
+      th.addEventListener('click', async () => {
         const c = th.dataset.col;
         if (standingsSort.col === c) {
           standingsSort.dir = standingsSort.dir === 'desc' ? 'asc' : 'desc';
@@ -1286,7 +1286,12 @@ async function init() {
           standingsSort.dir = 'desc';
         }
         loadLastUpdated();
-      renderStandings();
+        const scrollLeft = document.querySelector('.table-outer')?.scrollLeft || 0;
+        await renderStandings();
+        requestAnimationFrame(() => {
+          const el = document.querySelector('#standings-table')?.closest('.table-outer');
+          if (el) el.scrollLeft = scrollLeft;
+        });
       });
     });
   }
@@ -1511,7 +1516,12 @@ async function init() {
               liveSort.col = col;
               liveSort.dir = -1; // always start desc on new column
             }
+            const scrollLeft = document.querySelector('.table-outer')?.scrollLeft || 0;
             renderLiveTable();
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+              const el = document.querySelector('#live-table')?.closest('.table-outer');
+              if (el) el.scrollLeft = scrollLeft;
+            }));
           });
         });
       }
@@ -1736,7 +1746,7 @@ async function init() {
 
       // Attach sort handlers
       document.querySelectorAll('#weekly-table th.sortable').forEach(th => {
-        th.addEventListener('click', () => {
+        th.addEventListener('click', async () => {
           const c = th.dataset.col;
           if (wsort.col === c) {
             wsort.dir = wsort.dir === 'desc' ? 'asc' : 'desc';
@@ -1744,7 +1754,12 @@ async function init() {
             wsort.col = c;
             wsort.dir = 'desc';
           }
-          renderWeekly(gw);
+          const scrollLeft = document.querySelector('#weekly-table')?.closest('.table-outer')?.scrollLeft || 0;
+          await renderWeekly(gw);
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            const el = document.querySelector('#weekly-table')?.closest('.table-outer');
+            if (el) el.scrollLeft = scrollLeft;
+          }));
         });
       });
     } catch (e) {
