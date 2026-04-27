@@ -1236,7 +1236,11 @@ async function init() {
             // pts is raw sum of player points × multipliers, subtract hit to get net
             const netPts = pts - hit;
             if (hit > 0) console.log(m.name, 'raw:', pts, 'hit:', hit, 'net:', netPts);
-            managerScores[m.id] = { pts: netPts, rawPts: pts, chip: picks.active_chip, hit };
+            // Get captain name for live table
+            const captainPick = picks.picks.find(p => p.is_captain);
+            const captainId = captainPick?.element;
+            const captainName = captainId ? (state.bootstrapPlayers[captainId] || '?') : null;
+            managerScores[m.id] = { pts: netPts, rawPts: pts, chip: picks.active_chip, hit, captainName };
           } catch(e) {
             managerScores[m.id] = { pts: 0, rawPts: 0 };
           }
@@ -1250,10 +1254,11 @@ async function init() {
       const liveEnriched = [...state.managers]
         .map(m => ({
           ...m,
-          gwPoints: managerScores[m.id]?.pts || 0,       // net (used for sorting/ranking)
-          rawPoints: managerScores[m.id]?.rawPts || 0,   // raw (displayed to user)
+          gwPoints: managerScores[m.id]?.pts || 0,
+          rawPoints: managerScores[m.id]?.rawPts || 0,
           chip: managerScores[m.id]?.chip,
           transferCost: managerScores[m.id]?.hit || 0,
+          captainName: managerScores[m.id]?.captainName || null,
         }));
 
       // Default sort: by gwPoints desc
@@ -1297,6 +1302,7 @@ async function init() {
           '<th style="width:36px">#</th>' +
           '<th style="' + thStyle + '" data-col="name">Manager' + arrow('name') + '</th>' +
           '<th style="width:70px;' + thStyle + '" data-col="pts">GW pts' + arrow('pts') + '</th>' +
+          '<th style="width:100px;">Captain</th>' +
           '<th style="width:70px;' + thStyle + '" data-col="total">Total' + arrow('total') + '</th>' +
           '<th style="width:56px;text-align:center;' + thStyle + '" data-col="hits">Hits' + arrow('hits') + '</th>' +
           '<th style="width:60px;text-align:center;" title="Bench points">Bench</th>' +
@@ -1328,6 +1334,7 @@ async function init() {
             '<td><span class="rank-num">' + rank + '</span></td>' +
             '<td><div class="m-name">' + esc(m.name) + '</div><div class="m-team">' + esc(m.team) + '</div>' + chipBadge + '</td>' +
             '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost" title="Transfer hit">(-' + m.transferCost + ')</span>' : '') + '</td>' +
+            '<td style="font-size:12px;color:var(--text2);">' + (m.captainName ? esc(m.captainName) : '<span class="badge-zero">—</span>') + '</td>' +
             '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
             '<td style="text-align:center;font-family:var(--font-mono);font-size:12px;">' + hitStr + '</td>' +
             '<td style="text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--text3)">' + benchPts + '</td>' +
@@ -1371,9 +1378,12 @@ async function init() {
   // Cache chips per GW so we don't refetch
   const _chipCache = {};
 
+  const _captainCache = {};
+
   async function fetchChipsForGW(gw) {
     if (_chipCache[gw]) return _chipCache[gw];
     const chips = {};
+    const captains = {};
     const BATCH = 5;
     for (let i = 0; i < state.managers.length; i += BATCH) {
       const batch = state.managers.slice(i, i + BATCH);
@@ -1381,10 +1391,30 @@ async function init() {
         try {
           const picks = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/');
           chips[m.id] = picks.active_chip || null;
-        } catch(e) { chips[m.id] = null; }
+          // Get captain and vice captain
+          const captainPick = picks.picks.find(p => p.is_captain);
+          const vcPick = picks.picks.find(p => p.is_vice_captain);
+          const captainId = captainPick?.element;
+          const vcId = vcPick?.element;
+          // For past GWs, check if captain played via live stats
+          let captainName = captainId ? (state.bootstrapPlayers[captainId] || '?') : null;
+          let isVC = false;
+          try {
+            const liveStats = await fetchFPL('event/' + gw + '/live/');
+            const statsMap = {};
+            liveStats.elements.forEach(e => { statsMap[e.id] = e.stats; });
+            const captainPlayed = captainId && (statsMap[captainId]?.minutes || 0) > 0;
+            if (!captainPlayed && vcId) {
+              captainName = state.bootstrapPlayers[vcId] || '?';
+              isVC = true;
+            }
+          } catch(e) {}
+          captains[m.id] = { name: captainName, isVC };
+        } catch(e) { chips[m.id] = null; captains[m.id] = { name: null, isVC: false }; }
       }));
     }
     _chipCache[gw] = chips;
+    _captainCache[gw] = captains;
     return chips;
   }
 
@@ -1424,6 +1454,7 @@ async function init() {
       enriched.sort((a, b) => {
         if (wsort.col === 'name')  return wdir * a.name.localeCompare(b.name);
         if (wsort.col === 'gwpts') return wdir * (a.gwPoints - b.gwPoints);
+        if (wsort.col === 'captain') { const ca = (_captainCache[gw]||{})[a.id]?.name||''; const cb = (_captainCache[gw]||{})[b.id]?.name||''; return wdir * ca.localeCompare(cb); }
         if (wsort.col === 'total') return wdir * (a.total - b.total);
         if (wsort.col === 'hits')  return wdir * (a.transferCost - b.transferCost);
         if (wsort.col === 'bench') return wdir * (a.benchPoints - b.benchPoints);
@@ -1446,6 +1477,7 @@ async function init() {
         '<th style="width:36px">#</th>' +
         '<th ' + wthClass('name') + ' data-col="name">Manager</th>' +
         '<th style="width:70px" ' + wthClass('gwpts') + ' data-col="gwpts">GW pts</th>' +
+        '<th style="width:90px" ' + wthClass('captain') + ' data-col="captain">Captain</th>' +
         '<th style="width:100px" ' + wthClass('prize') + ' data-col="prize">Result</th>' +
         '<th style="width:70px" ' + wthClass('total') + ' data-col="total">Total</th>' +
         '<th style="width:56px;text-align:center" ' + wthClass('hits') + ' data-col="hits">Hits</th>' +
@@ -1490,6 +1522,7 @@ async function init() {
           '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
           '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + (m.chip ? '<div><span class="badge-chip">' + chipLabel(m.chip) + '</span></div>' : '') + '</td>' +
           '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
+          '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = (_captainCache[gw] || {})[m.id]; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
           '<td>' + (resultBadge || '<span class="badge-zero">—</span>') + '</td>' +
           '<td><span class="pts-val" style="color:var(--text2)">' + m.total + '</span></td>' +
           '<td style="text-align:center">' + hitStr + '</td>' +
@@ -1578,9 +1611,17 @@ async function init() {
 
       // Captain
       const captainPick = picksData.picks.find(p => p.is_captain);
+      const vcPick = picksData.picks.find(p => p.is_vice_captain);
       const captainId = captainPick ? captainPick.element : null;
-      const captainName = captainId ? (state.bootstrapPlayers[captainId] || 'Unknown') : null;
+      const vcId = vcPick ? vcPick.element : null;
       const captainMult = captainPick ? captainPick.multiplier : 2;
+
+      // If captain didn't play (0 minutes / not in live stats), show vice captain
+      const captainPlayed = captainId && (liveStats[captainId]?.minutes || 0) > 0;
+      const displayCaptainId = captainPlayed ? captainId : (vcId || captainId);
+      const captainName = displayCaptainId ? (state.bootstrapPlayers[displayCaptainId] || 'Unknown') : null;
+      const captainDNP = captainId && !captainPlayed && vcId;
+
       const captainStats = captainId ? formatPlayerStats(captainId, liveStats, captainMult) : null;
 
       // Chip used
@@ -1625,7 +1666,7 @@ async function init() {
         .filter(p => p.pts >= 6)
         .sort((a, b) => b.pts - a.pts);
 
-      return { captainName, captainStats, captainMult, captainBlank, chip, transfersIn, transfersOut, standouts, benchWaste };
+      return { captainName, captainDNP, captainStats, captainMult, captainBlank, chip, transfersIn, transfersOut, standouts, benchWaste };
     } catch(e) {
       return null;
     }
