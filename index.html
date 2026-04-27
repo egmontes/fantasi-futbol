@@ -826,17 +826,10 @@ async function init() {
         const opt = document.createElement('option');
         opt.value = i;
         opt.textContent = 'GW ' + i;
-        if (i === state.latestGW && !state.isLive && !state.showPreview) opt.selected = true;
+        if (i === state.latestGW) opt.selected = true;
         gwSel.appendChild(opt);
       }
-      // Add live GW option if in progress
-      if (state.isLive) {
-        const liveOpt = document.createElement('option');
-        liveOpt.value = 'live';
-        liveOpt.textContent = 'GW ' + state.liveGW + ' 🔴 Live';
-        liveOpt.selected = true;
-        gwSel.appendChild(liveOpt);
-      }
+      // Don't add live GW to selector while in progress — only show once complete
       // Add preview option if next GW hasn't started
       if (state.showPreview) {
         const prevOpt = document.createElement('option');
@@ -3103,13 +3096,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         if (String(i) === currentVal) opt.selected = true;
         gwSel.appendChild(opt);
       }
-      if (state.isLive) {
-        const liveOpt = document.createElement('option');
-        liveOpt.value = 'live';
-        liveOpt.textContent = 'GW ' + state.liveGW + ' 🔴 Live';
-        if (currentVal === 'live') liveOpt.selected = true;
-        gwSel.appendChild(liveOpt);
-      }
+      // Don't add live GW to selector while in progress
       if (state.showPreview) {
         const prevOpt = document.createElement('option');
         prevOpt.value = 'preview';
