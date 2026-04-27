@@ -418,10 +418,10 @@
     /* CUP BRACKET */
     .cup-round { margin-bottom: 2rem; }
     .cup-round-label { font-size: 11px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; }
-    .cup-matches { display: flex; flex-wrap: wrap; gap: 10px; }
+    .cup-matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
     .cup-match {
       background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 8px; padding: 0; overflow: hidden; min-width: 220px; flex: 1 1 220px; max-width: 320px;
+      border-radius: 8px; padding: 0; overflow: hidden;
     }
     .cup-match-row {
       display: flex; align-items: center; justify-content: space-between;
@@ -2491,8 +2491,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     }
   }
 
+  let _selectedCupRound = null;
+
   function renderCup(allMatches) {
-    // Build match map: event -> array of unique matches
     const rounds = {};
     const managerById = {};
     state.managers.forEach(m => { managerById[m.id] = m; });
@@ -2505,7 +2506,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     const roundEvents = Object.keys(rounds).map(Number).sort((a, b) => a - b);
 
-    // Build seed map once for the whole bracket
     const seedRanked = [...state.managers]
       .map(m => ({ id: m.id, total: m.total }))
       .sort((a, b) => b.total - a.total);
@@ -2522,7 +2522,12 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       return;
     }
 
-    // Check for a winner (someone who won the last round)
+    // Default to most recent round
+    if (!_selectedCupRound || !rounds[_selectedCupRound]) {
+      _selectedCupRound = roundEvents[roundEvents.length - 1];
+    }
+
+    // Check for winner
     let cupWinner = null;
     const lastRoundMatches = rounds[roundEvents[roundEvents.length - 1]] || [];
     lastRoundMatches.forEach(m => {
@@ -2532,6 +2537,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       }
     });
 
+    const displayRounds = [...roundEvents].reverse(); // most recent first
+    const totalRounds = displayRounds.length;
+
+    // Build round selector badges
     let html = '';
 
     if (cupWinner) {
@@ -2542,94 +2551,99 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         '</div>';
     }
 
-    // Render rounds in reverse (final first, then semis, etc.)
-    const displayRounds = [...roundEvents].reverse();
-
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem;">';
     displayRounds.forEach((event, idx) => {
-      const matches = rounds[event];
-      const roundNum = displayRounds.length - idx;
+      const roundNum = totalRounds - idx;
       const roundName = ROUND_NAMES[roundNum] || ('Round ' + roundNum);
-      const gwLabel = 'GW' + event;
+      const isSelected = event === _selectedCupRound;
+      html += '<button class="cup-round-btn" data-event="' + event + '" style="' +
+        'padding:6px 14px;border-radius:20px;font-size:12px;font-family:var(--font-mono);cursor:pointer;border:1px solid ' +
+        (isSelected ? 'var(--green)' : 'var(--border2)') + ';' +
+        'background:' + (isSelected ? 'var(--green-dim)' : 'var(--surface)') + ';' +
+        'color:' + (isSelected ? 'var(--green)' : 'var(--text2)') + ';' +
+        'font-weight:' + (isSelected ? '600' : '400') + ';' +
+        '">' + roundName + ' · GW' + event + '</button>';
+    });
+    html += '</div>';
 
-      html += '<div class="cup-round">' +
-        '<div class="cup-round-label">' + roundName + ' · ' + gwLabel + '</div>' +
-        '<div class="cup-matches">';
+    // Render only selected round
+    const matches = rounds[_selectedCupRound];
+    const selectedIdx = displayRounds.indexOf(_selectedCupRound);
+    const selectedRoundNum = totalRounds - selectedIdx;
+    const selectedRoundName = ROUND_NAMES[selectedRoundNum] || ('Round ' + selectedRoundNum);
 
-      // Sort matches: byes to bottom, then by best seed (lowest number) ascending
-      const sortedMatches = [...matches].sort((a, b) => {
-        const a1 = state.managers.find(m => m.id === a.entry_1_entry);
-        const a2 = state.managers.find(m => m.id === a.entry_2_entry);
-        const b1 = state.managers.find(m => m.id === b.entry_1_entry);
-        const b2 = state.managers.find(m => m.id === b.entry_2_entry);
-        const aIsBye = !a2;
-        const bIsBye = !b2;
-        // Byes go to the bottom
-        if (aIsBye && !bIsBye) return 1;
-        if (!aIsBye && bIsBye) return -1;
-        // Sort by best seed in the matchup (lower = better)
-        const aBestSeed = Math.min(seedMap[a1?.id] || 999, seedMap[a2?.id] || 999);
-        const bBestSeed = Math.min(seedMap[b1?.id] || 999, seedMap[b2?.id] || 999);
-        return aBestSeed - bBestSeed;
-      });
+    html += '<div id="cup-round-matches"><div class="cup-matches">';
 
-      sortedMatches.forEach(match => {
-        const m1 = state.managers.find(m => m.id === match.entry_1_entry);
-        const m2 = state.managers.find(m => m.id === match.entry_2_entry);
-        const pts1 = match.entry_1_points;
-        const pts2 = match.entry_2_points;
-        const winner = match.winner;
-        const isPlayed = pts1 !== null && pts2 !== null;
-        const isBye = !m2;
-
-        // Get transfer costs for this GW from gwHistory
-        const getHit = (managerId, event) => {
-          const hist = state.gwHistory[managerId] || [];
-          const entry = hist.find(h => h.event === event);
-          return entry ? entry.event_transfers_cost : 0;
-        };
-
-        const row = (manager, pts, isWinner, isBye, event) => {
-          if (!manager) return '';
-          const rowClass = !isPlayed ? '' : isWinner ? ' winner' : ' loser';
-          const ptsClass = isWinner ? ' high' : '';
-          const badge = isWinner ? ' <span class="cup-winner-badge">✓</span>' : '';
-          const hit = manager && event ? getHit(manager.id, event) : 0;
-          // pts from FPL cup data is net (hit already deducted), so raw = pts + hit
-          const rawPts = pts !== null ? pts + hit : null;
-          const hitStr = hit > 0 ? '<span class="hit-cost">(-' + hit + ')</span>' : '';
-          const seed = seedMap[manager.id] || '?';
-          return '<div class="cup-match-row' + rowClass + (isBye ? ' bye' : '') + '">' +
-            '<div style="display:flex;align-items:center;gap:8px;">' +
-            '<span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);min-width:18px;text-align:right;">' + seed + '</span>' +
-            '<div><div class="cup-manager">' + esc(manager.name) + badge + '</div>' +
-            '<div class="cup-team">' + esc(manager.team) + '</div></div>' +
-            '</div>' +
-            (isPlayed && rawPts !== null ? '<div class="cup-pts' + ptsClass + '">' + rawPts + hitStr + '</div>' : '') +
-            '</div>';
-        };
-
-        // Always show better seed (lower number) on top
-        let topManager = m1, topPts = pts1, botManager = m2, botPts = pts2;
-        if (m1 && m2 && (seedMap[m2.id] || 999) < (seedMap[m1.id] || 999)) {
-          topManager = m2; topPts = pts2; botManager = m1; botPts = pts1;
-        }
-        html += '<div class="cup-match">';
-        if (topManager) html += row(topManager, topPts, winner === topManager.id, false, match.event);
-        if (botManager) html += row(botManager, botPts, winner === botManager.id, false, match.event);
-        else html += '<div class="cup-match-row bye"><div class="cup-manager">BYE</div></div>';
-
-        if (!isPlayed) {
-          html += '<div class="cup-status">Upcoming</div>';
-        }
-        html += '</div>';
-      });
-
-      html += '</div></div>';
+    const sortedMatches = [...matches].sort((a, b) => {
+      const a1 = state.managers.find(m => m.id === a.entry_1_entry);
+      const a2 = state.managers.find(m => m.id === a.entry_2_entry);
+      const b1 = state.managers.find(m => m.id === b.entry_1_entry);
+      const b2 = state.managers.find(m => m.id === b.entry_2_entry);
+      const aIsBye = !a2, bIsBye = !b2;
+      if (aIsBye && !bIsBye) return 1;
+      if (!aIsBye && bIsBye) return -1;
+      const aBestSeed = Math.min(seedMap[a1?.id] || 999, seedMap[a2?.id] || 999);
+      const bBestSeed = Math.min(seedMap[b1?.id] || 999, seedMap[b2?.id] || 999);
+      return aBestSeed - bBestSeed;
     });
 
+    sortedMatches.forEach(match => {
+      const m1 = state.managers.find(m => m.id === match.entry_1_entry);
+      const m2 = state.managers.find(m => m.id === match.entry_2_entry);
+      const pts1 = match.entry_1_points;
+      const pts2 = match.entry_2_points;
+      const winner = match.winner;
+      const isPlayed = pts1 !== null && pts2 !== null;
+
+      const getHit = (managerId, event) => {
+        const hist = state.gwHistory[managerId] || [];
+        const entry = hist.find(h => h.event === event);
+        return entry ? entry.event_transfers_cost : 0;
+      };
+
+      const row = (manager, pts, isWinner, isBye, event) => {
+        if (!manager) return '';
+        const rowClass = !isPlayed ? '' : isWinner ? ' winner' : ' loser';
+        const ptsClass = isWinner ? ' high' : '';
+        const badge = isWinner ? ' <span class="cup-winner-badge">✓</span>' : '';
+        const hit = manager && event ? getHit(manager.id, event) : 0;
+        const rawPts = pts !== null ? pts + hit : null;
+        const hitStr = hit > 0 ? '<span class="hit-cost">(-' + hit + ')</span>' : '';
+        const seed = seedMap[manager.id] || '?';
+        return '<div class="cup-match-row' + rowClass + (isBye ? ' bye' : '') + '">' +
+          '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);min-width:18px;text-align:right;">' + seed + '</span>' +
+          '<div><div class="cup-manager">' + esc(manager.name) + badge + '</div>' +
+          '<div class="cup-team">' + esc(manager.team) + '</div></div>' +
+          '</div>' +
+          (isPlayed && rawPts !== null ? '<div class="cup-pts' + ptsClass + '">' + rawPts + hitStr + '</div>' : '') +
+          '</div>';
+      };
+
+      let topManager = m1, topPts = pts1, botManager = m2, botPts = pts2;
+      if (m1 && m2 && (seedMap[m2.id] || 999) < (seedMap[m1.id] || 999)) {
+        topManager = m2; topPts = pts2; botManager = m1; botPts = pts1;
+      }
+      html += '<div class="cup-match">';
+      if (topManager) html += row(topManager, topPts, winner === topManager.id, false, match.event);
+      if (botManager) html += row(botManager, botPts, winner === botManager.id, false, match.event);
+      else html += '<div class="cup-match-row bye"><div class="cup-manager">BYE</div></div>';
+      if (!isPlayed) html += '<div class="cup-status">Upcoming</div>';
+      html += '</div>';
+    });
+
+    html += '</div></div>';
+
     document.getElementById('cup-content').innerHTML = html;
+
+    // Wire round selector buttons
+    document.querySelectorAll('.cup-round-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        _selectedCupRound = parseInt(btn.dataset.event);
+        renderCup(allMatches);
+      });
+    });
   }
-  // ── END CUP ───────────────────────────────────────────────────────────────
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
