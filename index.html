@@ -81,7 +81,7 @@
       gap: 12px;
       flex-wrap: wrap;
       position: fixed;
-      top: var(--sticky-gw-bar-top, 56px);
+      top: var(--sticky-gw-bar-top, 144px);
       left: 0;
       right: 0;
       background: var(--bg);
@@ -133,7 +133,7 @@
       border-bottom: 1px solid var(--border);
       margin-bottom: 0;
       position: fixed;
-      top: var(--sticky-tabs-top, 104px);
+      top: var(--sticky-tabs-top, 96px);
       left: 0;
       right: 0;
       background: var(--bg);
@@ -465,7 +465,7 @@
       --header-h: 56px;
       --callout-h: 40px;
       --sticky-gw-bar-top: 96px;
-      --sticky-tabs-top: 144px;
+      --sticky-tabs-top: 141px;
       --sticky-thead-top: 230px;
       --content-top: 246px;
     }
@@ -487,16 +487,16 @@
     <span id="gw-deadline-label" style="font-size:12px;color:var(--green);font-family:var(--font-mono);"></span>
   </div>
 </div>
+<div class="tabs" id="main-tabs" style="visibility:hidden;">
+    <button class="tab-btn active" data-tab="standings" id="standings-tab-btn">Season standings</button>
+    <button class="tab-btn" data-tab="weekly">Weekly Results</button>
+    <button class="tab-btn" data-tab="recap">Weekly Recaps</button>
+    <button class="tab-btn" data-tab="cup">Cup 🏆</button>
+  </div>
 <div class="gw-bar">
     <label for="gw-select">Gameweek</label>
     <select id="gw-select"></select>
     <button class="btn" id="btn-refresh">↺ Refresh</button>
-  </div>
-<div class="tabs" id="main-tabs" style="visibility:hidden;">
-    <button class="tab-btn active" data-tab="standings" id="standings-tab-btn">Season standings</button>
-    <button class="tab-btn" data-tab="weekly">Weekly results</button>
-    <button class="tab-btn" data-tab="cup">Cup</button>
-    <button class="tab-btn" data-tab="recap">Weekly recap</button>
   </div>
 <div class="container">
 
@@ -2708,7 +2708,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     fhRow.appendChild(tr);
 
     function sync() {
-      const tabsBottom = document.querySelector('.tabs')?.getBoundingClientRect().bottom || 157;
+      const tabsBottom = document.querySelector('.gw-bar')?.getBoundingClientRect().bottom ||
+        document.querySelector('.tabs')?.getBoundingClientRect().bottom || 157;
       const theadRect = thead.getBoundingClientRect();
       const outerRect = outer.getBoundingClientRect();
 
@@ -2785,14 +2786,14 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     const headerH = header.offsetHeight;
     const calloutH = callout ? callout.offsetHeight : 0;
-    const gwBarH = gwBar.offsetHeight;
     const tabsH = tabs.offsetHeight;
+    const gwBarH = gwBar.offsetHeight;
 
     document.documentElement.style.setProperty('--header-h', headerH + 'px');
-    document.documentElement.style.setProperty('--sticky-gw-bar-top', (headerH + calloutH) + 'px');
-    document.documentElement.style.setProperty('--sticky-tabs-top', (headerH + calloutH + gwBarH) + 'px');
+    document.documentElement.style.setProperty('--sticky-tabs-top', (headerH + calloutH) + 'px');
+    document.documentElement.style.setProperty('--sticky-gw-bar-top', (headerH + calloutH + tabsH) + 'px');
     document.documentElement.style.setProperty('--gwbar-h', gwBarH + 'px');
-    const contentTop = headerH + calloutH + gwBarH + tabsH;
+    const contentTop = headerH + calloutH + tabsH + gwBarH;
     document.documentElement.style.setProperty('--sticky-thead-top', contentTop + 'px');
     const finalContentTop = contentTop + 16;
     document.documentElement.style.setProperty('--content-top', finalContentTop + 'px');
