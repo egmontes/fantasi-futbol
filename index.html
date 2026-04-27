@@ -342,7 +342,7 @@
 
     /* SECTION */
     .section { display: none; }
-    .section.active { display: block; padding-top: 1.25rem; padding-bottom: 2rem; }
+    .section.active { display: block; padding-top: 0.5rem; padding-bottom: 2rem; }
 
     /* LOADING / ERROR */
     .loading-state {
@@ -403,8 +403,9 @@
     .prize-key {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 1.5rem;
+      gap: 6px;
+      margin-bottom: 0.75rem;
+      margin-top: 0;
       align-items: center;
     }
     .prize-key-label { font-size: 11px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-right: 4px; }
@@ -833,7 +834,7 @@ async function init() {
       if (state.isLive) state.liveGW = currentGWEvent.id;
 
       const gwSel = document.getElementById('gw-select');
-      for (let i = 1; i <= state.latestGW; i++) {
+      for (let i = state.latestGW; i >= 1; i--) {
         const opt = document.createElement('option');
         opt.value = i;
         opt.textContent = 'GW ' + i;
@@ -1705,7 +1706,8 @@ async function init() {
 
       const wthClass = c => 'class="sortable' + (wsort.col === c ? ' sort-' + wsort.dir : '') + '"';
 
-      let html = '<div class="prize-key" style="flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;padding-bottom:4px;">' +
+      let html =
+        '<div class="prize-key" style="flex-wrap:nowrap;white-space:nowrap;overflow:hidden;">' +
         '<span class="prize-key-label">Prizes:</span>' +
         '<span class="badge badge-1">1st $30</span>' +
         '<span class="badge badge-2">2nd $15</span>' +
@@ -2911,6 +2913,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const weeklyToggleBar = document.getElementById('weekly-toggle-bar');
     const weeklyToggleBarH = (weeklyToggleBar && weeklyToggleBar.style.display !== 'none') ? weeklyToggleBar.offsetHeight : 0;
 
+
     // standings toggle bar sits right below the tabs (no gw-bar on standings)
     const toggleTop = headerH + calloutH + tabsH;
     document.documentElement.style.setProperty('--sticky-toggle-top', toggleTop + 'px');
@@ -3297,7 +3300,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         state.latestGW = newLatest;
         const gwSel = document.getElementById('gw-select');
         gwSel.innerHTML = '';
-        for (let i = 1; i <= state.latestGW; i++) {
+        for (let i = state.latestGW; i >= 1; i--) {
           const opt = document.createElement('option');
           opt.value = i;
           opt.textContent = 'GW ' + i;
@@ -3316,7 +3319,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const gwSel = document.getElementById('gw-select');
       const currentVal = gwSel.value;
       gwSel.innerHTML = '';
-      for (let i = 1; i <= state.latestGW; i++) {
+      for (let i = state.latestGW; i >= 1; i--) {
         const opt = document.createElement('option');
         opt.value = i;
         opt.textContent = 'GW ' + i;
