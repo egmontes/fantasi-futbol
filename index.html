@@ -1163,14 +1163,40 @@ async function init() {
     const standingsChips = _chipCache[currentGW] || {};
     const standingsCaptains = _captainCache[currentGW] || {};
 
+    // If live, fetch real-time player scores and picks to calculate live points
+    let liveScoreMap = {}; // managerId -> { rawPts, netPts, hit }
+    if (state.isLive) {
+      try {
+        const liveData = await fetchFPL('event/' + currentGW + '/live/');
+        const playerPts = {};
+        liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; });
+
+        const BATCH = 5;
+        for (let i = 0; i < state.managers.length; i += BATCH) {
+          const batch = state.managers.slice(i, i + BATCH);
+          await Promise.all(batch.map(async m => {
+            try {
+              const picks = await fetchFPL('entry/' + m.id + '/event/' + currentGW + '/picks/');
+              let rawPts = 0;
+              picks.picks.forEach(p => { rawPts += (playerPts[p.element] || 0) * p.multiplier; });
+              const hit = picks.entry_history?.event_transfers_cost || 0;
+              liveScoreMap[m.id] = { rawPts, netPts: rawPts - hit, hit };
+            } catch(e) {}
+          }));
+        }
+      } catch(e) {}
+    }
+
     const rows = state.managers.map(m => {
       const s = stats[m.id] || {};
       const gmisses = getGuinnessOwed(m.name);
       const totalG = getTotalGuinnesses(m.name, s.bottom2 || 0);
       const latestHist = (state.gwHistory[m.id] || []).find(h => h.event === currentGW);
-      const gwLatestPts = latestHist ? (latestHist.points - (latestHist.event_transfers_cost || 0)) : null;
-      const gwRawPts = latestHist ? latestHist.points : null;
-      const gwHit = latestHist ? (latestHist.event_transfers_cost || 0) : 0;
+      // Use live score if available, fall back to history
+      const liveScore = liveScoreMap[m.id];
+      const gwLatestPts = liveScore ? liveScore.netPts : (latestHist ? (latestHist.points - (latestHist.event_transfers_cost || 0)) : null);
+      const gwRawPts = liveScore ? liveScore.rawPts : (latestHist ? latestHist.points : null);
+      const gwHit = liveScore ? liveScore.hit : (latestHist ? (latestHist.event_transfers_cost || 0) : 0);
       const chip = standingsChips[m.id] || null;
       const captain = standingsCaptains[m.id] || null;
       return { ...m, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain };
@@ -1199,7 +1225,7 @@ async function init() {
       '<div class="stat-card"><div class="s-label">Payouts So Far</div><div class="s-value">$' + totalPool + '</div></div>' +
       '<div class="stat-card"><div class="s-label">Guinness chugged</div><div class="s-value">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
       '</div>' +
-      '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:right;">Updated: ' + new Date().toLocaleString('en-US', {timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) + ' ET</div>' +
+      '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:right;">' + (state.isLive ? '<span style="color:var(--green);margin-right:8px;">● Live scores</span>' : '') + 'Updated: ' + new Date().toLocaleString('en-US', {timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) + ' ET</div>' +
       '<div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
       '<thead><tr>' +
       '<th style="width:36px">#</th>' +
