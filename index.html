@@ -1672,13 +1672,13 @@ async function init() {
 
       const wthClass = c => 'class="sortable' + (wsort.col === c ? ' sort-' + wsort.dir : '') + '"';
 
-      let html = '<div class="prize-key">' +
+      let html = '<div class="prize-key" style="flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;padding-bottom:4px;">' +
         '<span class="prize-key-label">Prizes:</span>' +
         '<span class="badge badge-1">1st $30</span>' +
         '<span class="badge badge-2">2nd $15</span>' +
         '<span class="badge badge-3">3rd $10</span>' +
         '<span class="badge badge-4">4th $5</span>' +
-        '<span class="badge badge-shot" style="margin-left:8px">Shotgun duty</span>' +
+        '<span class="badge badge-shot" style="margin-left:8px">Shotgun</span>' +
         '</div>' +
         '<div class="table-outer"><div class="table-wrap"><table id="weekly-table">' +
         '<thead><tr>' +
