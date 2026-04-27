@@ -2420,7 +2420,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Show/hide toggle bar and gw-bar based on tab
       const gwBarEl = document.querySelector('.gw-bar');
       const toggleBarEl = document.getElementById('standings-toggle-bar');
-      if (gwBarEl) gwBarEl.classList.toggle('hidden', tab === 'standings');
+      if (gwBarEl) gwBarEl.classList.toggle('hidden', tab === 'standings' || tab === 'cup');
       if (toggleBarEl) toggleBarEl.style.display = tab === 'standings' ? 'flex' : 'none';
       const weeklyToggleEl = document.getElementById('weekly-toggle-bar');
       if (weeklyToggleEl) weeklyToggleEl.style.display = tab === 'weekly' ? 'flex' : 'none';
@@ -2700,7 +2700,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Hide gw-bar on standings tab, show toggle bar instead
       const gwBarEl = document.querySelector('.gw-bar');
       const toggleBarEl = document.getElementById('standings-toggle-bar');
-      if (gwBarEl) gwBarEl.classList.toggle('hidden', tab === 'standings');
+      if (gwBarEl) gwBarEl.classList.toggle('hidden', tab === 'standings' || tab === 'cup');
       if (toggleBarEl) toggleBarEl.style.display = tab === 'standings' ? 'flex' : 'none';
       const weeklyToggleEl = document.getElementById('weekly-toggle-bar');
       if (weeklyToggleEl) weeklyToggleEl.style.display = tab === 'weekly' ? 'flex' : 'none';
