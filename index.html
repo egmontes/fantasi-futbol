@@ -265,12 +265,6 @@
     .pts-val { font-family: var(--font-mono); font-weight: 500; }
 
     /* ROW ACCENTS */
-    .row-1 td:first-child { border-left: 3px solid var(--amber); }
-    .row-2 td:first-child { border-left: 3px solid var(--silver); }
-    .row-3 td:first-child { border-left: 3px solid #cd7f32; }
-    .row-4 td:first-child { border-left: 3px solid #60a5fa; }
-    .row-bottom td:first-child { border-left: 3px solid var(--red); }
-
     /* BADGES */
     .badge {
       display: inline-flex;
@@ -745,6 +739,8 @@ async function init() {
       // Index player names by id for captain lookup
       bootstrap.elements.forEach(p => {
         state.bootstrapPlayers[p.id] = p.web_name;
+        state.playerTeams = state.playerTeams || {};
+        state.playerTeams[p.id] = p.team;
       });
 
       const finished = bootstrap.events.filter(e => e.finished || e.data_checked);
@@ -1069,25 +1065,32 @@ async function init() {
 
   const standingsSort = { col: 'pts', dir: 'desc' };
 
-  function renderStandings() {
+  async function renderStandings() {
     const stats = computeSeasonStats();
     const totalPool = state.latestGW * 60;
     const totalShotguns = state.latestGW * 2;
+
+    const currentGW = state.isLive ? state.liveGW : state.latestGW;
+    // Fetch chips and captains for current GW
+    const standingsChips = await fetchChipsForGW(currentGW).catch(() => ({}));
+    const standingsCaptains = _captainCache[currentGW] || {};
 
     const rows = state.managers.map(m => {
       const s = stats[m.id] || {};
       const gmisses = getGuinnessOwed(m.name);
       const totalG = getTotalGuinnesses(m.name, s.bottom2 || 0);
-      const currentGW = state.isLive ? state.liveGW : state.latestGW;
       const latestHist = (state.gwHistory[m.id] || []).find(h => h.event === currentGW);
       const gwLatestPts = latestHist ? (latestHist.points - (latestHist.event_transfers_cost || 0)) : null;
-      return { ...m, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, totalG, gwLatestPts };
+      const chip = standingsChips[m.id] || null;
+      const captain = standingsCaptains[m.id] || null;
+      return { ...m, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, totalG, gwLatestPts, chip, captain };
     });
 
     const col = standingsSort.col;
     const dir = standingsSort.dir === 'asc' ? 1 : -1;
     rows.sort((a, b) => {
       if (col === 'name') return dir * a.name.localeCompare(b.name);
+      if (col === 'captain') { const ca = a.captain?.name||''; const cb = b.captain?.name||''; return dir * ca.localeCompare(cb); }
       if (col === 'gwpts') return dir * ((a.gwLatestPts||0) - (b.gwLatestPts||0));
       if (col === 'pts')  return dir * (a.total - b.total);
       if (col === 'top4') return dir * (a.top4 - b.top4);
@@ -1110,6 +1113,7 @@ async function init() {
       '<thead><tr>' +
       '<th style="width:36px">#</th>' +
       '<th ' + thClass('name') + ' data-col="name">Manager</th>' +
+      '<th style="width:90px" ' + thClass('captain') + ' data-col="captain">Captain</th>' +
       '<th style="width:70px" ' + thClass('gwpts') + ' data-col="gwpts">GW' + (state.isLive ? state.liveGW : state.latestGW) + ' Pts</th>' +
       '<th style="width:70px" ' + thClass('pts') + ' data-col="pts">Total PTS</th>' +
       '<th style="width:60px;text-align:center" ' + thClass('top4') + ' data-col="top4" title="Top-4 finishes">Top 4</th>' +
@@ -1131,7 +1135,8 @@ async function init() {
             : '<span class="badge-zero">—</span>';
       html += '<tr class="' + rowCls + '">' +
         '<td><span class="rank-num">' + pos + '</span></td>' +
-        '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
+        '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + (m.chip ? '<div><span class="badge-chip">' + chipLabel(m.chip) + '</span></div>' : '') + '</td>' +
+        '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = m.captain; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
         '<td><span class="pts-val">' + (m.gwLatestPts !== null ? m.gwLatestPts : '—') + '</span></td>' +
         '<td><span class="pts-val">' + m.total + '</span></td>' +
         '<td style="text-align:center">' + (m.top4 > 0 ? '<span class="badge badge-top">' + m.top4 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
@@ -1418,10 +1423,40 @@ async function init() {
             const liveStats = await fetchFPL('event/' + gw + '/live/');
             const statsMap = {};
             liveStats.elements.forEach(e => { statsMap[e.id] = e.stats; });
-            const captainPlayed = captainId && (statsMap[captainId]?.minutes || 0) > 0;
-            if (!captainPlayed && vcId) {
-              captainName = state.bootstrapPlayers[vcId] || '?';
-              isVC = true;
+
+            // Get fixtures for this GW to know which teams have actually played or have a fixture
+            const fixturesData = await fetchFPL('fixtures/?event=' + gw);
+            const teamsWithFixture = new Set();
+            const finishedTeams = new Set();
+            fixturesData.forEach(f => {
+              teamsWithFixture.add(f.team_h);
+              teamsWithFixture.add(f.team_a);
+              if (f.finished || f.started) {
+                finishedTeams.add(f.team_h);
+                finishedTeams.add(f.team_a);
+              }
+            });
+
+            const captainTeamId = captainId ? (state.playerTeams?.[captainId]) : null;
+            const vcTeamId = vcId ? (state.playerTeams?.[vcId]) : null;
+            const captainHasFixture = captainTeamId && teamsWithFixture.has(captainTeamId);
+            const vcHasFixture = vcTeamId && teamsWithFixture.has(vcTeamId);
+
+            if (!captainHasFixture) {
+              // Captain has no match this GW — use VC if they have a fixture
+              if (vcId && vcHasFixture) {
+                captainName = state.bootstrapPlayers[vcId] || '?';
+                isVC = true;
+              }
+              // else keep captain (both have no fixture)
+            } else {
+              // Captain has a fixture — only replace if match played and 0 minutes
+              const captainMatchPlayed = finishedTeams.has(captainTeamId);
+              const captainPlayed = captainMatchPlayed && (statsMap[captainId]?.minutes || 0) > 0;
+              if (captainMatchPlayed && !captainPlayed && vcId) {
+                captainName = state.bootstrapPlayers[vcId] || '?';
+                isVC = true;
+              }
             }
           } catch(e) {}
           captains[m.id] = { name: captainName, isVC };
