@@ -2008,11 +2008,23 @@ function groupByPoints(ranked) {
  * NEW FPL SCORING ENGINE
  ***********************/
 function buildPlayerMaps(liveData, bootstrap) {
-  const points = {}, minutes = {}, types = {}, names = {};
+  const points = {}, minutes = {}, types = {}, names = {}, stats = {};
 
   liveData.elements.forEach(p => {
-    points[p.id] = p.stats.total_points || 0;
-    minutes[p.id] = p.stats.minutes || 0;
+    const s = p.stats;
+    points[p.id] = s.total_points || 0;
+    minutes[p.id] = s.minutes || 0;
+    stats[p.id] = {
+      goals: s.goals_scored || 0,
+      assists: s.assists || 0,
+      cleanSheet: s.clean_sheets || 0,
+      goalsConceded: s.goals_conceded || 0,
+      yellowCards: s.yellow_cards || 0,
+      redCards: s.red_cards || 0,
+      saves: s.saves || 0,
+      bonus: s.bonus || 0,
+      minutesPlayed: s.minutes || 0,
+    };
   });
 
   bootstrap.elements.forEach(p => {
@@ -2020,7 +2032,7 @@ function buildPlayerMaps(liveData, bootstrap) {
     names[p.id] = p.web_name;
   });
 
-  return { points, minutes, types, names };
+  return { points, minutes, types, names, stats };
 }
 
 function isValidFormation(c) {
@@ -2081,7 +2093,7 @@ function resolveCaptain(picks, minutes) {
 }
 
 function computeTeam(picks, liveData, bootstrap, chip) {
-  const { points, minutes, types, names } =
+  const { points, minutes, types, names, stats } =
     buildPlayerMaps(liveData, bootstrap);
 
   const starters = picks.filter(p=>p.position<=11);
@@ -2105,7 +2117,7 @@ function computeTeam(picks, liveData, bootstrap, chip) {
     const pts = (points[p.element] || 0) * mult;
     total += pts;
 
-    return { id: p.element, pts };
+    return { id: p.element, pts, stats: stats[p.element] };
   });
 
   const benchPts = rem.reduce((s,p)=>s+(points[p.element]||0),0);
@@ -2185,7 +2197,16 @@ async function buildPrompt(gw) {
   const top = team.breakdown
     .sort((a,b)=>b.pts-a.pts)
     .slice(0,3)
-    .map(p => team.names[p.id] + ': ' + p.pts);
+    .map(p => {
+      const s = p.stats;
+      const parts = [];
+      if (s?.goals > 0) parts.push(s.goals + ' goal' + (s.goals > 1 ? 's' : ''));
+      if (s?.assists > 0) parts.push(s.assists + ' assist' + (s.assists > 1 ? 's' : ''));
+      if (s?.cleanSheet > 0) parts.push('clean sheet');
+      if (s?.bonus > 0) parts.push(s.bonus + ' bonus');
+      const statStr = parts.length > 0 ? ' — ' + parts.join(', ') : '';
+      return team.names[p.id] + ': ' + p.pts + statStr;
+    });
 
   extras.push('Top players: ' + top.join(' | '));
 
