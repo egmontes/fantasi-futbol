@@ -160,17 +160,40 @@
     .tab-btn.active { background: var(--green-dim); color: var(--green); border-color: rgba(74,222,128,0.3); font-weight: 600; }
 
     /* STAT CARDS */
-    .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 10px;
+    .stat-ticker-wrap {
+      overflow: hidden;
       margin-bottom: 2rem;
+      position: relative;
+    }
+    .stat-ticker-wrap::before,
+    .stat-ticker-wrap::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 40px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .stat-ticker-wrap::before { left: 0; background: linear-gradient(to right, var(--bg), transparent); }
+    .stat-ticker-wrap::after  { right: 0; background: linear-gradient(to left, var(--bg), transparent); }
+    .stat-ticker {
+      display: flex;
+      gap: 12px;
+      width: max-content;
+      animation: ticker-scroll 30s linear infinite;
+    }
+    .stat-ticker:hover { animation-play-state: paused; }
+    @keyframes ticker-scroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
     }
     .stat-card {
       background: var(--bg2);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 1rem;
+      flex-shrink: 0;
+      min-width: 140px;
     }
     .stat-card .s-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); margin-bottom: 6px; }
     .stat-card .s-value { font-family: var(--font-display); font-size: 32px; color: var(--text); line-height: 1; }
@@ -342,7 +365,7 @@
 
     /* SECTION */
     .section { display: none; }
-    .section.active { display: block; padding-top: 1.25rem; padding-bottom: 2rem; }
+    .section.active { display: block; padding-top: 0; padding-bottom: 2rem; }
 
     /* LOADING / ERROR */
     .loading-state {
@@ -403,8 +426,9 @@
     .prize-key {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 1.5rem;
+      gap: 6px;
+      margin-bottom: 6px;
+      margin-top: 6px;
       align-items: center;
     }
     .prize-key-label { font-size: 11px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-right: 4px; }
@@ -447,6 +471,8 @@
     @media (max-width: 600px) {
       .site-header { padding: 0 1rem; height: 48px; }
       .site-logo { font-size: 16px !important; }
+      .prize-key .badge { font-size: 10px; padding: 2px 6px; }
+      .prize-key-label { font-size: 10px; }
       .container { padding: 1.5rem 1rem 3rem; }
       .tab-btn { padding: 10px 12px; font-size: 13px; }
       .stat-card .s-value { font-size: 26px; }
@@ -511,7 +537,7 @@
     <button id="toggle-recap" onclick="switchStandingsView('recap')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
   </div>
 </div>
-<div id="weekly-toggle-bar" style="display:none;position:fixed;left:0;right:0;background:var(--bg);z-index:13;padding:10px 1.5rem;border-bottom:1px solid var(--border);top:var(--sticky-gw-bar-bottom,170px);justify-content:center;">
+<div id="weekly-toggle-bar" style="display:none;position:fixed;left:0;right:0;background:var(--bg);z-index:13;padding:6px 1.5rem;border-bottom:1px solid var(--border);top:var(--sticky-gw-bar-bottom,170px);justify-content:center;">
   <div style="display:flex;width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:3px;">
     <button id="weekly-toggle-table" onclick="switchWeeklyView('table')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--green-dim);color:var(--green);font-weight:600;text-align:center;">GW League Table</button>
     <button id="weekly-toggle-recap" onclick="switchWeeklyView('recap')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
@@ -833,7 +859,7 @@ async function init() {
       if (state.isLive) state.liveGW = currentGWEvent.id;
 
       const gwSel = document.getElementById('gw-select');
-      for (let i = 1; i <= state.latestGW; i++) {
+      for (let i = state.latestGW; i >= 1; i--) {
         const opt = document.createElement('option');
         opt.value = i;
         opt.textContent = 'GW ' + i;
@@ -1225,12 +1251,13 @@ async function init() {
 
     const thClass = c => 'class="sortable' + (col === c ? ' sort-' + standingsSort.dir : '') + '"';
 
-    let html = '<div class="stat-grid">' +
+    // Build cards HTML (doubled for seamless loop)
+    const cards =
       '<div class="stat-card"><div class="s-label">Managers</div><div class="s-value">' + state.managers.length + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">GWs played</div><div class="s-value">' + state.latestGW + '</div></div>' +
+      '<div class="stat-card"><div class="s-label">GWs Played</div><div class="s-value">' + state.latestGW + '</div></div>' +
       '<div class="stat-card"><div class="s-label">Payouts So Far</div><div class="s-value">$' + totalPool + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">Guinness chugged</div><div class="s-value">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
-      '</div>' +
+      '<div class="stat-card"><div class="s-label">Guinness Chugged</div><div class="s-value">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>';
+    let html = '<div class="stat-ticker-wrap"><div class="stat-ticker">' + cards + cards + '</div></div>' +
       '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:right;">' + (state.isLive ? '<span style="color:var(--red);margin-right:8px;">● Live scores</span>' : '<span style="color:var(--green);margin-right:8px;">✓ GW Scores Final</span>') + 'Updated: ' + new Date().toLocaleString('en-US', {timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) + ' ET</div>' +
       '<div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
       '<thead><tr>' +
@@ -1705,7 +1732,8 @@ async function init() {
 
       const wthClass = c => 'class="sortable' + (wsort.col === c ? ' sort-' + wsort.dir : '') + '"';
 
-      let html = '<div class="prize-key" style="flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;padding-bottom:4px;">' +
+      let html =
+        '<div class="prize-key" style="flex-wrap:nowrap;white-space:nowrap;overflow:hidden;">' +
         '<span class="prize-key-label">Prizes:</span>' +
         '<span class="badge badge-1">1st $30</span>' +
         '<span class="badge badge-2">2nd $15</span>' +
@@ -1894,6 +1922,7 @@ async function init() {
       const standouts = startingPicks
         .filter(p => !p.is_captain && (liveStats[p.element]?.pts || 0) >= 8)
         .map(p => ({
+          element: p.element,
           name: state.bootstrapPlayers[p.element] || ('Player ' + p.element),
           stats: formatPlayerStats(p.element, liveStats, 1),
         }))
@@ -1912,7 +1941,7 @@ async function init() {
         .filter(p => p.pts >= 6)
         .sort((a, b) => b.pts - a.pts);
 
-      return { captainName, captainDNP, captainStats, captainMult, captainBlank, chip, transfersIn, transfersOut, standouts, benchWaste };
+      return { picks: picksData.picks, captainName, captainDNP, captainStats, captainMult, captainBlank, chip, transfersIn, transfersOut, standouts, benchWaste };
     } catch(e) {
       return null;
     }
@@ -1972,6 +2001,117 @@ function groupByPoints(ranked) {
   return groups;
 }
 
+/***********************
+ * NEW FPL SCORING ENGINE
+ ***********************/
+function buildPlayerMaps(liveData, bootstrap) {
+  const points = {}, minutes = {}, types = {}, names = {};
+
+  liveData.elements.forEach(p => {
+    points[p.id] = p.stats.total_points || 0;
+    minutes[p.id] = p.stats.minutes || 0;
+  });
+
+  bootstrap.elements.forEach(p => {
+    types[p.id] = p.element_type;
+    names[p.id] = p.web_name;
+  });
+
+  return { points, minutes, types, names };
+}
+
+function isValidFormation(c) {
+  return c[1] === 1 && c[2] >= 3 && c[3] >= 2 && c[4] >= 1;
+}
+
+function countPositions(picks, types) {
+  const c = {1:0,2:0,3:0,4:0};
+  picks.forEach(p => c[types[p.element]]++);
+  return c;
+}
+
+function applyAutosubs(starters, bench, minutes, types) {
+  let XI = [...starters];
+  bench = [...bench];
+
+  // GK swap
+  const gk = XI.find(p => types[p.element] === 1);
+  const bgk = bench.find(p => types[p.element] === 1);
+
+  if (gk && bgk && minutes[gk.element] === 0 && minutes[bgk.element] > 0) {
+    XI = XI.map(p => p.element === gk.element ? bgk : p);
+    bench = bench.filter(p => p.element !== bgk.element);
+    bench.push(gk);
+  }
+
+  // outfield
+  for (let i=0;i<XI.length;i++) {
+    if (minutes[XI[i].element] > 0) continue;
+
+    for (let j=0;j<bench.length;j++) {
+      const sub = bench[j];
+      if (minutes[sub.element] === 0) continue;
+
+      const tmp = [...XI];
+      tmp[i] = sub;
+
+      if (isValidFormation(countPositions(tmp, types))) {
+        XI[i] = sub;
+        bench.splice(j,1);
+        bench.push(starters[i]);
+        break;
+      }
+    }
+  }
+
+  return { XI, bench };
+}
+
+function resolveCaptain(picks, minutes) {
+  const c = picks.find(p=>p.is_captain);
+  const vc = picks.find(p=>p.is_vice_captain);
+
+  if (!c) return null;
+  if (minutes[c.element] > 0) return c;
+  if (vc && minutes[vc.element] > 0) return vc;
+  return c;
+}
+
+function computeTeam(picks, liveData, bootstrap, chip) {
+  const { points, minutes, types, names } =
+    buildPlayerMaps(liveData, bootstrap);
+
+  const starters = picks.filter(p=>p.position<=11);
+  const bench = picks.filter(p=>p.position>11)
+                     .sort((a,b)=>a.position-b.position);
+
+  const { XI, bench: rem } =
+    applyAutosubs(starters, bench, minutes, types);
+
+  const cap = resolveCaptain(picks, minutes);
+
+  let total = 0;
+
+  const breakdown = XI.map(p => {
+    let mult = p.multiplier || 1;
+
+    if (cap && p.element === cap.element) {
+      mult = chip === '3xc' ? 3 : 2;
+    }
+
+    const pts = (points[p.element] || 0) * mult;
+    total += pts;
+
+    return { id: p.element, pts };
+  });
+
+  const benchPts = rem.reduce((s,p)=>s+(points[p.element]||0),0);
+
+  if (chip === 'bboost') total += benchPts;
+
+  return { total, cap: cap?.element, breakdown, benchPts, names };
+}
+
 async function buildPrompt(gw) {
     const stats = computeSeasonStats(gw);
     const ranked = getWeeklyRankings(gw);
@@ -2005,11 +2145,12 @@ async function buildPrompt(gw) {
     // Fetch full picks/chip for ALL managers (for accurate chip counts in overview)
     // but only fetch transfers/captain detail for key managers
     const keyManagers = ranked.filter(m => keyIds.has(m.id));
-    const [details, allChips, ownership] = await Promise.all([
-      fetchAllGWDetails(gw, keyManagers),
-      fetchChipsForGW(gw),
-      fetchOwnershipForGW(gw),
-    ]);
+    const [details, allChips, ownership, liveData] = await Promise.all([
+  fetchAllGWDetails(gw, ranked),
+  fetchChipsForGW(gw),
+  fetchOwnershipForGW(gw),
+  fetchFPL('event/' + gw + '/live/')
+]);
 
     const summaryLines = ranked.map((m, idx) => {
       const s = stats[m.id] || {};
@@ -2024,41 +2165,35 @@ async function buildPrompt(gw) {
 
       let extras = [];
       if (d) {
-        if (d.captainName) {
-          const captainId = Object.keys(state.bootstrapPlayers).find(id => state.bootstrapPlayers[id] === d.captainName);
-          const captainCount = captainId ? (ownership.captained[captainId] || 0) : 0;
-          const captainPct = captainCount > 0 ? Math.round((captainCount / ownership.total) * 100) : null;
-          const captainOwnerStr = captainPct !== null ? ' (' + captainPct + '% of league captained)' : '';
-          const captainStatStr = d.captainStats ? ': ' + d.captainStats : '';
-          const blankStr = d.captainBlank ? ' — BLANKED' : '';
-          extras.push('Captained: ' + d.captainName + (d.captainMult === 3 ? ' (TC)' : '') + captainOwnerStr + captainStatStr + blankStr);
-        }
-        if (d.chip) extras.push('Chip used: ' + d.chip);
-        if (d.transfersIn && d.transfersIn.length > 0) {
-          const inWithStats = d.transfersIn.map(t => {
-            const pid = Object.keys(state.bootstrapPlayers).find(id => state.bootstrapPlayers[id] === t.name);
-            const pct = pid ? Math.round(((ownership.owned[pid] || 0) / ownership.total) * 100) : null;
-            const ownStr = pct !== null ? ' (' + pct + '% owned)' : '';
-            const statStr = t.stats ? ': ' + t.stats : '';
-            return t.name + ownStr + statStr;
-          });
-          const outWithStats = d.transfersOut.map(t => {
-            const statStr = t.stats ? ': ' + t.stats : '';
-            return t.name + statStr;
-          });
-          extras.push('Transferred in: ' + inWithStats.join(' | '));
-          extras.push('Transferred out: ' + outWithStats.join(' | '));
-        }
-        if (d.standouts && d.standouts.length > 0) {
-          const standoutStr = d.standouts.map(s => s.name + ': ' + s.stats).join(' | ');
-          extras.push('Standout players: ' + standoutStr);
-        }
-        if (d.benchWaste && d.benchWaste.length > 0) {
-          const benchStr = d.benchWaste.map(b => b.name + ': ' + b.stats + ' (on bench — wasted)').join(' | ');
-          extras.push('Points left on bench: ' + benchStr);
-        }
-      } else if (allChips[m.id]) {
-        extras.push('Chip used: ' + allChips[m.id]);
+        if (d && d.picks) {
+  const team = computeTeam(
+    d.picks,
+    liveData,
+    state.bootstrap,
+    d.chip
+  );
+
+  const capName = team.cap
+    ? team.names[team.cap]
+    : 'Unknown';
+
+  extras.push('Captain: ' + capName);
+
+  const top = team.breakdown
+    .sort((a,b)=>b.pts-a.pts)
+    .slice(0,3)
+    .map(p => team.names[p.id] + ': ' + p.pts);
+
+  extras.push('Top players: ' + top.join(' | '));
+
+  if (team.benchPts > 0 && d.chip !== 'bboost') {
+    extras.push('Bench points: ' + team.benchPts);
+  }
+
+  if (d.chip) {
+    extras.push('Chip used: ' + d.chip);
+  }
+}
       }
 
       // Use GW-specific owed count so the prompt reflects debt at the time of this GW
@@ -2343,7 +2478,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       if (btn.disabled) return;
       btn.disabled = true;
       btn.textContent = 'Fetching player data...';
-      status.textContent = 'Fetching picks & transfers for key managers...';
+      status.textContent = 'Fetching pfull player data for all managers...';
       status.style.display = 'inline';
       try {
         const prompt = await buildPrompt(gw);
@@ -2911,6 +3046,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const weeklyToggleBar = document.getElementById('weekly-toggle-bar');
     const weeklyToggleBarH = (weeklyToggleBar && weeklyToggleBar.style.display !== 'none') ? weeklyToggleBar.offsetHeight : 0;
 
+
     // standings toggle bar sits right below the tabs (no gw-bar on standings)
     const toggleTop = headerH + calloutH + tabsH;
     document.documentElement.style.setProperty('--sticky-toggle-top', toggleTop + 'px');
@@ -2919,7 +3055,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     const contentTop = headerH + calloutH + tabsH + gwBarH + toggleBarH + weeklyToggleBarH;
     document.documentElement.style.setProperty('--sticky-thead-top', contentTop + 'px');
-    const finalContentTop = contentTop + 16;
+    const finalContentTop = contentTop + 4;
     document.documentElement.style.setProperty('--content-top', finalContentTop + 'px');
     // Also set directly on the container so it takes effect immediately
     const container = document.querySelector('.container');
@@ -3297,7 +3433,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         state.latestGW = newLatest;
         const gwSel = document.getElementById('gw-select');
         gwSel.innerHTML = '';
-        for (let i = 1; i <= state.latestGW; i++) {
+        for (let i = state.latestGW; i >= 1; i--) {
           const opt = document.createElement('option');
           opt.value = i;
           opt.textContent = 'GW ' + i;
@@ -3316,7 +3452,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const gwSel = document.getElementById('gw-select');
       const currentVal = gwSel.value;
       gwSel.innerHTML = '';
-      for (let i = 1; i <= state.latestGW; i++) {
+      for (let i = state.latestGW; i >= 1; i--) {
         const opt = document.createElement('option');
         opt.value = i;
         opt.textContent = 'GW ' + i;
