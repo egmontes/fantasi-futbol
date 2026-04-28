@@ -160,17 +160,40 @@
     .tab-btn.active { background: var(--green-dim); color: var(--green); border-color: rgba(74,222,128,0.3); font-weight: 600; }
 
     /* STAT CARDS */
-    .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 10px;
+    .stat-ticker-wrap {
+      overflow: hidden;
       margin-bottom: 2rem;
+      position: relative;
+    }
+    .stat-ticker-wrap::before,
+    .stat-ticker-wrap::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 40px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .stat-ticker-wrap::before { left: 0; background: linear-gradient(to right, var(--bg), transparent); }
+    .stat-ticker-wrap::after  { right: 0; background: linear-gradient(to left, var(--bg), transparent); }
+    .stat-ticker {
+      display: flex;
+      gap: 12px;
+      width: max-content;
+      animation: ticker-scroll 30s linear infinite;
+    }
+    .stat-ticker:hover { animation-play-state: paused; }
+    @keyframes ticker-scroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
     }
     .stat-card {
       background: var(--bg2);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 1rem;
+      flex-shrink: 0;
+      min-width: 140px;
     }
     .stat-card .s-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); margin-bottom: 6px; }
     .stat-card .s-value { font-family: var(--font-display); font-size: 32px; color: var(--text); line-height: 1; }
@@ -1228,12 +1251,13 @@ async function init() {
 
     const thClass = c => 'class="sortable' + (col === c ? ' sort-' + standingsSort.dir : '') + '"';
 
-    let html = '<div class="stat-grid">' +
+    // Build cards HTML (doubled for seamless loop)
+    const cards =
       '<div class="stat-card"><div class="s-label">Managers</div><div class="s-value">' + state.managers.length + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">GWs played</div><div class="s-value">' + state.latestGW + '</div></div>' +
+      '<div class="stat-card"><div class="s-label">GWs Played</div><div class="s-value">' + state.latestGW + '</div></div>' +
       '<div class="stat-card"><div class="s-label">Payouts So Far</div><div class="s-value">$' + totalPool + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">Guinness chugged</div><div class="s-value">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
-      '</div>' +
+      '<div class="stat-card"><div class="s-label">Guinness Chugged</div><div class="s-value">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>';
+    let html = '<div class="stat-ticker-wrap"><div class="stat-ticker">' + cards + cards + '</div></div>' +
       '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:right;">' + (state.isLive ? '<span style="color:var(--red);margin-right:8px;">● Live scores</span>' : '<span style="color:var(--green);margin-right:8px;">✓ GW Scores Final</span>') + 'Updated: ' + new Date().toLocaleString('en-US', {timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) + ' ET</div>' +
       '<div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
       '<thead><tr>' +
