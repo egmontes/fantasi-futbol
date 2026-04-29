@@ -870,14 +870,6 @@ async function init() {
         gwSel.appendChild(opt);
       }
       // Don't add live GW to selector while in progress — only show once complete
-      // Add preview option if next GW hasn't started
-      if (state.showPreview) {
-        const prevOpt = document.createElement('option');
-        prevOpt.value = 'preview';
-        prevOpt.textContent = 'GW ' + state.nextGW + ' Preview';
-        prevOpt.selected = true;
-        gwSel.appendChild(prevOpt);
-      }
 
       document.getElementById('page-loader-text').textContent = 'Loading managers...';
       await loadLeague();
@@ -975,8 +967,6 @@ async function init() {
         // Default to weekly tab initial state if on standings
         if (state.isLive) {
           // don't auto-switch, just prep the GW selector
-        } else if (state.showPreview) {
-          // same
         }
       }
       if (activeTab === 'recap') setupRecapTab();
