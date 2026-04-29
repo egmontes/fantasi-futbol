@@ -2529,12 +2529,17 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const btn = document.getElementById('prepare-prompt-btn');
       const status = document.getElementById('prepare-confirm');
       if (btn.disabled) return;
+      
+      // Get current GW from dropdown (in case it changed since tab setup)
+      const gwVal = document.getElementById('gw-select').value;
+      const currentGW = parseInt(gwVal) || state.latestGW;
+      
       btn.disabled = true;
       btn.textContent = 'Fetching player data...';
-      status.textContent = 'Fetching pfull player data for all managers...';
+      status.textContent = 'Fetching full player data for all managers...';
       status.style.display = 'inline';
       try {
-        const prompt = await buildPrompt(gw);
+        const prompt = await buildPrompt(currentGW);
         document.getElementById('prompt-preview').value = prompt;
         document.getElementById('prompt-preview-area').style.display = 'block';
         status.textContent = '✓ Ready to copy!';
@@ -3223,12 +3228,17 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const btn = document.getElementById('standings-prepare-prompt-btn');
       const status = document.getElementById('standings-prepare-confirm');
       if (btn.disabled) return;
+      
+      // Get current GW from dropdown (in case it changed since tab setup)
+      const gwVal = document.getElementById('gw-select').value;
+      const currentGW = parseInt(gwVal) || state.latestGW;
+      
       btn.disabled = true;
       btn.textContent = 'Fetching player data...';
       status.textContent = 'Fetching picks & transfers for key managers...';
       status.style.display = 'inline';
       try {
-        const prompt = await buildPrompt(gw);
+        const prompt = await buildPrompt(currentGW);
         document.getElementById('standings-prompt-preview').value = prompt;
         document.getElementById('standings-prompt-preview-area').style.display = 'block';
         status.textContent = '✓ Ready to copy!';
@@ -3381,10 +3391,15 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const btn = document.getElementById('weekly-prepare-prompt-btn');
       const status = document.getElementById('weekly-prepare-confirm');
       if (btn.disabled) return;
+      
+      // Get current GW from dropdown (in case it changed since tab setup)
+      const gwVal = document.getElementById('gw-select').value;
+      const currentGW = parseInt(gwVal) || state.latestGW;
+      
       btn.disabled = true; btn.textContent = 'Fetching player data...';
       status.textContent = 'Fetching picks & transfers...'; status.style.display = 'inline';
       try {
-        const prompt = await buildPrompt(gw);
+        const prompt = await buildPrompt(currentGW);
         document.getElementById('weekly-prompt-preview').value = prompt;
         document.getElementById('weekly-prompt-preview-area').style.display = 'block';
         status.textContent = '✓ Ready to copy!'; btn.textContent = 'Refresh prompt →';
