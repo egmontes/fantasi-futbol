@@ -193,9 +193,9 @@
       background: var(--bg2);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 1.1rem 1rem;
+      padding: 0.85rem 0.9rem;
       flex-shrink: 0;
-      min-width: 160px;
+      min-width: 150px;
     }
     .stat-card.stat-card-green {
       background: rgba(22, 101, 52, 0.18);
@@ -220,7 +220,7 @@
       color: var(--text);
       line-height: 1.1;
       white-space: normal;
-      min-height: calc(2.2em);
+      min-height: calc(1.8em);
       display: grid;
       align-content: center;
     }
@@ -1204,13 +1204,19 @@ async function init() {
       highest: { points: -Infinity, manager: '', gw: null },
       lowest: { points: Infinity, manager: '', gw: null },
       biggestMargin: { margin: 0, manager: '', gw: null },
+      mostTransfers: { transfers: -Infinity, manager: '', gw: null },
+      leastTransfers: { transfers: Infinity, manager: '', gw: null },
     };
 
     for (let gw = 1; gw <= state.latestGW; gw++) {
       const ranked = getWeeklyRankings(gw);
       if (!ranked.length) continue;
+
       const top = ranked[0];
       const bottom = ranked[ranked.length - 1];
+      const topTransfers = (state.gwHistory[top.id] || []).find(h => h.event === gw)?.event_transfers || 0;
+      const bottomTransfers = (state.gwHistory[bottom.id] || []).find(h => h.event === gw)?.event_transfers || 0;
+
       if (top.gwPoints > insights.highest.points) {
         insights.highest = { points: top.gwPoints, manager: top.name, gw };
       }
@@ -1223,6 +1229,16 @@ async function init() {
           insights.biggestMargin = { margin, manager: top.name, gw };
         }
       }
+
+      ranked.forEach(m => {
+        const transfers = (state.gwHistory[m.id] || []).find(h => h.event === gw)?.event_transfers || 0;
+        if (transfers > insights.mostTransfers.transfers) {
+          insights.mostTransfers = { transfers, manager: m.name, gw };
+        }
+        if (transfers < insights.leastTransfers.transfers) {
+          insights.leastTransfers = { transfers, manager: m.name, gw };
+        }
+      });
     }
     return insights;
   }
