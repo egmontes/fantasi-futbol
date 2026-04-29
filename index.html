@@ -224,6 +224,10 @@
       display: grid;
       align-content: center;
     }
+    .stat-card .s-value.single-line {
+      font-size: 42px;
+      letter-spacing: -0.03em;
+    }
 
     /* TABLE */
     .table-outer { overflow-x: auto; }
@@ -1309,10 +1313,10 @@ async function init() {
     const topMoneyValue = topMoneyManager ? stats[topMoneyManager].moneyWon : 0;
 
     const cards =
-      '<div class="stat-card"><div class="s-label">👥 Managers</div><div class="s-value">' + state.managers.length + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">🏟 GWs Played</div><div class="s-value">' + state.latestGW + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">💵 Payouts So Far</div><div class="s-value">$' + totalPool + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">🍺 Guinness Chugged</div><div class="s-value">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
+      '<div class="stat-card"><div class="s-label">👥 Managers</div><div class="s-value single-line">' + state.managers.length + '</div></div>' +
+      '<div class="stat-card"><div class="s-label">🏟 GWs Played</div><div class="s-value single-line">' + state.latestGW + '</div></div>' +
+      '<div class="stat-card"><div class="s-label">💵 Payouts So Far</div><div class="s-value single-line">$' + totalPool + '</div></div>' +
+      '<div class="stat-card"><div class="s-label">🍺 Guinness Chugged</div><div class="s-value single-line">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
       '<div class="stat-card stat-card-green"><div class="s-label">🟢 Highest GW Score</div><div class="s-value">' + esc(tickerInsights.highest.manager) + '<br>GW' + tickerInsights.highest.gw + ' · ' + tickerInsights.highest.points + '</div></div>' +
       '<div class="stat-card stat-card-red"><div class="s-label">🔴 Lowest GW Score</div><div class="s-value">' + esc(tickerInsights.lowest.manager) + '<br>GW' + tickerInsights.lowest.gw + ' · ' + tickerInsights.lowest.points + '</div></div>' +
       '<div class="stat-card"><div class="s-label">👑 Biggest Win Margin</div><div class="s-value">' + esc(tickerInsights.biggestMargin.manager) + '<br>GW' + tickerInsights.biggestMargin.gw + ' · ' + tickerInsights.biggestMargin.margin + '</div></div>' +
