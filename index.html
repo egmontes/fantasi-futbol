@@ -1362,15 +1362,29 @@ async function init() {
     let isDragging = false;
     let startX;
     let scrollLeft;
-    let velocity = 0;
-    let lastX = 0;
-    let rafId;
 
     const getCurrentTransform = () => {
       const style = window.getComputedStyle(ticker);
       const Matrix = window.DOMMatrix || window.WebKitCSSMatrix;
       const matrix = new Matrix(style.transform);
       return matrix.m41;
+    };
+
+    const normalizeOffset = (offset) => {
+      const half = ticker.scrollWidth / 2;
+      let normalized = offset % half;
+      if (normalized < 0) normalized += half;
+      if (normalized > 0) normalized -= half;
+      return normalized;
+    };
+
+    const resumeFromOffset = (offset) => {
+      const half = ticker.scrollWidth / 2;
+      const normalized = normalizeOffset(offset);
+      const progress = Math.abs(normalized) / half;
+      ticker.style.transform = '';
+      ticker.style.animationDelay = `-${progress * 30}s`;
+      ticker.style.animationPlayState = 'running';
     };
 
     const start = (e) => {
@@ -1380,8 +1394,6 @@ async function init() {
       startX = (e.pageX || e.touches[0].pageX) - ticker.offsetLeft;
       scrollLeft = getCurrentTransform();
       lastX = startX;
-      velocity = 0;
-      cancelAnimationFrame(rafId);
     };
 
     const move = (e) => {
@@ -1389,7 +1401,6 @@ async function init() {
       e.preventDefault();
       const x = (e.pageX || e.touches[0].pageX) - ticker.offsetLeft;
       const walk = x - startX;
-      velocity = x - lastX;
       lastX = x;
       ticker.style.transform = `translateX(${scrollLeft + walk}px)`;
     };
@@ -1398,20 +1409,7 @@ async function init() {
       if (!isDragging) return;
       isDragging = false;
       ticker.classList.remove('is-dragging');
-      ticker.style.animationPlayState = 'running';
-
-      const momentum = () => {
-        if (Math.abs(velocity) > 0.2) {
-          const current = getCurrentTransform();
-          ticker.style.transform = `translateX(${current + velocity}px)`;
-          velocity *= 0.94;
-          rafId = requestAnimationFrame(momentum);
-        } else {
-          ticker.style.transform = '';
-        }
-      };
-
-      momentum();
+      resumeFromOffset(getCurrentTransform());
     };
 
     ticker.addEventListener('mousedown', start);
