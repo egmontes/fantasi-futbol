@@ -197,6 +197,22 @@
       flex-shrink: 0;
       min-width: 140px;
     }
+    .stat-card.stat-card-green {
+      background: rgba(22, 101, 52, 0.18);
+      border-color: rgba(74, 222, 128, 0.25);
+    }
+    .stat-card.stat-card-green .s-label,
+    .stat-card.stat-card-green .s-value {
+      color: var(--green);
+    }
+    .stat-card.stat-card-red {
+      background: rgba(139, 17, 38, 0.16);
+      border-color: rgba(248, 113, 113, 0.25);
+    }
+    .stat-card.stat-card-red .s-label,
+    .stat-card.stat-card-red .s-value {
+      color: #f8c4c8;
+    }
     .stat-card .s-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); margin-bottom: 6px; }
     .stat-card .s-value { font-family: var(--font-display); font-size: 32px; color: var(--text); line-height: 1; }
 
@@ -1170,6 +1186,34 @@ async function init() {
     return stats;
   }
 
+  function computeTickerInsights() {
+    const insights = {
+      highest: { points: -Infinity, manager: '', gw: null },
+      lowest: { points: Infinity, manager: '', gw: null },
+      biggestMargin: { margin: 0, manager: '', gw: null },
+    };
+
+    for (let gw = 1; gw <= state.latestGW; gw++) {
+      const ranked = getWeeklyRankings(gw);
+      if (!ranked.length) continue;
+      const top = ranked[0];
+      const bottom = ranked[ranked.length - 1];
+      if (top.gwPoints > insights.highest.points) {
+        insights.highest = { points: top.gwPoints, manager: top.name, gw };
+      }
+      if (bottom.gwPoints < insights.lowest.points) {
+        insights.lowest = { points: bottom.gwPoints, manager: bottom.name, gw };
+      }
+      if (ranked.length > 1) {
+        const margin = top.gwPoints - ranked[1].gwPoints;
+        if (margin > insights.biggestMargin.margin) {
+          insights.biggestMargin = { margin, manager: top.name, gw };
+        }
+      }
+    }
+    return insights;
+  }
+
   const standingsSort = { col: 'pts', dir: 'desc' };
 
   async function renderStandings() {
@@ -1247,11 +1291,23 @@ async function init() {
     const thClass = c => 'class="sortable' + (col === c ? ' sort-' + standingsSort.dir : '') + '"';
 
     // Build cards HTML (doubled for seamless loop)
+    const tickerInsights = computeTickerInsights();
+    const topMoneyManager = Object.keys(stats).reduce((bestId, id) => {
+      if (bestId === null) return id;
+      return stats[id].moneyWon > stats[bestId].moneyWon ? id : bestId;
+    }, null);
+    const topMoney = topMoneyManager ? state.managers.find(m => m.id === parseInt(topMoneyManager, 10)) : null;
+    const topMoneyValue = topMoneyManager ? stats[topMoneyManager].moneyWon : 0;
+
     const cards =
       '<div class="stat-card"><div class="s-label">Managers</div><div class="s-value">' + state.managers.length + '</div></div>' +
       '<div class="stat-card"><div class="s-label">GWs Played</div><div class="s-value">' + state.latestGW + '</div></div>' +
       '<div class="stat-card"><div class="s-label">Payouts So Far</div><div class="s-value">$' + totalPool + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">Guinness Chugged</div><div class="s-value">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>';
+      '<div class="stat-card"><div class="s-label">Guinness Chugged</div><div class="s-value">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
+      '<div class="stat-card stat-card-green"><div class="s-label">Highest GW Score</div><div class="s-value">' + esc(tickerInsights.highest.manager) + ' · GW' + tickerInsights.highest.gw + ' · ' + tickerInsights.highest.points + '</div></div>' +
+      '<div class="stat-card stat-card-red"><div class="s-label">Lowest GW Score</div><div class="s-value">' + esc(tickerInsights.lowest.manager) + ' · GW' + tickerInsights.lowest.gw + ' · ' + tickerInsights.lowest.points + '</div></div>' +
+      '<div class="stat-card"><div class="s-label">Biggest Win Margin</div><div class="s-value">' + esc(tickerInsights.biggestMargin.manager) + ' · GW' + tickerInsights.biggestMargin.gw + ' · ' + tickerInsights.biggestMargin.margin + '</div></div>' +
+      '<div class="stat-card"><div class="s-label">Top Money Earned</div><div class="s-value">' + (topMoney ? esc(topMoney.name) + ' · $' + topMoneyValue.toFixed(2).replace('.00','') : '—') + '</div></div>';
     let html = '<div class="stat-ticker-wrap"><div class="stat-ticker">' + cards + cards + '</div></div>' +
       '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:right;">' + (state.isLive ? '<span style="color:var(--red);margin-right:8px;">● Live scores</span>' : '<span style="color:var(--green);margin-right:8px;">✓ GW Scores Final</span>') + 'Updated: ' + new Date().toLocaleString('en-US', {timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) + ' ET</div>' +
       '<div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
