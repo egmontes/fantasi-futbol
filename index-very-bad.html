@@ -160,44 +160,20 @@
     .tab-btn.active { background: var(--green-dim); color: var(--green); border-color: rgba(74,222,128,0.3); font-weight: 600; }
 
     /* STAT CARDS */
-    .stat-ticker-wrap {
-      overflow: hidden;
-      margin-bottom: 2rem;
-      position: relative;
-    }
-    .stat-ticker-wrap::before,
-    .stat-ticker-wrap::after {
-      content: '';
-      position: absolute;
-      top: 0; bottom: 0;
-      width: 40px;
-      z-index: 2;
-      pointer-events: none;
-    }
-    .stat-ticker-wrap::before { left: 0; background: linear-gradient(to right, var(--bg), transparent); }
-    .stat-ticker-wrap::after  { right: 0; background: linear-gradient(to left, var(--bg), transparent); }
     .stat-ticker {
-      display: flex;
-      gap: 12px;
-      width: max-content;
-      animation: ticker-scroll 30s linear infinite;
-    }
-    .stat-ticker:hover { animation-play-state: paused; }
-    @keyframes ticker-scroll {
-      0%   { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
-    }
-    .stat-card {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1rem;
-      flex-shrink: 0;
-      min-width: 140px;
-    }
-    .stat-card .s-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); margin-bottom: 6px; }
-    .stat-card .s-value { font-family: var(--font-display); font-size: 32px; color: var(--text); line-height: 1; }
+  display: flex;
+  gap: 12px;
+  width: max-content;
+  /* Keep original animation but we will disable it via JS when touched */
+  animation: ticker-scroll 30s linear infinite;
+  will-change: transform;
+  cursor: grab;
+}
 
+.stat-ticker.is-dragging {
+  animation: none !important; /* Kill the CSS animation while dragging */
+  cursor: grabbing;
+}
     /* TABLE */
     .table-outer { overflow-x: auto; }
     .table-outer table { width: 100%; }
@@ -623,6 +599,62 @@
     }
   }
 
+  function makeTickerInteractive(ticker) {
+  let isDragging = false;
+  let startX;
+  let scrollLeft;
+  let velocity = 0;
+  let lastX = 0;
+  let rafId;
+
+  const start = (e) => {
+    isDragging = true;
+    ticker.classList.add('is-dragging');
+    // Handle both touch and mouse
+    startX = (e.pageX || e.touches[0].pageX) - ticker.offsetLeft;
+    // Get current transform value to start from
+    const style = window.getComputedStyle(ticker);
+    const matrix = new WebKitCSSMatrix(style.transform);
+    scrollLeft = matrix.m41;
+    cancelAnimationFrame(rafId);
+  };
+
+  const move = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = (e.pageX || e.touches[0].pageX) - ticker.offsetLeft;
+    const walk = (x - startX);
+    velocity = x - lastX; // Track speed of the pull
+    lastX = x;
+    ticker.style.transform = `translateX(${scrollLeft + walk}px)`;
+  };
+
+  const end = () => {
+    isDragging = false;
+    ticker.classList.remove('is-dragging');
+    // Momentum effect: let it slide after release
+    const momentum = () => {
+      if (Math.abs(velocity) > 0.1) {
+        const style = window.getComputedStyle(ticker);
+        const matrix = new WebKitCSSMatrix(style.transform);
+        ticker.style.transform = `translateX(${matrix.m41 + velocity}px)`;
+        velocity *= 0.95; // Friction
+        rafId = requestAnimationFrame(momentum);
+      } else {
+        // Optional: Re-enable CSS animation after it stops
+        ticker.style.transform = ''; 
+      }
+    };
+    momentum();
+  };
+
+  ticker.addEventListener('mousedown', start);
+  ticker.addEventListener('touchstart', start);
+  window.addEventListener('mousemove', move);
+  window.addEventListener('touchmove', move, { passive: false });
+  window.addEventListener('mouseup', end);
+  window.addEventListener('touchend', end);
+}
   // Groups consecutive entries in missed_gws into incidents
   // e.g. [32, 33, 35] -> [{start:32, len:2}, {start:35, len:1}]
   function groupMissedIncidents(missedSorted) {
@@ -1182,7 +1214,10 @@ async function init() {
       document.getElementById('standings-content').innerHTML =
         '<div class="loading-state"><span class="spinner"></span>Loading GW' + currentGW + ' data...</div>';
     }
-
+    const tickerEl = document.querySelector('.stat-ticker');
+if (tickerEl) {
+  makeTickerInteractive(tickerEl);
+}
     // Always wait for chips/captains before rendering
     await fetchChipsForGW(currentGW).catch(() => {});
     const standingsChips = _chipCache[currentGW] || {};
@@ -1421,7 +1456,10 @@ async function init() {
       liveData.elements.forEach(e => {
         liveScores[e.id] = e.stats.total_points;
       });
-
+      const tickerEl = document.querySelector('.stat-ticker');
+if (tickerEl) {
+  makeTickerInteractive(tickerEl);
+}
       // Fetch picks for all managers in batches
       const BATCH = 5;
       const managerScores = {};
