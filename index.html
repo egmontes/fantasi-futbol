@@ -181,6 +181,14 @@
       gap: 12px;
       width: max-content;
       animation: ticker-scroll 30s linear infinite;
+      will-change: transform;
+      cursor: grab;
+      touch-action: pan-y;
+      user-select: none;
+    }
+    .stat-ticker.is-dragging {
+      animation: none !important;
+      cursor: grabbing;
     }
     .stat-ticker:hover { animation-play-state: paused; }
     @keyframes ticker-scroll {
@@ -1326,6 +1334,8 @@ async function init() {
 
     html += '</tbody></table></div></div>';
     document.getElementById('standings-content').innerHTML = html;
+    const tickerEl = document.querySelector('.stat-ticker');
+    if (tickerEl) makeTickerInteractive(tickerEl);
     requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('standings-table'); });
 
     // Attach sort click handlers
@@ -1347,6 +1357,68 @@ async function init() {
         });
       });
     });
+  }
+
+  function makeTickerInteractive(ticker) {
+    let isDragging = false;
+    let startX;
+    let scrollLeft;
+    let velocity = 0;
+    let lastX = 0;
+    let rafId;
+
+    const getCurrentTransform = () => {
+      const style = window.getComputedStyle(ticker);
+      const Matrix = window.DOMMatrix || window.WebKitCSSMatrix;
+      const matrix = new Matrix(style.transform);
+      return matrix.m41;
+    };
+
+    const start = (e) => {
+      isDragging = true;
+      ticker.classList.add('is-dragging');
+      startX = (e.pageX || e.touches[0].pageX) - ticker.offsetLeft;
+      scrollLeft = getCurrentTransform();
+      lastX = startX;
+      velocity = 0;
+      cancelAnimationFrame(rafId);
+    };
+
+    const move = (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const x = (e.pageX || e.touches[0].pageX) - ticker.offsetLeft;
+      const walk = x - startX;
+      velocity = x - lastX;
+      lastX = x;
+      ticker.style.transform = `translateX(${scrollLeft + walk}px)`;
+    };
+
+    const end = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      ticker.classList.remove('is-dragging');
+
+      const momentum = () => {
+        if (Math.abs(velocity) > 0.2) {
+          const current = getCurrentTransform();
+          ticker.style.transform = `translateX(${current + velocity}px)`;
+          velocity *= 0.94;
+          rafId = requestAnimationFrame(momentum);
+        } else {
+          ticker.style.transform = '';
+        }
+      };
+
+      momentum();
+    };
+
+    ticker.addEventListener('mousedown', start);
+    ticker.addEventListener('touchstart', start, { passive: true });
+    window.addEventListener('mousemove', move);
+    window.addEventListener('touchmove', move, { passive: false });
+    window.addEventListener('mouseup', end);
+    window.addEventListener('touchend', end);
   }
 
   async function renderPreview() {
