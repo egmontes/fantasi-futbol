@@ -1358,8 +1358,10 @@ async function init() {
 
     let isDragging = false;
     let startX;
+    let lastX;
     let scrollLeft = 0;
     let offset = 0;
+    let velocity = 0;
     let lastTimestamp = null;
     let rafId = null;
 
@@ -1378,8 +1380,16 @@ async function init() {
       lastTimestamp = timestamp;
 
       if (!isDragging) {
-        const speed = ticker.scrollWidth / 2 / 30000; // pixels per ms for 30s half-loop
-        setOffset(offset - speed * delta);
+        const baseSpeed = -(ticker.scrollWidth / 2) / 30000; // pixels per ms for 30s half-loop
+        const maxMomentum = 2;
+        if (velocity > maxMomentum) velocity = maxMomentum;
+        if (velocity < -maxMomentum) velocity = -maxMomentum;
+        setOffset(offset + (baseSpeed + velocity) * delta);
+
+        if (velocity !== 0) {
+          velocity *= 0.98;
+          if (Math.abs(velocity) < 0.00005) velocity = 0;
+        }
       }
 
       rafId = requestAnimationFrame(step);
@@ -1389,22 +1399,31 @@ async function init() {
       isDragging = true;
       ticker.classList.add('is-dragging');
       startX = (e.pageX || e.touches[0].pageX) - ticker.offsetLeft;
+      lastX = startX;
       scrollLeft = getOffset();
-      lastTimestamp = null;
+      lastTimestamp = performance.now();
+      velocity = 0;
     };
 
     const move = (e) => {
       if (!isDragging) return;
       e.preventDefault();
       const x = (e.pageX || e.touches[0].pageX) - ticker.offsetLeft;
+      const now = performance.now();
+      const dt = now - lastTimestamp;
+      if (dt > 0) {
+        velocity = (x - lastX) / dt;
+      }
       setOffset(scrollLeft + (x - startX));
+      lastX = x;
+      lastTimestamp = now;
     };
 
     const end = () => {
       if (!isDragging) return;
       isDragging = false;
       ticker.classList.remove('is-dragging');
-      lastTimestamp = null;
+      lastTimestamp = performance.now();
     };
 
     const touchStartOptions = { passive: true };
