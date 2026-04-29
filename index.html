@@ -190,7 +190,6 @@
       animation: none !important;
       cursor: grabbing;
     }
-    .stat-ticker:hover { animation-play-state: paused; }
     @keyframes ticker-scroll {
       0%   { transform: translateX(0); }
       100% { transform: translateX(-50%); }
@@ -1377,6 +1376,7 @@ async function init() {
     const start = (e) => {
       isDragging = true;
       ticker.classList.add('is-dragging');
+      ticker.style.animationPlayState = 'paused';
       startX = (e.pageX || e.touches[0].pageX) - ticker.offsetLeft;
       scrollLeft = getCurrentTransform();
       lastX = startX;
@@ -1398,6 +1398,7 @@ async function init() {
       if (!isDragging) return;
       isDragging = false;
       ticker.classList.remove('is-dragging');
+      ticker.style.animationPlayState = 'running';
 
       const momentum = () => {
         if (Math.abs(velocity) > 0.2) {
