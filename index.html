@@ -2133,6 +2133,20 @@ async function buildPrompt(gw) {
     const weekPrizes = computeWeeklyPrizes(ranked);
     const n = ranked.length;
 
+    // Compute season standings up to this GW
+    const seasonStandings = {};
+    state.managers.forEach(m => {
+      const hist = state.gwHistory[m.id] || [];
+      const total = hist.filter(h => h.event <= gw).reduce((sum, h) => sum + h.points - h.event_transfers_cost, 0);
+      seasonStandings[m.id] = total;
+    });
+    // Sort managers by season total to get rank
+    const seasonRanked = Object.entries(seasonStandings)
+      .sort((a, b) => b[1] - a[1])
+      .map((entry, idx) => ({ id: parseInt(entry[0]), total: entry[1], rank: idx + 1 }));
+    const seasonRankMap = {};
+    seasonRanked.forEach(sr => { seasonRankMap[sr.id] = sr.rank; });
+
     // Assign display ranks for ties
     let displayRank = 1;
     ranked.forEach((m, idx) => {
@@ -2194,6 +2208,20 @@ async function buildPrompt(gw) {
 
   extras.push('Captain: ' + capName);
 
+  // Find captain in breakdown and get their stats
+  const capBreakdown = team.breakdown.find(p => p.id === team.cap);
+  if (capBreakdown) {
+    const cs = capBreakdown.stats;
+    const capParts = [];
+    if (cs?.goals > 0) capParts.push(cs.goals + ' goal' + (cs.goals > 1 ? 's' : ''));
+    if (cs?.assists > 0) capParts.push(cs.assists + ' assist' + (cs.assists > 1 ? 's' : ''));
+    if (cs?.cleanSheet > 0) capParts.push('clean sheet');
+    if (cs?.bonus > 0) capParts.push(cs.bonus + ' bonus');
+    if (capParts.length > 0) {
+      extras[extras.length - 1] += ' — ' + capParts.join(', ');
+    }
+  }
+
   const top = team.breakdown
     .sort((a,b)=>b.pts-a.pts)
     .slice(0,3)
@@ -2232,7 +2260,8 @@ async function buildPrompt(gw) {
       // Compute season total up to this GW from history
       const hist = state.gwHistory[m.id] || [];
       const gwTotal = hist.filter(h => h.event <= gw).reduce((sum, h) => sum + h.points - h.event_transfers_cost, 0);
-      let line = m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts | Season total: ' + gwTotal + ' | Top-4 finishes: ' + s.top4 + ' | Bottom-2 finishes: ' + s.bottom2 + ' | ' + result;
+      const seasonRank = seasonRankMap[m.id] || '-';
+      let line = m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts | Season total: ' + gwTotal + ' (Rank ' + seasonRank + ') | Top-4 finishes: ' + s.top4 + ' | Bottom-2 finishes: ' + s.bottom2 + ' | ' + result;
       if (extras.length > 0) line += ' | ' + extras.join(' | ');
       return line;
     }).join('\n');
