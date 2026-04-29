@@ -180,19 +180,14 @@
       display: flex;
       gap: 12px;
       width: max-content;
-      animation: ticker-scroll 30s linear infinite;
       will-change: transform;
       cursor: grab;
       touch-action: pan-y;
       user-select: none;
+      transform: translateX(0);
     }
     .stat-ticker.is-dragging {
-      animation: none !important;
       cursor: grabbing;
-    }
-    @keyframes ticker-scroll {
-      0%   { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
     }
     .stat-card {
       background: var(--bg2);
@@ -1359,65 +1354,82 @@ async function init() {
   }
 
   function makeTickerInteractive(ticker) {
+    if (window.__fantasiTickerCleanup) window.__fantasiTickerCleanup();
+
     let isDragging = false;
     let startX;
-    let scrollLeft;
+    let scrollLeft = 0;
+    let offset = 0;
+    let lastTimestamp = null;
+    let rafId = null;
 
-    const getCurrentTransform = () => {
-      const style = window.getComputedStyle(ticker);
-      const Matrix = window.DOMMatrix || window.WebKitCSSMatrix;
-      const matrix = new Matrix(style.transform);
-      return matrix.m41;
-    };
-
-    const normalizeOffset = (offset) => {
+    const getOffset = () => offset;
+    const setOffset = (value) => {
       const half = ticker.scrollWidth / 2;
-      let normalized = offset % half;
-      if (normalized < 0) normalized += half;
+      let normalized = value % half;
       if (normalized > 0) normalized -= half;
-      return normalized;
+      offset = normalized;
+      ticker.style.transform = `translateX(${offset}px)`;
     };
 
-    const resumeFromOffset = (offset) => {
-      const half = ticker.scrollWidth / 2;
-      const normalized = normalizeOffset(offset);
-      const progress = Math.abs(normalized) / half;
-      ticker.style.transform = '';
-      ticker.style.animationDelay = `-${progress * 30}s`;
-      ticker.style.animationPlayState = 'running';
+    const step = (timestamp) => {
+      if (lastTimestamp === null) lastTimestamp = timestamp;
+      const delta = timestamp - lastTimestamp;
+      lastTimestamp = timestamp;
+
+      if (!isDragging) {
+        const speed = ticker.scrollWidth / 2 / 30000; // pixels per ms for 30s half-loop
+        setOffset(offset - speed * delta);
+      }
+
+      rafId = requestAnimationFrame(step);
     };
 
     const start = (e) => {
       isDragging = true;
       ticker.classList.add('is-dragging');
-      ticker.style.animationPlayState = 'paused';
       startX = (e.pageX || e.touches[0].pageX) - ticker.offsetLeft;
-      scrollLeft = getCurrentTransform();
-      lastX = startX;
+      scrollLeft = getOffset();
+      lastTimestamp = null;
     };
 
     const move = (e) => {
       if (!isDragging) return;
       e.preventDefault();
       const x = (e.pageX || e.touches[0].pageX) - ticker.offsetLeft;
-      const walk = x - startX;
-      lastX = x;
-      ticker.style.transform = `translateX(${scrollLeft + walk}px)`;
+      setOffset(scrollLeft + (x - startX));
     };
 
     const end = () => {
       if (!isDragging) return;
       isDragging = false;
       ticker.classList.remove('is-dragging');
-      resumeFromOffset(getCurrentTransform());
+      lastTimestamp = null;
     };
 
+    const touchStartOptions = { passive: true };
+    const touchMoveOptions = { passive: false };
+
     ticker.addEventListener('mousedown', start);
-    ticker.addEventListener('touchstart', start, { passive: true });
+    ticker.addEventListener('touchstart', start, touchStartOptions);
     window.addEventListener('mousemove', move);
-    window.addEventListener('touchmove', move, { passive: false });
+    window.addEventListener('touchmove', move, touchMoveOptions);
     window.addEventListener('mouseup', end);
     window.addEventListener('touchend', end);
+
+    const cleanup = () => {
+      ticker.removeEventListener('mousedown', start);
+      ticker.removeEventListener('touchstart', start, touchStartOptions);
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('touchmove', move, touchMoveOptions);
+      window.removeEventListener('mouseup', end);
+      window.removeEventListener('touchend', end);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = null;
+    };
+
+    window.__fantasiTickerCleanup = cleanup;
+    rafId = requestAnimationFrame(step);
   }
 
   async function renderPreview() {
