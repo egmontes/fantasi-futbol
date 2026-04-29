@@ -1387,7 +1387,7 @@ async function init() {
         setOffset(offset + (baseSpeed + velocity) * delta);
 
         if (velocity !== 0) {
-          velocity *= 0.98;
+          velocity *= 0.95;
           if (Math.abs(velocity) < 0.00005) velocity = 0;
         }
       }
