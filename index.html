@@ -1547,7 +1547,12 @@ async function init() {
     };
 
     window.__fantasiTickerCleanup = cleanup;
-    rafId = requestAnimationFrame(step);
+    
+    // Delay RAF start to ensure element is laid out and scrollWidth is ready
+    requestAnimationFrame(() => {
+      lastTimestamp = null;
+      rafId = requestAnimationFrame(step);
+    });
   }
 
   async function renderPreview() {
