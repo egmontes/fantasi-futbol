@@ -1452,6 +1452,7 @@ async function init() {
 
     const getOffset = () => offset;
     const setOffset = (value) => {
+      if (!document.body.contains(ticker)) return; // Stop if element removed
       const half = ticker.scrollWidth / 2;
       let normalized = value % half;
       if (normalized > 0) normalized -= half;
@@ -1478,6 +1479,12 @@ async function init() {
       }
 
       rafId = requestAnimationFrame(step);
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        lastTimestamp = null; // Reset timestamp when page becomes visible
+      }
     };
 
     const start = (e) => {
@@ -1520,6 +1527,7 @@ async function init() {
     window.addEventListener('touchmove', move, touchMoveOptions);
     window.addEventListener('mouseup', end);
     window.addEventListener('touchend', end);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const cleanup = () => {
       ticker.removeEventListener('mousedown', start);
@@ -1528,6 +1536,7 @@ async function init() {
       window.removeEventListener('touchmove', move, touchMoveOptions);
       window.removeEventListener('mouseup', end);
       window.removeEventListener('touchend', end);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (rafId !== null) cancelAnimationFrame(rafId);
       rafId = null;
     };
