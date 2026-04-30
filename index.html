@@ -1484,6 +1484,9 @@ async function init() {
         lastTimestamp = null; // Reset timestamp when page becomes visible
         isDragging = false; // Clear dragging state that may be stuck
         ticker.classList.remove('is-dragging');
+        // Restart RAF loop after browser paused it
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(step);
       }
     };
 
