@@ -1459,7 +1459,13 @@ async function init() {
     };
 
     const step = (timestamp) => {
-      if (lastTimestamp === null) lastTimestamp = timestamp;
+      // Initialize timestamp only on first call
+      if (lastTimestamp === null) {
+        lastTimestamp = timestamp;
+        rafId = requestAnimationFrame(step);
+        return; // Skip first frame to avoid huge delta
+      }
+
       const delta = timestamp - lastTimestamp;
       lastTimestamp = timestamp;
 
