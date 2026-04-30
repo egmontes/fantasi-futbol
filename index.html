@@ -1450,7 +1450,7 @@ async function init() {
 
     const getOffset = () => offset;
     const setOffset = (value) => {
-      if (!document.body.contains(ticker)) return; // Stop if element removed
+      if (!document.body.contains(ticker)) return;
       const half = ticker.scrollWidth / 2;
       let normalized = value % half;
       if (normalized > 0) normalized -= half;
@@ -1459,14 +1459,12 @@ async function init() {
     };
 
     const step = (timestamp) => {
-      let delta = 0;
-      if (lastTimestamp !== null) {
-        delta = timestamp - lastTimestamp;
-      }
+      if (lastTimestamp === null) lastTimestamp = timestamp;
+      const delta = timestamp - lastTimestamp;
       lastTimestamp = timestamp;
 
       if (!isDragging) {
-        const baseSpeed = -(ticker.scrollWidth / 2) / 30000; // pixels per ms for 30s half-loop
+        const baseSpeed = -(ticker.scrollWidth / 2) / 30000;
         const maxMomentum = 2;
         if (velocity > maxMomentum) velocity = maxMomentum;
         if (velocity < -maxMomentum) velocity = -maxMomentum;
@@ -1483,12 +1481,9 @@ async function init() {
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        lastTimestamp = null; // Reset timestamp when page becomes visible
-        isDragging = false; // Clear dragging state that may be stuck
+        lastTimestamp = null;
+        isDragging = false;
         ticker.classList.remove('is-dragging');
-        // Restart RAF loop after browser paused it
-        if (rafId !== null) cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(step);
       }
     };
 
@@ -1547,12 +1542,7 @@ async function init() {
     };
 
     window.__fantasiTickerCleanup = cleanup;
-    
-    // Delay RAF start to ensure element is laid out and scrollWidth is ready
-    requestAnimationFrame(() => {
-      lastTimestamp = null;
-      rafId = requestAnimationFrame(step);
-    });
+    rafId = requestAnimationFrame(step);
   }
 
   async function renderPreview() {
