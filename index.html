@@ -1459,8 +1459,10 @@ async function init() {
     };
 
     const step = (timestamp) => {
-      if (lastTimestamp === null) lastTimestamp = timestamp;
-      const delta = timestamp - lastTimestamp;
+      let delta = 0;
+      if (lastTimestamp !== null) {
+        delta = timestamp - lastTimestamp;
+      }
       lastTimestamp = timestamp;
 
       if (!isDragging) {
