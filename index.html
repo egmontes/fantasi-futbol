@@ -1300,6 +1300,33 @@ async function init() {
       return { ...m, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain };
     });
 
+    // Compute rank changes vs last GW
+    const rankChangeMap = {};
+    if (state.latestGW > 1) {
+      // Current rank by total pts
+      const currentRanked = [...rows].sort((a, b) => b.total - a.total);
+      const currentRankMap = {};
+      let cr = 1;
+      currentRanked.forEach((m, i) => {
+        if (i > 0 && currentRanked[i].total < currentRanked[i-1].total) cr = i + 1;
+        currentRankMap[m.id] = cr;
+      });
+      // Previous rank by total pts at end of latestGW-1
+      const prevRows = state.managers.map(m => {
+        const hist = state.gwHistory[m.id] || [];
+        const prev = hist.find(h => h.event === state.latestGW - 1);
+        return { id: m.id, total: prev ? prev.total_points : 0 };
+      });
+      const prevRanked = [...prevRows].sort((a, b) => b.total - a.total);
+      const prevRankMap = {};
+      let pr = 1;
+      prevRanked.forEach((m, i) => {
+        if (i > 0 && prevRanked[i].total < prevRanked[i-1].total) pr = i + 1;
+        prevRankMap[m.id] = pr;
+        rankChangeMap[m.id] = currentRankMap[m.id] - prevRankMap[m.id]; // negative = moved up
+      });
+    }
+
     const col = standingsSort.col;
     const dir = standingsSort.dir === 'asc' ? 1 : -1;
     rows.sort((a, b) => {
@@ -1384,7 +1411,20 @@ async function init() {
             ? '<span style="color:var(--red);font-size:12px;font-family:var(--font-mono);">1</span>'
             : '<span class="badge-zero">—</span>';
       html += '<tr class="' + rowCls + '">' +
-        '<td><span class="rank-num">' + pos + '</span></td>' +
+        '<td>' + (() => {
+          const change = rankChangeMap[m.id];
+          let indicator = '';
+          if (change !== undefined && change !== 0) {
+            const diff = Math.abs(change);
+            const color = change < 0 ? 'var(--green)' : 'var(--red)';
+            const arrow = change < 0 ? '▲' : '▼';
+            indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;vertical-align:middle;">' +
+              '<span style="color:' + color + ';font-size:8px;line-height:1;font-family:var(--font-mono);">' + arrow + '</span>' +
+              '<span style="color:' + color + ';font-size:8px;line-height:1;font-family:var(--font-mono);">' + diff + '</span>' +
+              '</div>';
+          }
+          return '<div style="display:flex;align-items:center;"><span class="rank-num">' + pos + '</span>' + indicator + '</div>';
+        })() + '</td>' +
         '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + (m.chip ? '<div><span class="badge-chip">' + chipLabel(m.chip) + '</span></div>' : '') + '</td>' +
         '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = m.captain; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
         '<td>' + (() => {
@@ -1613,7 +1653,26 @@ async function init() {
           : '<span class="badge-zero">—</span>';
       const kickedStyle = isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '';
       html += '<tr>' +
-        '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
+        '<td>' + (() => {
+          const prevGW = gw - 1;
+          let indicator = '';
+          if (prevGW >= 1) {
+            const prevRanked = getWeeklyRankings(prevGW);
+            if (prevRanked.length > 0) {
+              let prevPos = null, prevRank = 1;
+              prevRanked.forEach((pm, pi) => {
+                if (pi > 0 && prevRanked[pi].gwPoints < prevRanked[pi-1].gwPoints) prevRank = pi + 1;
+                if (pm.id === m.id) prevPos = prevRank;
+              });
+              if (prevPos !== null) {
+                const change = (idx + 1) - prevPos;
+                if (change < 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">▲</span><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">' + Math.abs(change) + '</span></div>';
+                else if (change > 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">▼</span><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">' + change + '</span></div>';
+              }
+            }
+          }
+          return '<div style="display:flex;align-items:center;"><span class="rank-num">' + (idx + 1) + '</span>' + indicator + '</div>';
+        })() + '</td>' +
         '<td><div class="m-name" style="' + kickedStyle + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
         '<td>' + (() => {
           if (m.gwLatestPts === null) return '<span class="pts-val">—</span>';
@@ -2006,7 +2065,26 @@ async function init() {
           ? '<span style="color:var(--red);font-size:16px;font-weight:bold;">✗</span>'
           : '<span class="badge-zero">—</span>';
         html += '<tr class="' + rowCls + '">' +
-          '<td><span class="rank-num">' + (idx + 1) + '</span></td>' +
+          '<td>' + (() => {
+          const prevGW = gw - 1;
+          let indicator = '';
+          if (prevGW >= 1) {
+            const prevRanked = getWeeklyRankings(prevGW);
+            if (prevRanked.length > 0) {
+              let prevPos = null, prevRank = 1;
+              prevRanked.forEach((pm, pi) => {
+                if (pi > 0 && prevRanked[pi].gwPoints < prevRanked[pi-1].gwPoints) prevRank = pi + 1;
+                if (pm.id === m.id) prevPos = prevRank;
+              });
+              if (prevPos !== null) {
+                const change = (idx + 1) - prevPos;
+                if (change < 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">▲</span><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">' + Math.abs(change) + '</span></div>';
+                else if (change > 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">▼</span><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">' + change + '</span></div>';
+              }
+            }
+          }
+          return '<div style="display:flex;align-items:center;"><span class="rank-num">' + (idx + 1) + '</span>' + indicator + '</div>';
+        })() + '</td>' +
           '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + (m.chip ? '<div><span class="badge-chip">' + chipLabel(m.chip) + '</span></div>' : '') + '</td>' +
           '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
           '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = (_captainCache[gw] || {})[m.id]; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
@@ -2362,6 +2440,70 @@ async function buildPrompt(gw) {
     const seasonRankMap = {};
     seasonRanked.forEach(sr => { seasonRankMap[sr.id] = sr.rank; });
 
+    // Compute season rank at previous GW for rank change
+    const prevSeasonRankMap = {};
+    if (gw > 1) {
+      const prevSeasonRows = state.managers.map(m => {
+        const hist = state.gwHistory[m.id] || [];
+        const prevTotal = hist.filter(h => h.event <= gw - 1).reduce((sum, h) => sum + h.points - h.event_transfers_cost, 0);
+        return { id: m.id, total: prevTotal };
+      }).sort((a, b) => b.total - a.total);
+      let prevR = 1;
+      prevSeasonRows.forEach((m, i) => {
+        if (i > 0 && prevSeasonRows[i].total < prevSeasonRows[i-1].total) prevR = i + 1;
+        prevSeasonRankMap[m.id] = prevR;
+      });
+    }
+
+    // Compute GW rank change vs previous GW
+    const prevGWRankMap = {};
+    if (gw > 1) {
+      const prevRanked = getWeeklyRankings(gw - 1);
+      let prevGWRank = 1;
+      prevRanked.forEach((m, i) => {
+        if (i > 0 && prevRanked[i].gwPoints < prevRanked[i-1].gwPoints) prevGWRank = i + 1;
+        prevGWRankMap[m.id] = prevGWRank;
+      });
+    }
+
+    // Build cup matchup map for this GW
+    const cupMatchMap = {}; // managerId -> { opponent, myPts, oppPts, won, lost, isBye, roundName }
+    const cupMatches = window._allCupMatches || [];
+    const gwCupMatches = cupMatches.filter(m => m.event === gw);
+    if (gwCupMatches.length > 0) {
+      // Determine round name
+      const allRoundEvents = [...new Set(cupMatches.map(m => m.event))].sort((a, b) => a - b);
+      const roundIdx = allRoundEvents.indexOf(gw);
+      const ROUND_NAMES = { 1: 'Round of 64', 2: 'Round of 32', 3: 'Round of 16', 4: 'Quarter-finals', 5: 'Semi-finals', 6: 'Final' };
+      const roundName = ROUND_NAMES[roundIdx + 1] || ('Cup Round ' + (roundIdx + 1));
+      gwCupMatches.forEach(match => {
+        const m1 = state.managers.find(m => m.id === match.entry_1_entry);
+        const m2 = state.managers.find(m => m.id === match.entry_2_entry);
+        if (m1) {
+          cupMatchMap[m1.id] = {
+            opponent: m2 ? m2.name : 'BYE',
+            myPts: match.entry_1_points,
+            oppPts: match.entry_2_points,
+            won: match.winner === m1.id,
+            lost: match.winner && match.winner !== m1.id,
+            isBye: !m2,
+            roundName
+          };
+        }
+        if (m2) {
+          cupMatchMap[m2.id] = {
+            opponent: m1 ? m1.name : 'BYE',
+            myPts: match.entry_2_points,
+            oppPts: match.entry_1_points,
+            won: match.winner === m2.id,
+            lost: match.winner && match.winner !== m2.id,
+            isBye: false,
+            roundName
+          };
+        }
+      });
+    }
+
     // Assign display ranks for ties
     let displayRank = 1;
     ranked.forEach((m, idx) => {
@@ -2472,11 +2614,29 @@ async function buildPrompt(gw) {
         const dangerStr = isKickedOut(m.name) ? ' KICKED OUT OF LEAGUE' : (gmissCount >= 3 ? ' WARNING: ONE MORE MISS AND THEY ARE KICKED OUT' : '');
         extras.push('Guinness owed: ' + gmissCount + gwStr + dangerStr);
       }
-      // Compute season total up to this GW from history
+      // Add cup matchup if applicable
+      const cup = cupMatchMap[m.id];
+      if (cup) {
+        if (cup.isBye) {
+          extras.push('Cup (' + cup.roundName + '): BYE');
+        } else {
+          const result = cup.won ? 'WON' : cup.lost ? 'LOST' : 'TBD';
+          const ptsStr = cup.myPts !== null && cup.oppPts !== null ? cup.myPts + '-' + cup.oppPts : 'in progress';
+          extras.push('Cup (' + cup.roundName + '): ' + result + ' vs ' + cup.opponent + ' (' + ptsStr + ')');
+        }
+      }
       const hist = state.gwHistory[m.id] || [];
       const gwTotal = hist.filter(h => h.event <= gw).reduce((sum, h) => sum + h.points - h.event_transfers_cost, 0);
       const seasonRank = seasonRankMap[m.id] || '-';
-      let line = m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts | Season total: ' + gwTotal + ' (Rank ' + seasonRank + ') | Top-4 finishes: ' + s.top4 + ' | Bottom-2 finishes: ' + s.bottom2 + ' | ' + result;
+      const prevSeasonRank = prevSeasonRankMap[m.id];
+      const seasonRankChange = prevSeasonRank ? prevSeasonRank - seasonRank : 0; // positive = moved up
+      const seasonRankStr = seasonRankChange > 0 ? ' ↑' + seasonRankChange : seasonRankChange < 0 ? ' ↓' + Math.abs(seasonRankChange) : ' (no change)';
+
+      const prevGWRank = prevGWRankMap[m.id];
+      const gwRankChange = prevGWRank ? prevGWRank - m._displayRank : 0;
+      const gwRankStr = gwRankChange > 0 ? ' ↑' + gwRankChange + ' vs last week' : gwRankChange < 0 ? ' ↓' + Math.abs(gwRankChange) + ' vs last week' : ' (same position as last week)';
+
+      let line = m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts' + gwRankStr + ' | Season total: ' + gwTotal + ' (Rank ' + seasonRank + seasonRankStr + ') | Top-4 finishes: ' + s.top4 + ' | Bottom-2 finishes: ' + s.bottom2 + ' | ' + result;
       if (extras.length > 0) line += ' | ' + extras.join(' | ');
       return line;
     }).join('\n');
@@ -2497,6 +2657,7 @@ Player data notes:
   - Are they consistent, streaky, or chaotic?
   - Are they climbing, collapsing, or stuck in mediocrity?
 - Call out patterns (e.g. “another top finish”, “back in the mud again”, “quietly consistent all season”).
+- Each manager's line includes rank trend data: their GW ranking change vs last week (e.g. "↑3 vs last week" = finished 3 spots higher this week) and their season standings movement (e.g. "Rank 5 ↑2" = moved up 2 overall). Use these naturally — "climbing the table", "on a slide", "cementing their spot" — never read the numbers out robotically.
 - "Captained: [player] (X% captained): Y pts — [stats]" = captain pick with actual points and stat breakdown. Write about this like a match reporter, not a data analyst — fold the stats into the narrative naturally. Only mention the ownership % if it genuinely adds to the story (ultra-contrarian pick that paid off, or consensus pick that bombed). Never put raw numbers in parentheses mid-sentence.
 - Captain points are already DOUBLED in the point total shown.
 - The raw performance listed (goals, assists, etc.) reflects the player's actual match output, not the doubled score.
@@ -2520,6 +2681,7 @@ Player data notes:
   - Midfielders: 1 point for a clean sheet (60+ mins played). Minor benefit, rarely worth calling out.
   - Forwards (e.g. Calvert-Lewin, Haaland, Welbeck, Truffert etc.): ZERO points for a clean sheet. Never mention a clean sheet as a positive for a forward — it means nothing to their score.
 - "Guinness owed: N" = this manager owes N shotguns. Only mention if N >= 2. They have NOT missed their shotgun — the deadline hasn't passed. Do NOT imply they've missed anything.
+- "Cup (Round Name): WON/LOST vs [opponent] (X-Y)" = cup result for this GW. If present, weave it into that manager's section naturally. A cup win alongside a good league week is a double celebration. A cup loss on a bad league week is a brutal double blow. If the scores were close, note the tension. If it was a blowup, rub it in. Only mention the cup if the data is present — not all GWs have cup matches.
 - "SHOTGUN DUTY" = this manager finished bottom-2 THIS week and must shotgun a Guinness before 7:30am ET next Saturday. Fresh obligation, not a missed one.
 
 Write the recap with the following structure. Follow this EXACTLY:
@@ -2983,6 +3145,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
       console.log('Total cup matches found:', allMatches.length);
       if (allMatches.length > 0) console.log('Sample:', JSON.stringify(allMatches[0]));
+      window._allCupMatches = allMatches;
       renderCup(allMatches);
     } catch(e) {
       document.getElementById('cup-content').innerHTML =
