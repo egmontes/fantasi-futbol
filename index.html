@@ -1582,7 +1582,7 @@ async function init() {
           }
           return '<div style="display:flex;align-items:center;"><span class="rank-num">' + pos + '</span>' + indicator + '</div>';
         })() + '</td>' +
-        '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px;">' + buildChipBadges(m.id, m.chip, currentGW) + '</div></td>' +
+        '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + '<div style="display:flex;gap:2px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + buildChipBadges(m.id, m.chip, currentGW) + '</div></td>' +
         '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = m.captain; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
         '<td>' + (() => {
           if (m.gwLatestPts === null) return '<span class="pts-val">—</span>';
@@ -1840,22 +1840,37 @@ async function init() {
       const kickedStyle = isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '';
       html += '<tr>' +
         '<td>' + (() => {
-          const prevGW = gw - 1;
           let indicator = '';
-          if (prevGW >= 1) {
-            const prevRanked = getWeeklyRankings(prevGW);
-            if (prevRanked.length > 0) {
-              let prevPos = null, prevRank = 1;
-              prevRanked.forEach((pm, pi) => {
-                if (pi > 0 && prevRanked[pi].gwPoints < prevRanked[pi-1].gwPoints) prevRank = pi + 1;
-                if (pm.id === m.id) prevPos = prevRank;
-              });
-              if (prevPos !== null) {
-                const change = (idx + 1) - prevPos;
-                if (change < 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">▲</span><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">' + Math.abs(change) + '</span></div>';
-                else if (change > 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">▼</span><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">' + change + '</span></div>';
-              }
-            }
+          if (gw > 1) {
+            // Season standings rank after this GW vs before this GW
+            const calcTotal = (upToGW) => {
+              return state.managers.map(m2 => {
+                const hist = state.gwHistory[m2.id] || [];
+                const total = hist.filter(h => h.event <= upToGW).reduce((s, h) => s + h.points - h.event_transfers_cost, 0);
+                return { id: m2.id, total };
+              }).sort((a, b) => b.total - a.total);
+            };
+            const curr = calcTotal(gw);
+            const prev = calcTotal(gw - 1);
+            let currRank = 1, prevRank = 1;
+            curr.forEach((r, i) => {
+              if (i > 0 && curr[i].total < curr[i-1].total) currRank = i + 1;
+              if (r.id === m.id) currRank = currRank;
+            });
+            // Recompute properly
+            let cr = 1;
+            curr.forEach((r, i) => {
+              if (i > 0 && curr[i].total < curr[i-1].total) cr = i + 1;
+              if (r.id === m.id) currRank = cr;
+            });
+            let pr = 1;
+            prev.forEach((r, i) => {
+              if (i > 0 && prev[i].total < prev[i-1].total) pr = i + 1;
+              if (r.id === m.id) prevRank = pr;
+            });
+            const change = prevRank - currRank; // positive = moved up
+            if (change > 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">▲</span><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">' + change + '</span></div>';
+            else if (change < 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">▼</span><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">' + Math.abs(change) + '</span></div>';
           }
           return '<div style="display:flex;align-items:center;"><span class="rank-num">' + (idx + 1) + '</span>' + indicator + '</div>';
         })() + '</td>' +
@@ -2005,7 +2020,7 @@ async function init() {
             ? '<span style="color:var(--red);font-size:16px;font-weight:bold;">✗</span>'
             : '<span class="badge-zero">—</span>';
           const rowCls = rank === 1 ? 'row-1' : rank === 2 ? 'row-2' : rank === 3 ? 'row-3' : rank === 4 ? 'row-4' : isBottom ? 'row-bottom' : '';
-          const chipBadge = '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px;">' + buildChipBadges(m.id, m.chip, gw) + '</div>';
+          const chipBadge = '<div style="display:flex;gap:2px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + buildChipBadges(m.id, m.chip, gw) + '</div>';
           const hitStr = m.transferCost > 0
             ? '<span style="color:var(--red);font-family:var(--font-mono);font-size:12px;">-' + m.transferCost + '</span>'
             : '<span class="badge-zero">—</span>';
@@ -2085,11 +2100,11 @@ async function init() {
       const isActive = chip === currentGWChip;
       const usedPast = !isActive && usedInPast.has(chip);
       if (isActive) {
-        return '<span class="badge-chip">' + label + '</span>';
+        return '<span class="badge-chip" style="white-space:nowrap;">' + label + '</span>';
       } else if (usedPast) {
-        return '<span style="font-size:10px;font-family:var(--font-mono);font-weight:600;padding:2px 7px;border-radius:99px;display:inline-block;margin-top:3px;letter-spacing:0.02em;background:rgba(100,100,100,0.15);color:var(--text3);border:1px solid rgba(255,255,255,0.08);text-decoration:line-through;">' + label + '</span>';
+        return '<span style="font-size:10px;font-family:var(--font-mono);font-weight:600;padding:2px 5px;border-radius:99px;display:inline-block;margin-top:3px;letter-spacing:0.02em;background:rgba(100,100,100,0.15);color:var(--text3);border:1px solid rgba(255,255,255,0.08);text-decoration:line-through;white-space:nowrap;">' + label + '</span>';
       } else {
-        return '<span style="font-size:10px;font-family:var(--font-mono);font-weight:600;padding:2px 7px;border-radius:99px;display:inline-block;margin-top:3px;letter-spacing:0.02em;background:rgba(100,100,100,0.1);color:var(--text3);border:1px solid rgba(255,255,255,0.06);">' + label + '</span>';
+        return '<span style="font-size:10px;font-family:var(--font-mono);font-weight:600;padding:2px 5px;border-radius:99px;display:inline-block;margin-top:3px;letter-spacing:0.02em;background:rgba(100,100,100,0.1);color:var(--text3);border:1px solid rgba(255,255,255,0.06);white-space:nowrap;">' + label + '</span>';
       }
     }).join(' ');
   }
@@ -2303,7 +2318,7 @@ async function init() {
           }
           return '<div style="display:flex;align-items:center;"><span class="rank-num">' + (idx + 1) + '</span>' + indicator + '</div>';
         })() + '</td>' +
-          '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px;">' + buildChipBadges(m.id, m.chip, gw) + '</div></td>' +
+          '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + '<div style="display:flex;gap:2px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + buildChipBadges(m.id, m.chip, gw) + '</div></td>' +
           '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
           '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = (_captainCache[gw] || {})[m.id]; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
           '<td>' + (resultBadge || '<span class="badge-zero">—</span>') + '</td>' +
