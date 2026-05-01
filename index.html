@@ -1438,8 +1438,8 @@ async function init() {
         const calcSeasonRank = (upToGW) => {
           const totals = state.managers.map(m => {
             const hist = state.gwHistory[m.id] || [];
-            const total = hist.filter(h => h.event <= upToGW).reduce((s, h) => s + h.points - h.event_transfers_cost, 0);
-            return { id: m.id, name: m.name, total };
+            const entry = [...hist].filter(h => h.event <= upToGW).sort((a, b) => b.event - a.event)[0];
+            return { id: m.id, name: m.name, total: entry ? entry.total_points : 0 };
           }).sort((a, b) => b.total - a.total);
           const rankMap = {};
           let r = 1;
@@ -1842,32 +1842,21 @@ async function init() {
         '<td>' + (() => {
           let indicator = '';
           if (gw > 1) {
-            // Season standings rank after this GW vs before this GW
-            const calcTotal = (upToGW) => {
-              return state.managers.map(m2 => {
+            const getSeasonRank = (upToGW, managerId) => {
+              const sorted = state.managers.map(m2 => {
                 const hist = state.gwHistory[m2.id] || [];
-                const total = hist.filter(h => h.event <= upToGW).reduce((s, h) => s + h.points - h.event_transfers_cost, 0);
-                return { id: m2.id, total };
+                const entry = [...hist].filter(h => h.event <= upToGW).sort((a, b) => b.event - a.event)[0];
+                return { id: m2.id, total: entry ? entry.total_points : 0 };
               }).sort((a, b) => b.total - a.total);
+              let rank = 1;
+              for (let i = 0; i < sorted.length; i++) {
+                if (i > 0 && sorted[i].total < sorted[i-1].total) rank = i + 1;
+                if (sorted[i].id === managerId) return rank;
+              }
+              return sorted.length;
             };
-            const curr = calcTotal(gw);
-            const prev = calcTotal(gw - 1);
-            let currRank = 1, prevRank = 1;
-            curr.forEach((r, i) => {
-              if (i > 0 && curr[i].total < curr[i-1].total) currRank = i + 1;
-              if (r.id === m.id) currRank = currRank;
-            });
-            // Recompute properly
-            let cr = 1;
-            curr.forEach((r, i) => {
-              if (i > 0 && curr[i].total < curr[i-1].total) cr = i + 1;
-              if (r.id === m.id) currRank = cr;
-            });
-            let pr = 1;
-            prev.forEach((r, i) => {
-              if (i > 0 && prev[i].total < prev[i-1].total) pr = i + 1;
-              if (r.id === m.id) prevRank = pr;
-            });
+            const currRank = getSeasonRank(gw, m.id);
+            const prevRank = getSeasonRank(gw - 1, m.id);
             const change = prevRank - currRank; // positive = moved up
             if (change > 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">▲</span><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">' + change + '</span></div>';
             else if (change < 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">▼</span><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">' + Math.abs(change) + '</span></div>';
@@ -2299,22 +2288,26 @@ async function init() {
           : '<span class="badge-zero">—</span>';
         html += '<tr class="' + rowCls + '">' +
           '<td>' + (() => {
-          const prevGW = gw - 1;
           let indicator = '';
-          if (prevGW >= 1) {
-            const prevRanked = getWeeklyRankings(prevGW);
-            if (prevRanked.length > 0) {
-              let prevPos = null, prevRank = 1;
-              prevRanked.forEach((pm, pi) => {
-                if (pi > 0 && prevRanked[pi].gwPoints < prevRanked[pi-1].gwPoints) prevRank = pi + 1;
-                if (pm.id === m.id) prevPos = prevRank;
-              });
-              if (prevPos !== null) {
-                const change = (idx + 1) - prevPos;
-                if (change < 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">▲</span><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">' + Math.abs(change) + '</span></div>';
-                else if (change > 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">▼</span><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">' + change + '</span></div>';
+          if (gw > 1) {
+            const getSeasonRank = (upToGW, managerId) => {
+              const sorted = state.managers.map(m2 => {
+                const hist = state.gwHistory[m2.id] || [];
+                const entry = [...hist].filter(h => h.event <= upToGW).sort((a, b) => b.event - a.event)[0];
+                return { id: m2.id, total: entry ? entry.total_points : 0 };
+              }).sort((a, b) => b.total - a.total);
+              let rank = 1;
+              for (let i = 0; i < sorted.length; i++) {
+                if (i > 0 && sorted[i].total < sorted[i-1].total) rank = i + 1;
+                if (sorted[i].id === managerId) return rank;
               }
-            }
+              return sorted.length;
+            };
+            const currRank = getSeasonRank(gw, m.id);
+            const prevRank = getSeasonRank(gw - 1, m.id);
+            const change = prevRank - currRank;
+            if (change > 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">▲</span><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">' + change + '</span></div>';
+            else if (change < 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">▼</span><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">' + Math.abs(change) + '</span></div>';
           }
           return '<div style="display:flex;align-items:center;"><span class="rank-num">' + (idx + 1) + '</span>' + indicator + '</div>';
         })() + '</td>' +
@@ -2678,8 +2671,8 @@ async function buildPrompt(gw) {
     if (gw > 1) {
       const prevSeasonRows = state.managers.map(m => {
         const hist = state.gwHistory[m.id] || [];
-        const prevTotal = hist.filter(h => h.event <= gw - 1).reduce((sum, h) => sum + h.points - h.event_transfers_cost, 0);
-        return { id: m.id, total: prevTotal };
+        const entry = [...hist].filter(h => h.event <= gw - 1).sort((a, b) => b.event - a.event)[0];
+        return { id: m.id, total: entry ? entry.total_points : 0 };
       }).sort((a, b) => b.total - a.total);
       let prevR = 1;
       prevSeasonRows.forEach((m, i) => {
