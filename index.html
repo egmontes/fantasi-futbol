@@ -1558,6 +1558,10 @@ async function init() {
 
     window.__fantasiTickerCleanup = cleanup;
 
+    window.__fantasiTickerPause = () => {
+      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+    };
+
     // Expose resume so tab switching can reset the timestamp smoothly
     window.__fantasiTickerResume = () => {
       lastTimestamp = null;
@@ -3365,7 +3369,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       recapBtn.style.background = 'transparent';
       recapBtn.style.color = 'var(--text3)';
       recapBtn.style.fontWeight = '400';
+      // Resume ticker smoothly
+      if (window.__fantasiTickerResume) window.__fantasiTickerResume();
     } else {
+      // Pause ticker before hiding so scrollWidth stays valid
+      if (window.__fantasiTickerPause) window.__fantasiTickerPause();
       leagueContent.style.display = 'none';
       recapContent.style.display = '';
       recapBtn.style.background = 'var(--green-dim)';
