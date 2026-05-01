@@ -1536,6 +1536,8 @@ async function init() {
     // Compute GW rank for medal display (always by gwLatestPts desc)
     const gwRanked = [...rows].filter(m => m.gwLatestPts !== null)
       .sort((a, b) => (b.gwLatestPts||0) - (a.gwLatestPts||0));
+    const maxGWScore = gwRanked.length > 0 ? Math.max(...gwRanked.map(m => m.gwLatestPts || 0)) : 0;
+    const allGWZero = maxGWScore <= 0;
     const gwRankMap = {};
     let gwRank = 1;
     gwRanked.forEach((m, i) => {
@@ -1546,7 +1548,7 @@ async function init() {
     // Bottom 2 map — last 2 unique score groups
     const gwBottomMap = {};
     const n = gwRanked.length;
-    if (n >= 2) {
+    if (!allGWZero && n >= 2) {
       const scores = gwRanked.map(m => m.gwLatestPts);
       const uniqueScores = [...new Set(scores)].sort((a, b) => a - b);
       const bottom2Scores = new Set(uniqueScores.slice(0, 2));
@@ -1587,11 +1589,11 @@ async function init() {
           const rank = gwRankMap[m.id];
           const medals = { 1: '🥇', 2: '🥈', 3: '🥉', 4: '4️⃣' };
           const prizes = { 1: '$30', 2: '$15', 3: '$10', 4: '$5' };
-          const medal = medals[rank];
+          const medal = !allGWZero ? medals[rank] : null;
           const prize = prizes[rank];
           const rankSuffix = rank===1?'st':rank===2?'nd':'rd';
           const tip = medal ? ' <span class="tip" style="font-size:13px;">' + medal + '<span class="tip-text">' + rank + rankSuffix + ' place · Payout: ' + prize + '</span></span>' : '';
-          const beerTip = gwBottomMap[m.id] ? ' <span class="tip" style="font-size:13px;">🍺<span class="tip-text">Bottom 2 · Shotgun duty!</span></span>' : '';
+          const beerTip = !allGWZero && gwBottomMap[m.id] ? ' <span class="tip" style="font-size:13px;">🍺<span class="tip-text">Bottom 2 · Shotgun duty!</span></span>' : '';
           const hitBadge = m.gwHit > 0 ? '<span class="hit-cost">(-' + m.gwHit + ')</span>' : '';
           return '<span class="pts-val">' + m.gwRawPts + '</span>' + hitBadge + tip + beerTip;
         })() + '</td>' +
