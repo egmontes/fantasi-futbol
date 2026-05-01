@@ -1482,14 +1482,12 @@ async function init() {
           const batch = managers.slice(i, i + BATCH);
           await Promise.all(batch.map(async m => {
             try {
-              const [currPicks, prevPicks] = await Promise.all([
-                fetchFPL('entry/' + m.id + '/event/' + gwLabel + '/picks/'),
-                fetchFPL('entry/' + m.id + '/event/' + (gwLabel - 1) + '/picks/')
-              ]);
-              const currIds = new Set(currPicks.picks.map(p => p.element));
-              const prevIds = new Set(prevPicks.picks.map(p => p.element));
-              currIds.forEach(id => { if (!prevIds.has(id)) transIn[id] = (transIn[id] || 0) + 1; });
-              prevIds.forEach(id => { if (!currIds.has(id)) transOut[id] = (transOut[id] || 0) + 1; });
+              const data = await fetchFPL('entry/' + m.id + '/transfers/');
+              const gwTransfers = data.filter(t => t.event === gwLabel);
+              gwTransfers.forEach(t => {
+                transIn[t.element_in] = (transIn[t.element_in] || 0) + 1;
+                transOut[t.element_out] = (transOut[t.element_out] || 0) + 1;
+              });
             } catch(e) {}
           }));
         }
