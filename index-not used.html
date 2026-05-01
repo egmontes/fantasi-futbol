@@ -1041,9 +1041,10 @@ async function init() {
       renderStandings();
       if (activeTab === 'weekly') {
         const gwVal = document.getElementById('gw-select').value;
-        if (gwVal === 'live') renderLive();
-        else if (gwVal === 'preview') renderPreview();
-        else renderWeekly(parseInt(gwVal));
+        const gw = gwVal === 'preview' ? state.nextGW : parseInt(gwVal) || state.latestGW;
+        if (gwVal === 'preview') renderPreview();
+        else if (gwVal === 'live' || (state.isLive && gw === state.liveGW)) renderLive();
+        else renderWeekly(gw);
       } else if (activeTab === 'cup') {
         loadCupData();
       } else if (activeTab === 'recap') {
@@ -2185,6 +2186,9 @@ async function init() {
 
   async function renderWeekly(gw) {
     gw = parseInt(gw) || state.latestGW;
+    if (state.isLive && gw === state.liveGW) {
+      return renderLive();
+    }
     document.getElementById('weekly-content').innerHTML =
       `<div class="loading-state"><span class="spinner"></span>Loading GW${gw}...</div>`;
 
@@ -3561,15 +3565,15 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       }
       if (tab === 'weekly') {
         const val = document.getElementById('gw-select').value;
-        const gw = parseInt(val) || state.latestGW;
+        const gw = val === 'preview' ? state.nextGW : parseInt(val) || state.latestGW;
         const tableBtn = document.getElementById('weekly-toggle-table');
         const recapBtn = document.getElementById('weekly-toggle-recap');
         if (tableBtn) tableBtn.textContent = 'GW' + gw + ' League Table';
         if (recapBtn) recapBtn.textContent = 'GW' + gw + ' Recap';
         switchWeeklyView('table');
         if (val === 'preview') renderPreview();
-        else if (val === 'live') renderLive();
-        else renderWeekly(parseInt(val)).catch(console.error);
+        else if (val === 'live' || (state.isLive && gw === state.liveGW)) renderLive();
+        else renderWeekly(gw).catch(console.error);
       }
       if (tab === 'cup') loadCupData();
       if (tab === 'recap') setupRecapTab();
@@ -4089,7 +4093,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Switch back to table view on GW change
       switchWeeklyView('table');
       if (val === 'preview') renderPreview();
-      else if (val === 'live') renderLive();
+      else if (val === 'live' || (state.isLive && parseInt(val) === state.liveGW)) renderLive();
       else renderWeekly(parseInt(val)).catch(console.error);
     }
     if (active === 'recap') setupRecapTab();
@@ -4155,9 +4159,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       loadLastUpdated();
       renderStandings();
       const refreshVal = gwSel.value;
+      const refreshGW = refreshVal === 'preview' ? state.nextGW : parseInt(refreshVal) || state.latestGW;
       if (refreshVal === 'preview') renderPreview();
-      else if (refreshVal === 'live') renderLive();
-      else renderWeekly(parseInt(refreshVal));
+      else if (refreshVal === 'live' || (state.isLive && refreshGW === state.liveGW)) renderLive();
+      else renderWeekly(refreshGW);
     } catch (e) {
       document.getElementById('standings-content').innerHTML =
         `<div class="error-state">Refresh failed.<small>${e.message}</small></div>`;
