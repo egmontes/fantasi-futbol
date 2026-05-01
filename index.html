@@ -1123,6 +1123,12 @@ async function init() {
         try {
           const h = await fetchFPL('entry/' + m.id + '/history/');
           state.gwHistory[m.id] = h.current;
+          // Store chip usage per GW from history chips array
+          if (!state.chipsHistory) state.chipsHistory = {};
+          state.chipsHistory[m.id] = {};
+          (h.chips || []).forEach(c => {
+            state.chipsHistory[m.id][c.event] = c.name;
+          });
         } catch (e) {
           console.warn('Failed to load history for manager', m.id, e.message);
           state.gwHistory[m.id] = [];
@@ -1576,7 +1582,7 @@ async function init() {
           }
           return '<div style="display:flex;align-items:center;"><span class="rank-num">' + pos + '</span>' + indicator + '</div>';
         })() + '</td>' +
-        '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + (m.chip ? '<div><span class="badge-chip">' + chipLabel(m.chip) + '</span></div>' : '') + '</td>' +
+        '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px;">' + buildChipBadges(m.id, m.chip, currentGW) + '</div></td>' +
         '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = m.captain; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
         '<td>' + (() => {
           if (m.gwLatestPts === null) return '<span class="pts-val">—</span>';
@@ -1999,7 +2005,7 @@ async function init() {
             ? '<span style="color:var(--red);font-size:16px;font-weight:bold;">✗</span>'
             : '<span class="badge-zero">—</span>';
           const rowCls = rank === 1 ? 'row-1' : rank === 2 ? 'row-2' : rank === 3 ? 'row-3' : rank === 4 ? 'row-4' : isBottom ? 'row-bottom' : '';
-          const chipBadge = m.chip ? '<div><span class="badge-chip">' + chipLabel(m.chip) + '</span></div>' : '';
+          const chipBadge = '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px;">' + buildChipBadges(m.id, m.chip, gw) + '</div>';
           const hitStr = m.transferCost > 0
             ? '<span style="color:var(--red);font-family:var(--font-mono);font-size:12px;">-' + m.transferCost + '</span>'
             : '<span class="badge-zero">—</span>';
@@ -2052,8 +2058,40 @@ async function init() {
 
 
   function chipLabel(chip) {
-    const map = { freehit: 'Free Hit', wildcard: 'Wildcard', bboost: 'Bench Boost', '3xc': 'Triple Captain' };
+    const map = { freehit: 'FH', wildcard: 'WC', bboost: 'BB', '3xc': 'TC' };
     return map[chip] || chip;
+  }
+
+  const ALL_CHIPS = ['bboost', 'wildcard', 'freehit', '3xc'];
+  const CHIP_LABELS = { bboost: 'BB', wildcard: 'WC', freehit: 'FH', '3xc': 'TC' };
+
+  // Build chip badges for a manager: all 4 chips, colored by status
+  function buildChipBadges(managerId, currentGWChip, referenceGW) {
+    // Find which chips used in GWs BEFORE referenceGW from chipsHistory
+    const usedInPast = new Set();
+    const managerChips = (state.chipsHistory || {})[managerId] || {};
+    Object.entries(managerChips).forEach(([gw, chip]) => {
+      if (parseInt(gw) < referenceGW && chip !== currentGWChip) usedInPast.add(chip);
+    });
+    // Also check _chipCache for any GWs not in history yet
+    Object.entries(_chipCache).forEach(([gw, gwChips]) => {
+      if (parseInt(gw) < referenceGW) {
+        const chip = gwChips[managerId];
+        if (chip && chip !== currentGWChip) usedInPast.add(chip);
+      }
+    });
+    return ALL_CHIPS.map(chip => {
+      const label = CHIP_LABELS[chip];
+      const isActive = chip === currentGWChip;
+      const usedPast = !isActive && usedInPast.has(chip);
+      if (isActive) {
+        return '<span class="badge-chip">' + label + '</span>';
+      } else if (usedPast) {
+        return '<span style="font-size:10px;font-family:var(--font-mono);font-weight:600;padding:2px 7px;border-radius:99px;display:inline-block;margin-top:3px;letter-spacing:0.02em;background:rgba(100,100,100,0.15);color:var(--text3);border:1px solid rgba(255,255,255,0.08);text-decoration:line-through;">' + label + '</span>';
+      } else {
+        return '<span style="font-size:10px;font-family:var(--font-mono);font-weight:600;padding:2px 7px;border-radius:99px;display:inline-block;margin-top:3px;letter-spacing:0.02em;background:rgba(100,100,100,0.1);color:var(--text3);border:1px solid rgba(255,255,255,0.06);">' + label + '</span>';
+      }
+    }).join(' ');
   }
 
   // Cache chips per GW so we don't refetch
@@ -2265,7 +2303,7 @@ async function init() {
           }
           return '<div style="display:flex;align-items:center;"><span class="rank-num">' + (idx + 1) + '</span>' + indicator + '</div>';
         })() + '</td>' +
-          '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + (m.chip ? '<div><span class="badge-chip">' + chipLabel(m.chip) + '</span></div>' : '') + '</td>' +
+          '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px;">' + buildChipBadges(m.id, m.chip, gw) + '</div></td>' +
           '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
           '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = (_captainCache[gw] || {})[m.id]; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
           '<td>' + (resultBadge || '<span class="badge-zero">—</span>') + '</td>' +
