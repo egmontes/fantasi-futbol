@@ -335,7 +335,22 @@
       vertical-align: middle;
     }
     tbody tr:last-child td { border-bottom: none; }
-    tbody tr { transition: background 0.1s; }
+    tbody tr { transition: background 0.1s; cursor: pointer; }
+    .manager-drawer { background: var(--bg2); border-bottom: 1px solid var(--border); }
+    .manager-drawer td { padding: 0; border-top: none; }
+    .manager-drawer-inner {
+      padding: 0.75rem 1.5rem;
+      font-size: 13px;
+      color: var(--text3);
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-left: 3px solid var(--green);
+    }
+    tbody tr.drawer-open td { background: var(--bg2) !important; border-bottom: none; }
+    tbody tr.drawer-open td:nth-child(1),
+    tbody tr.drawer-open td:nth-child(2) { background: var(--bg2) !important; }
     tbody tr:hover td { background: var(--bg2); }
     tbody tr:hover td:nth-child(1),
     tbody tr:hover td:nth-child(2) { background: var(--bg2); }
@@ -1646,6 +1661,33 @@ async function init() {
     }
     requestAnimationFrame(fitStatCards);
     requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('standings-table'); });
+
+    // Row click — expand drawer
+    let _openDrawerRow = null;
+    document.querySelectorAll('#standings-table tbody tr').forEach(tr => {
+      tr.addEventListener('click', () => {
+        // Close existing drawer if same row clicked
+        const existing = document.querySelector('.manager-drawer');
+        if (existing) {
+          const wasThisRow = existing.previousElementSibling === tr;
+          existing.previousElementSibling?.classList.remove('drawer-open');
+          existing.remove();
+          _openDrawerRow = null;
+          if (wasThisRow) return;
+        }
+        // Get column count for colspan
+        const colCount = tr.querySelectorAll('td').length;
+        const drawer = document.createElement('tr');
+        drawer.className = 'manager-drawer';
+        drawer.innerHTML = '<td colspan="' + colCount + '"><div class="manager-drawer-inner">' +
+          '<span style="font-size:16px;">🚧</span>' +
+          '<span>Working on something good here soon!</span>' +
+          '</div></td>';
+        tr.after(drawer);
+        tr.classList.add('drawer-open');
+        _openDrawerRow = tr;
+      });
+    });
 
     // Attach sort click handlers
     document.querySelectorAll('#standings-table th.sortable').forEach(th => {
