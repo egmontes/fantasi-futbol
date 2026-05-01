@@ -1490,6 +1490,8 @@ async function init() {
         lastTimestamp = null;
         isDragging = false;
         ticker.classList.remove('is-dragging');
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(step);
       }
     };
 
@@ -1548,6 +1550,16 @@ async function init() {
     };
 
     window.__fantasiTickerCleanup = cleanup;
+
+    // Expose resume so tab switching can reset the timestamp smoothly
+    window.__fantasiTickerResume = () => {
+      lastTimestamp = null;
+      isDragging = false;
+      ticker.classList.remove('is-dragging');
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(step);
+    };
+
     rafId = requestAnimationFrame(step);
   }
 
@@ -3139,7 +3151,14 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       if (weeklyToggleEl) weeklyToggleEl.style.display = tab === 'weekly' ? 'flex' : 'none';
       updateStickyOffsets();
       // Re-init floating header for the active tab's table
-      if (tab === 'standings') requestAnimationFrame(() => initFloatingHeader('standings-table'));
+      if (tab === 'standings') {
+        requestAnimationFrame(() => {
+          initFloatingHeader('standings-table');
+          // Re-attach ticker since DOM may have been recreated
+          const tickerEl = document.querySelector('.stat-ticker');
+          if (tickerEl) makeTickerInteractive(tickerEl);
+        });
+      }
       if (tab === 'weekly') {
         const val = document.getElementById('gw-select').value;
         const gw = parseInt(val) || state.latestGW;
