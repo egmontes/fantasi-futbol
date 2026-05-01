@@ -1410,9 +1410,15 @@ async function init() {
     });
 
     html += '</tbody></table></div></div>';
+    // Save ticker offset before re-render
+    const savedTickerOffset = window.__fantasiTickerOffset || 0;
     document.getElementById('standings-content').innerHTML = html;
     const tickerEl = document.querySelector('.stat-ticker');
-    if (tickerEl) makeTickerInteractive(tickerEl);
+    if (tickerEl) {
+      // Restore offset so position doesn't reset on sort
+      tickerEl.style.transform = `translateX(${savedTickerOffset}px)`;
+      makeTickerInteractive(tickerEl, savedTickerOffset);
+    }
     requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('standings-table'); });
 
     // Attach sort click handlers
@@ -1436,14 +1442,14 @@ async function init() {
     });
   }
 
-  function makeTickerInteractive(ticker) {
+  function makeTickerInteractive(ticker, initialOffset = 0) {
     if (window.__fantasiTickerCleanup) window.__fantasiTickerCleanup();
 
     let isDragging = false;
     let startX;
     let lastX;
     let scrollLeft = 0;
-    let offset = 0;
+    let offset = initialOffset;
     let velocity = 0;
     let lastTimestamp = null;
     let rafId = null;
@@ -1456,6 +1462,7 @@ async function init() {
       if (normalized > 0) normalized -= half;
       offset = normalized;
       ticker.style.transform = `translateX(${offset}px)`;
+      window.__fantasiTickerOffset = offset;
     };
 
     const step = (timestamp) => {
