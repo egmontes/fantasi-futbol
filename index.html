@@ -1422,34 +1422,34 @@ async function init() {
     // Biggest mover up/down this GW (GW rank change vs previous GW)
     let biggestMoverUp = null, biggestMoverDown = null;
     if (gwLabel > 1) {
-      // Compare season standings rank before and after this GW
-      const calcSeasonRank = (upToGW) => {
-        const totals = state.managers.map(m => {
-          const hist = state.gwHistory[m.id] || [];
-          const total = hist.filter(h => h.event <= upToGW).reduce((s, h) => s + h.points - h.event_transfers_cost, 0);
-          return { id: m.id, name: m.name, total };
-        }).sort((a, b) => b.total - a.total);
-        const rankMap = {};
-        let r = 1;
-        totals.forEach((m, i) => {
-          if (i > 0 && totals[i].total < totals[i-1].total) r = i + 1;
-          rankMap[m.id] = r;
-        });
-        return rankMap;
-      };
-      const currRankMap = calcSeasonRank(gwLabel);
-      const prevRankMap = calcSeasonRank(gwLabel - 1);
-      const moves = state.managers.map(m => ({
-        name: m.name,
-        change: (prevRankMap[m.id] || 0) - (currRankMap[m.id] || 0) // positive = moved up
-      }));
-
-      // Check if all scores are 0 (week hasn't started)
+      // Use the most recent GW that actually has scores
       const currRanked = getWeeklyRankings(gwLabel);
       const allZero = currRanked.length === 0 || currRanked.every(m => m.gwPoints === 0);
+      const moverGW = allZero ? gwLabel - 1 : gwLabel;
 
-      if (!allZero) {
-        // Biggest mover up
+      if (moverGW > 1) {
+        // Compare season standings rank before and after moverGW
+        const calcSeasonRank = (upToGW) => {
+          const totals = state.managers.map(m => {
+            const hist = state.gwHistory[m.id] || [];
+            const total = hist.filter(h => h.event <= upToGW).reduce((s, h) => s + h.points - h.event_transfers_cost, 0);
+            return { id: m.id, name: m.name, total };
+          }).sort((a, b) => b.total - a.total);
+          const rankMap = {};
+          let r = 1;
+          totals.forEach((m, i) => {
+            if (i > 0 && totals[i].total < totals[i-1].total) r = i + 1;
+            rankMap[m.id] = r;
+          });
+          return rankMap;
+        };
+        const currRankMap = calcSeasonRank(moverGW);
+        const prevRankMap = calcSeasonRank(moverGW - 1);
+        const moves = state.managers.map(m => ({
+          name: m.name,
+          change: (prevRankMap[m.id] || 0) - (currRankMap[m.id] || 0)
+        }));
+
         const upMoves = moves.filter(m => m.change > 0).sort((a, b) => b.change - a.change);
         if (upMoves.length > 0) {
           const maxUp = upMoves[0].change;
@@ -1458,7 +1458,6 @@ async function init() {
           else if (tied.length === 2) biggestMoverUp = { name: tied[0].name + ' & ' + tied[1].name, change: maxUp };
           else biggestMoverUp = { name: tied.length + '-way tie', change: maxUp };
         }
-        // Biggest mover down
         const downMoves = moves.filter(m => m.change < 0).sort((a, b) => a.change - b.change);
         if (downMoves.length > 0) {
           const maxDown = downMoves[0].change;
@@ -1467,9 +1466,6 @@ async function init() {
           else if (tied.length === 2) biggestMoverDown = { name: tied[0].name + ' & ' + tied[1].name, change: maxDown };
           else biggestMoverDown = { name: tied.length + '-way tie', change: maxDown };
         }
-      } else {
-        biggestMoverUp = { name: 'TBD', change: 0 };
-        biggestMoverDown = { name: 'TBD', change: 0 };
       }
     }
     let mostTransIn = null, mostTransOut = null;
@@ -1569,7 +1565,7 @@ async function init() {
         '<td>' + (() => {
           const change = rankChangeMap[m.id];
           let indicator = '';
-          if (change !== undefined && change !== 0) {
+          if (!allGWZero && change !== undefined && change !== 0) {
             const diff = Math.abs(change);
             const color = change < 0 ? 'var(--green)' : 'var(--red)';
             const arrow = change < 0 ? '▲' : '▼';
