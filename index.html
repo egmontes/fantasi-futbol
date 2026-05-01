@@ -1549,8 +1549,8 @@ async function init() {
       '<thead><tr>' +
       '<th style="width:36px">#</th>' +
       '<th ' + thClass('name') + ' data-col="name">Manager</th>' +
-      '<th style="width:90px" ' + thClass('captain') + ' data-col="captain">Captain</th>' +
       '<th style="width:70px" ' + thClass('gwpts') + ' data-col="gwpts">GW' + (state.isLive ? state.liveGW : state.latestGW) + ' Pts</th>' +
+      '<th style="width:90px" ' + thClass('captain') + ' data-col="captain">Captain</th>' +
       '<th style="width:70px" ' + thClass('pts') + ' data-col="pts">Total PTS</th>' +
       '<th style="width:60px;text-align:center" ' + thClass('top4') + ' data-col="top4" title="Top-4 finishes">Top 4</th>' +
       '<th style="width:60px;text-align:center" ' + thClass('bot2') + ' data-col="bot2" title="Bottom-2 finishes">Bot 2</th>' +
@@ -1609,7 +1609,6 @@ async function init() {
           return '<div style="display:flex;align-items:center;"><span class="rank-num">' + pos + '</span>' + indicator + '</div>';
         })() + '</td>' +
         '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + '<div style="display:flex;gap:2px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + buildChipBadges(m.id, m.chip, currentGW) + '</div></td>' +
-        '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = m.captain; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
         '<td>' + (() => {
           if (m.gwLatestPts === null) return '<span class="pts-val">—</span>';
           const rank = gwRankMap[m.id];
@@ -1623,6 +1622,7 @@ async function init() {
           const hitBadge = m.gwHit > 0 ? '<span class="hit-cost">(-' + m.gwHit + ')</span>' : '';
           return '<span class="pts-val">' + m.gwRawPts + '</span>' + hitBadge + tip + beerTip;
         })() + '</td>' +
+        '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = m.captain; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
         '<td><span class="pts-val">' + m.total + '</span></td>' +
         '<td style="text-align:center">' + (m.top4 > 0 ? '<span class="badge badge-top">' + m.top4 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
         '<td style="text-align:center">' + (m.bottom2 > 0 ? '<span class="badge badge-bot">' + m.bottom2 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
