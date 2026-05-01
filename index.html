@@ -1357,33 +1357,51 @@ async function init() {
       const gwLatestPts = liveScore ? liveScore.netPts : (latestHist ? (latestHist.points - (latestHist.event_transfers_cost || 0)) : null);
       const gwRawPts = liveScore ? liveScore.rawPts : (latestHist ? latestHist.points : null);
       const gwHit = liveScore ? liveScore.hit : (latestHist ? (latestHist.event_transfers_cost || 0) : 0);
+      // Live total = last known total + live GW net score
+      const prevHist = (state.gwHistory[m.id] || []).filter(h => h.event < currentGW).sort((a,b) => b.event - a.event)[0];
+      const liveTotal = (state.isLive && liveScore)
+        ? (prevHist ? prevHist.total_points : m.total) + liveScore.netPts
+        : m.total;
       const chip = standingsChips[m.id] || null;
       const captain = standingsCaptains[m.id] || null;
-      return { ...m, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain };
+      return { ...m, total: liveTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain };
     });
 
     // Compute rank changes vs last GW
     const rankChangeMap = {};
-    if (state.latestGW > 1) {
-      // Current rank by total pts
-      const currentRanked = [...rows].sort((a, b) => b.total - a.total);
+    if (currentGW > 1) {
+      // Current rank: use m.total (FPL standings) when live since gwHistory won't have currentGW yet
+      // When not live, use total_points from gwHistory for currentGW
+      const currRows = state.managers.map(m => {
+        if (state.isLive) {
+          // m.total from state.managers is FPL's live cumulative total
+          const liveScore = liveScoreMap[m.id];
+          const total = liveScore
+            ? ((() => { const hist = state.gwHistory[m.id] || []; const prev = [...hist].filter(h => h.event < currentGW).sort((a,b) => b.event - a.event)[0]; return (prev ? prev.total_points : 0) + liveScore.netPts; })())
+            : m.total;
+          return { id: m.id, total };
+        } else {
+          const hist = state.gwHistory[m.id] || [];
+          const entry = [...hist].filter(h => h.event <= currentGW).sort((a, b) => b.event - a.event)[0];
+          return { id: m.id, total: entry ? entry.total_points : m.total };
+        }
+      }).sort((a, b) => b.total - a.total);
       const currentRankMap = {};
       let cr = 1;
-      currentRanked.forEach((m, i) => {
-        if (i > 0 && currentRanked[i].total < currentRanked[i-1].total) cr = i + 1;
+      currRows.forEach((m, i) => {
+        if (i > 0 && currRows[i].total < currRows[i-1].total) cr = i + 1;
         currentRankMap[m.id] = cr;
       });
-      // Previous rank by total pts at end of latestGW-1
+      // Previous rank by total_points at end of currentGW-1
       const prevRows = state.managers.map(m => {
         const hist = state.gwHistory[m.id] || [];
-        const prev = hist.find(h => h.event === state.latestGW - 1);
-        return { id: m.id, total: prev ? prev.total_points : 0 };
-      });
-      const prevRanked = [...prevRows].sort((a, b) => b.total - a.total);
+        const entry = [...hist].filter(h => h.event <= currentGW - 1).sort((a, b) => b.event - a.event)[0];
+        return { id: m.id, total: entry ? entry.total_points : 0 };
+      }).sort((a, b) => b.total - a.total);
       const prevRankMap = {};
       let pr = 1;
-      prevRanked.forEach((m, i) => {
-        if (i > 0 && prevRanked[i].total < prevRanked[i-1].total) pr = i + 1;
+      prevRows.forEach((m, i) => {
+        if (i > 0 && prevRows[i].total < prevRows[i-1].total) pr = i + 1;
         prevRankMap[m.id] = pr;
         rankChangeMap[m.id] = currentRankMap[m.id] - prevRankMap[m.id]; // negative = moved up
       });
@@ -1428,18 +1446,26 @@ async function init() {
     // Biggest mover up/down this GW (GW rank change vs previous GW)
     let biggestMoverUp = null, biggestMoverDown = null;
     if (gwLabel > 1) {
-      // Use the most recent GW that actually has scores
-      const currRanked = getWeeklyRankings(gwLabel);
-      const allZero = currRanked.length === 0 || currRanked.every(m => m.gwPoints === 0);
+      // Check if current GW has real scores — use liveScoreMap when live
+      const hasLiveScores = state.isLive && liveScoreMap && Object.keys(liveScoreMap).length > 0;
+      const maxScore = hasLiveScores
+        ? Math.max(...Object.values(liveScoreMap).map(s => s.netPts || 0))
+        : Math.max(...(getWeeklyRankings(gwLabel).map(m => m.gwPoints || 0)), 0);
+      const allZero = maxScore <= 0;
       const moverGW = allZero ? gwLabel - 1 : gwLabel;
 
       if (moverGW > 1) {
-        // Compare season standings rank before and after moverGW
         const calcSeasonRank = (upToGW) => {
           const totals = state.managers.map(m => {
             const hist = state.gwHistory[m.id] || [];
             const entry = [...hist].filter(h => h.event <= upToGW).sort((a, b) => b.event - a.event)[0];
-            return { id: m.id, name: m.name, total: entry ? entry.total_points : 0 };
+            let total = entry ? entry.total_points : 0;
+            // Add live score on top when calculating rank for the live GW
+            if (state.isLive && upToGW === gwLabel && liveScoreMap[m.id]) {
+              const prevEntry = [...hist].filter(h => h.event < gwLabel).sort((a, b) => b.event - a.event)[0];
+              total = (prevEntry ? prevEntry.total_points : 0) + (liveScoreMap[m.id].netPts || 0);
+            }
+            return { id: m.id, name: m.name, total };
           }).sort((a, b) => b.total - a.total);
           const rankMap = {};
           let r = 1;
