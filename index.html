@@ -1653,7 +1653,7 @@ async function init() {
           standingsSort.dir = standingsSort.dir === 'desc' ? 'asc' : 'desc';
         } else {
           standingsSort.col = c;
-          standingsSort.dir = 'desc';
+          standingsSort.dir = (c === 'name' || c === 'captain') ? 'asc' : 'desc';
         }
         loadLastUpdated();
         const scrollLeft = document.querySelector('.table-outer')?.scrollLeft || 0;
@@ -2067,7 +2067,7 @@ async function init() {
               liveSort.dir = liveSort.dir === -1 ? 1 : -1;
             } else {
               liveSort.col = col;
-              liveSort.dir = -1; // always start desc on new column
+              liveSort.dir = (col === 'name') ? 1 : -1; // text cols start asc, number cols start desc
             }
             const scrollLeft = document.querySelector('.table-outer')?.scrollLeft || 0;
             renderLiveTable();
@@ -2361,7 +2361,7 @@ async function init() {
             wsort.dir = wsort.dir === 'desc' ? 'asc' : 'desc';
           } else {
             wsort.col = c;
-            wsort.dir = 'desc';
+            wsort.dir = (c === 'name' || c === 'captain') ? 'asc' : 'desc';
           }
           const scrollLeft = document.querySelector('#weekly-table')?.closest('.table-outer')?.scrollLeft || 0;
           await renderWeekly(gw);
