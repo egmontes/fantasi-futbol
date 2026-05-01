@@ -195,12 +195,13 @@
       border-radius: 8px;
       padding: 0.7rem;
       flex-shrink: 0;
-      width: 110px;
+      min-width: 110px;
+      width: max-content;
       height: 110px;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
-      overflow: hidden;
+      overflow: visible;
     }
     .stat-card.stat-card-green {
       background: rgba(22, 101, 52, 0.18);
@@ -562,11 +563,11 @@
 <div id="gw-callout" style="position:fixed;top:var(--header-h,56px);left:0;right:0;background:var(--bg);z-index:14;padding:8px 1.5rem;border-bottom:1px solid var(--border);min-height:40px;">
   <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:nowrap;overflow:hidden;white-space:nowrap;">
     <span id="gw-callout-label" style="font-size:18px;font-weight:700;color:var(--text);font-family:var(--font-display);flex-shrink:0;"></span>
-    <span id="gw-deadline-label" style="font-size:11px;color:var(--green);font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;"></span>
+    <span id="gw-deadline-label" style="font-size:11px;font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;"></span>
   </div>
   <div id="fpl-lineup-bar" style="display:none;align-items:center;gap:10px;margin-top:4px;">
     <span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">Set your lineup:</span>
-    <a href="https://fantasy.premierleague.com" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:var(--green-dim);color:var(--green);border:1px solid rgba(74,222,128,0.3);border-radius:6px;padding:3px 10px;font-size:11px;font-family:var(--font-mono);text-decoration:none;font-weight:600;white-space:nowrap;">Open FPL ↗</a>
+    <a id="fpl-btn" href="https://fantasy.premierleague.com" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:var(--green-dim);color:var(--green);border:1px solid rgba(74,222,128,0.3);border-radius:6px;padding:3px 10px;font-size:11px;font-family:var(--font-mono);text-decoration:none;font-weight:600;white-space:nowrap;">Open FPL ↗</a>
   </div>
 </div>
 <div class="tabs" id="main-tabs" style="visibility:hidden;">
@@ -957,6 +958,20 @@ async function init() {
             hour12: true
           });
           deadlineLabel.textContent = 'GW' + nextEvent.id + ' deadline: ' + etStr + ' ET';
+          const isPast = now > new Date(nextEvent.deadline_time).getTime();
+          deadlineLabel.style.color = isPast ? 'var(--red)' : 'var(--green)';
+          const fplBtn = document.getElementById('fpl-btn');
+          if (fplBtn) {
+            if (isPast) {
+              fplBtn.style.background = 'var(--red-dim)';
+              fplBtn.style.color = 'var(--red)';
+              fplBtn.style.borderColor = 'rgba(248,113,113,0.3)';
+            } else {
+              fplBtn.style.background = 'var(--green-dim)';
+              fplBtn.style.color = 'var(--green)';
+              fplBtn.style.borderColor = 'rgba(74,222,128,0.3)';
+            }
+          }
         }
         callout.style.display = 'block';
         // Always show the lineup bar
@@ -1509,23 +1524,17 @@ async function init() {
     document.querySelectorAll('.stat-card').forEach(card => {
       const label = card.querySelector('.s-label');
       const value = card.querySelector('.s-value');
-      const padX = 20, padY = 10;
-      const cardW = card.clientWidth - padX;
-      const cardH = card.clientHeight - padY;
 
-      // Fit label first — shrink until it fits on one line
+      // Label: fixed 9px, nowrap — card width expands to fit it
       if (label) {
-        let lSize = 10;
-        label.style.fontSize = lSize + 'px';
         label.style.whiteSpace = 'nowrap';
-        while (lSize > 6 && label.scrollWidth > cardW) {
-          lSize -= 0.5;
-          label.style.fontSize = lSize + 'px';
-        }
+        label.style.fontSize = '9px';
       }
 
-      // Fit value — shrink until it fits within remaining height and width
+      // Value: shrink to fit within card's actual rendered width/height
       if (value) {
+        const cardW = card.offsetWidth - 22;
+        const cardH = card.offsetHeight - 22;
         const labelH = label ? label.offsetHeight + 5 : 0;
         const availH = cardH - labelH;
         let vSize = 42;
