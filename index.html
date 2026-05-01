@@ -1577,6 +1577,7 @@ async function init() {
       '<th style="width:36px">#</th>' +
       '<th ' + thClass('name') + ' data-col="name">Manager</th>' +
       '<th style="width:70px" ' + thClass('gwpts') + ' data-col="gwpts">GW' + (state.isLive ? state.liveGW : state.latestGW) + ' Pts</th>' +
+      (state.isLive ? '<th style="width:60px" title="Players played / total">Played</th>' : '') +
       '<th style="width:90px" ' + thClass('captain') + ' data-col="captain">Captain</th>' +
       '<th style="width:70px" ' + thClass('pts') + ' data-col="pts">Total PTS</th>' +
       '<th style="width:60px;text-align:center" ' + thClass('top4') + ' data-col="top4" title="Top-4 finishes">Top 4</th>' +
@@ -1649,6 +1650,12 @@ async function init() {
           const hitBadge = m.gwHit > 0 ? '<span class="hit-cost">(-' + m.gwHit + ')</span>' : '';
           return '<span class="pts-val">' + m.gwRawPts + '</span>' + hitBadge + tip + beerTip;
         })() + '</td>' +
+        (state.isLive ? '<td style="font-family:var(--font-mono);font-size:12px;color:var(--text2);">' + (() => {
+          const p = (window._playedCache || {})[currentGW]?.[m.id];
+          if (!p) return '<span style="color:var(--text3);">—</span>';
+          const color = p.played >= p.total ? 'var(--green)' : p.played > 0 ? 'var(--amber)' : 'var(--text3)';
+          return '<span style="color:' + color + ';">' + p.played + '</span><span style="color:var(--text3);">/' + p.total + '</span>';
+        })() + '</td>' : '') +
         '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = m.captain; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
         '<td><span class="pts-val">' + m.total + '</span></td>' +
         '<td style="text-align:center">' + (m.top4 > 0 ? '<span class="badge badge-top">' + m.top4 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
@@ -2263,6 +2270,44 @@ async function init() {
       }
 
       captains[managerId] = { name: captainName, isVC };
+
+      // Compute played/total for this manager
+      const chip = picks.active_chip || null;
+      const isBB = chip === 'bboost';
+      const isTC = chip === '3xc';
+      // Starting picks (or all 15 if BB)
+      const activePicks = isBB ? picks.picks : picks.picks.filter(p => p.position <= 11);
+      // Captain multiplier: TC = 3 total (counts as 3), normal = 2, VC after DNP = 2
+      const captainMultiplier = isTC ? 3 : 2;
+      // Total effective players = active picks count + captain bonus
+      const totalPlayers = activePicks.length + (captainMultiplier - 1);
+      // Played = picks whose team has started
+      let playedCount = 0;
+      activePicks.forEach(p => {
+        const teamId = state.playerTeams?.[p.element];
+        if (teamId && finishedTeams.has(teamId)) {
+          playedCount += p.is_captain ? captainMultiplier : 1;
+        }
+      });
+      // Also count ongoing (started but not finished) as "playing"
+      const startedTeams = new Set();
+      if (fixturesRes.status === 'fulfilled') {
+        fixturesRes.value.filter(f => f.started).forEach(f => {
+          startedTeams.add(f.team_h);
+          startedTeams.add(f.team_a);
+        });
+      }
+      // Recount with started teams
+      playedCount = 0;
+      activePicks.forEach(p => {
+        const teamId = state.playerTeams?.[p.element];
+        if (teamId && startedTeams.has(teamId)) {
+          playedCount += p.is_captain ? captainMultiplier : 1;
+        }
+      });
+      if (!window._playedCache) window._playedCache = {};
+      if (!window._playedCache[gw]) window._playedCache[gw] = {};
+      window._playedCache[gw][managerId] = { played: playedCount, total: totalPlayers };
     });
 
     _chipCache[gw] = chips;
