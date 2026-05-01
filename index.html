@@ -1398,7 +1398,7 @@ async function init() {
       return stats[id].moneyWon > stats[bestId].moneyWon ? id : bestId;
     }, null);
     // Compute most transferred in/out within our league this GW
-    const gwLabel = state.isLive ? state.liveGW : state.latestGW;
+    const gwLabel = (state.isLive ? state.liveGW : state.latestGW) || state.latestGW;
 
     // Most captained this GW (from _captainCache)
     let mostCaptained = null;
@@ -1492,7 +1492,8 @@ async function init() {
     }
 
     const topMoney = topMoneyManager ? state.managers.find(m => m.id === parseInt(topMoneyManager, 10)) : null;
-    const topMoneyValue = topMoneyManager ? stats[topMoneyManager].moneyWon : 0;
+    const topMoneyValue = (topMoneyManager && stats[topMoneyManager]) ? stats[topMoneyManager].moneyWon : 0;
+    const topMoneyDisplay = (topMoney && topMoneyValue > 0) ? esc(topMoney.name) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') : '—';
 
     const cards =
       (mostCaptained ? '<div class="stat-card stat-card-gold"><div class="s-label">©️ GW' + gwLabel + ' Most Captained</div><div class="s-value">' + esc(mostCaptained.name) + '<br>' + mostCaptained.count + ' mgrs</div></div>' : '') +  
@@ -1504,7 +1505,7 @@ async function init() {
       '<div class="stat-card stat-card-green"><div class="s-label">🟢 Highest GW Score</div><div class="s-value">' + esc(tickerInsights.highest.manager) + '<br>GW' + tickerInsights.highest.gw + ' · ' + tickerInsights.highest.points + '</div></div>' +
       '<div class="stat-card stat-card-red"><div class="s-label">🔴 Lowest GW Score</div><div class="s-value">' + esc(tickerInsights.lowest.manager) + '<br>GW' + tickerInsights.lowest.gw + ' · ' + tickerInsights.lowest.points + '</div></div>' +
       '<div class="stat-card"><div class="s-label">👑 Biggest Win Margin</div><div class="s-value">' + esc(tickerInsights.biggestMargin.manager) + '<br>GW' + tickerInsights.biggestMargin.gw + ' · ' + tickerInsights.biggestMargin.margin + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">💰 Top Money Earned</div><div class="s-value">' + (topMoney ? esc(topMoney.name) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') : '—') + '</div></div>' +
+      '<div class="stat-card"><div class="s-label">💰 Top Money Earned</div><div class="s-value">' + topMoneyDisplay + '</div></div>' +
       '<div class="stat-card"><div class="s-label">👥 Managers</div><div class="s-value single-line">' + state.managers.length + '</div></div>' +
       '<div class="stat-card"><div class="s-label">🏟 GWs Played</div><div class="s-value single-line">' + state.latestGW + '</div></div>' +
       '<div class="stat-card"><div class="s-label">💵 Payouts So Far</div><div class="s-value single-line">$' + totalPool + '</div></div>';
