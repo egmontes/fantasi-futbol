@@ -219,6 +219,14 @@
     .stat-card.stat-card-red .s-value {
       color: #f8c4c8;
     }
+    .stat-card.stat-card-gold {
+      background: var(--amber-dim);
+      border-color: rgba(251,191,36,0.3);
+    }
+    .stat-card.stat-card-gold .s-label,
+    .stat-card.stat-card-gold .s-value {
+      color: var(--amber);
+    }
     .stat-card.stat-card-guinness {
       background: #0a0a0a;
       border-color: rgba(212,175,55,0.4);
@@ -892,6 +900,8 @@ async function init() {
         state.playerTeams = state.playerTeams || {};
         state.playerTeams[p.id] = p.team;
       });
+      // Cache full elements for transfer stats
+      state.bootstrapElements = bootstrap.elements;
 
       const finished = bootstrap.events.filter(e => e.finished || e.data_checked);
       state.latestGW = finished.length > 0 ? finished[finished.length - 1].id : 1;
@@ -1387,6 +1397,100 @@ async function init() {
       if (bestId === null) return id;
       return stats[id].moneyWon > stats[bestId].moneyWon ? id : bestId;
     }, null);
+    // Compute most transferred in/out within our league this GW
+    const gwLabel = state.isLive ? state.liveGW : state.latestGW;
+
+    // Most captained this GW (from _captainCache)
+    let mostCaptained = null;
+    const captainsThisGW = _captainCache[gwLabel] || {};
+    const captainCount = {};
+    Object.values(captainsThisGW).forEach(c => {
+      if (c && c.name) captainCount[c.name] = (captainCount[c.name] || 0) + 1;
+    });
+    const topCaptain = Object.entries(captainCount).sort((a, b) => b[1] - a[1])[0];
+    if (topCaptain) mostCaptained = { name: topCaptain[0], count: topCaptain[1] };
+
+    // Biggest mover up/down this GW (GW rank change vs previous GW)
+    let biggestMoverUp = null, biggestMoverDown = null;
+    if (gwLabel > 1) {
+      // Compare season standings rank before and after this GW
+      const calcSeasonRank = (upToGW) => {
+        const totals = state.managers.map(m => {
+          const hist = state.gwHistory[m.id] || [];
+          const total = hist.filter(h => h.event <= upToGW).reduce((s, h) => s + h.points - h.event_transfers_cost, 0);
+          return { id: m.id, name: m.name, total };
+        }).sort((a, b) => b.total - a.total);
+        const rankMap = {};
+        let r = 1;
+        totals.forEach((m, i) => {
+          if (i > 0 && totals[i].total < totals[i-1].total) r = i + 1;
+          rankMap[m.id] = r;
+        });
+        return rankMap;
+      };
+      const currRankMap = calcSeasonRank(gwLabel);
+      const prevRankMap = calcSeasonRank(gwLabel - 1);
+      const moves = state.managers.map(m => ({
+        name: m.name,
+        change: (prevRankMap[m.id] || 0) - (currRankMap[m.id] || 0) // positive = moved up
+      }));
+
+      // Check if all scores are 0 (week hasn't started)
+      const currRanked = getWeeklyRankings(gwLabel);
+      const allZero = currRanked.length === 0 || currRanked.every(m => m.gwPoints === 0);
+
+      if (!allZero) {
+        // Biggest mover up
+        const upMoves = moves.filter(m => m.change > 0).sort((a, b) => b.change - a.change);
+        if (upMoves.length > 0) {
+          const maxUp = upMoves[0].change;
+          const tied = upMoves.filter(m => m.change === maxUp);
+          if (tied.length === 1) biggestMoverUp = { name: tied[0].name, change: maxUp };
+          else if (tied.length === 2) biggestMoverUp = { name: tied[0].name + ' & ' + tied[1].name, change: maxUp };
+          else biggestMoverUp = { name: tied.length + '-way tie', change: maxUp };
+        }
+        // Biggest mover down
+        const downMoves = moves.filter(m => m.change < 0).sort((a, b) => a.change - b.change);
+        if (downMoves.length > 0) {
+          const maxDown = downMoves[0].change;
+          const tied = downMoves.filter(m => m.change === maxDown);
+          if (tied.length === 1) biggestMoverDown = { name: tied[0].name, change: maxDown };
+          else if (tied.length === 2) biggestMoverDown = { name: tied[0].name + ' & ' + tied[1].name, change: maxDown };
+          else biggestMoverDown = { name: tied.length + '-way tie', change: maxDown };
+        }
+      } else {
+        biggestMoverUp = { name: 'TBD', change: 0 };
+        biggestMoverDown = { name: 'TBD', change: 0 };
+      }
+    }
+    let mostTransIn = null, mostTransOut = null;
+    if (gwLabel > 1) {
+      try {
+        const transIn = {}, transOut = {};
+        const BATCH = 5;
+        const managers = state.managers;
+        for (let i = 0; i < managers.length; i += BATCH) {
+          const batch = managers.slice(i, i + BATCH);
+          await Promise.all(batch.map(async m => {
+            try {
+              const [currPicks, prevPicks] = await Promise.all([
+                fetchFPL('entry/' + m.id + '/event/' + gwLabel + '/picks/'),
+                fetchFPL('entry/' + m.id + '/event/' + (gwLabel - 1) + '/picks/')
+              ]);
+              const currIds = new Set(currPicks.picks.map(p => p.element));
+              const prevIds = new Set(prevPicks.picks.map(p => p.element));
+              currIds.forEach(id => { if (!prevIds.has(id)) transIn[id] = (transIn[id] || 0) + 1; });
+              prevIds.forEach(id => { if (!currIds.has(id)) transOut[id] = (transOut[id] || 0) + 1; });
+            } catch(e) {}
+          }));
+        }
+        const topIn = Object.entries(transIn).sort((a, b) => b[1] - a[1])[0];
+        const topOut = Object.entries(transOut).sort((a, b) => b[1] - a[1])[0];
+        if (topIn) mostTransIn = { web_name: state.bootstrapPlayers[topIn[0]] || 'Unknown', transfers_in_event: topIn[1] };
+        if (topOut) mostTransOut = { web_name: state.bootstrapPlayers[topOut[0]] || 'Unknown', transfers_out_event: topOut[1] };
+      } catch(e) {}
+    }
+
     const topMoney = topMoneyManager ? state.managers.find(m => m.id === parseInt(topMoneyManager, 10)) : null;
     const topMoneyValue = topMoneyManager ? stats[topMoneyManager].moneyWon : 0;
 
@@ -1398,7 +1502,12 @@ async function init() {
       '<div class="stat-card stat-card-green"><div class="s-label">🟢 Highest GW Score</div><div class="s-value">' + esc(tickerInsights.highest.manager) + '<br>GW' + tickerInsights.highest.gw + ' · ' + tickerInsights.highest.points + '</div></div>' +
       '<div class="stat-card stat-card-red"><div class="s-label">🔴 Lowest GW Score</div><div class="s-value">' + esc(tickerInsights.lowest.manager) + '<br>GW' + tickerInsights.lowest.gw + ' · ' + tickerInsights.lowest.points + '</div></div>' +
       '<div class="stat-card"><div class="s-label">👑 Biggest Win Margin</div><div class="s-value">' + esc(tickerInsights.biggestMargin.manager) + '<br>GW' + tickerInsights.biggestMargin.gw + ' · ' + tickerInsights.biggestMargin.margin + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">💰 Top Money Earned</div><div class="s-value">' + (topMoney ? esc(topMoney.name) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') : '—') + '</div></div>';
+      '<div class="stat-card"><div class="s-label">💰 Top Money Earned</div><div class="s-value">' + (topMoney ? esc(topMoney.name) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') : '—') + '</div></div>' +
+      (mostTransIn ? '<div class="stat-card stat-card-green"><div class="s-label">📈 GW' + gwLabel + ' Most Transferred In</div><div class="s-value">' + esc(mostTransIn.web_name) + '<br>' + mostTransIn.transfers_in_event.toLocaleString() + '</div></div>' : '') +
+      (mostTransOut ? '<div class="stat-card stat-card-red"><div class="s-label">📉 GW' + gwLabel + ' Most Transferred Out</div><div class="s-value">' + esc(mostTransOut.web_name) + '<br>' + mostTransOut.transfers_out_event.toLocaleString() + '</div></div>' : '') +
+      (mostCaptained ? '<div class="stat-card stat-card-gold"><div class="s-label">©️ GW' + gwLabel + ' Most Captained</div><div class="s-value">' + esc(mostCaptained.name) + '<br>' + mostCaptained.count + ' mgrs</div></div>' : '') +
+      (biggestMoverUp ? '<div class="stat-card stat-card-green"><div class="s-label">🚀 GW' + gwLabel + ' Biggest Mover Up</div><div class="s-value">' + esc(biggestMoverUp.name) + (biggestMoverUp.change !== 0 ? '<br>▲' + biggestMoverUp.change : '') + '</div></div>' : '') +
+      (biggestMoverDown ? '<div class="stat-card stat-card-red"><div class="s-label">📉 GW' + gwLabel + ' Biggest Mover Down</div><div class="s-value">' + esc(biggestMoverDown.name) + (biggestMoverDown.change !== 0 ? '<br>▼' + Math.abs(biggestMoverDown.change) : '') + '</div></div>' : '');
     let html = '<div class="stat-ticker-wrap"><div class="stat-ticker">' + cards + cards + '</div></div>' +
       '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:right;">' + (state.isLive ? '<span style="color:var(--red);margin-right:8px;">● Live scores</span>' : '<span style="color:var(--green);margin-right:8px;">✓ GW Scores Final</span>') + 'Updated: ' + new Date().toLocaleString('en-US', {timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) + ' ET</div>' +
       '<div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
