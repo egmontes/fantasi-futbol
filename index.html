@@ -1561,7 +1561,17 @@ async function init() {
       '<div class="stat-card"><div class="s-label">👑 Biggest Win Margin</div><div class="s-value">' + esc(tickerInsights.biggestMargin.manager) + '<br>GW' + tickerInsights.biggestMargin.gw + ' · ' + tickerInsights.biggestMargin.margin + ' pts' + '</div></div>' +
       '<div class="stat-card"><div class="s-label">💰 Top Money Earned</div><div class="s-value">' + (topMoney ? esc(topMoney.name) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') : '—') + '</div></div>';
     let html = '<div class="stat-ticker-wrap"><div class="stat-ticker">' + cards + cards + '</div></div>' +
-      '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:right;">' + (state.isLive ? '<span style="color:var(--red);margin-right:8px;">● Live scores</span>' : state.isTransition ? '<span style="color:var(--amber);margin-right:8px;">⏳ GW' + state.transitionGW + ' Loading</span>' : '<span style="color:var(--green);margin-right:8px;">✓ GW Scores Final</span>') + 'Updated: ' + new Date().toLocaleString('en-US', {timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) + ' ET</div>' +
+      '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:right;">' +
+        (state.isLive
+          ? '<span style="color:var(--red);margin-right:8px;">● Live scores</span>'
+          : state.isTransition
+            ? '<span style="color:var(--amber);margin-right:8px;">⏳ GW' + state.transitionGW + ' Loading</span>'
+            : '<span style="color:var(--green);margin-right:8px;">✓ GW Scores Final</span>') +
+        'Updated: ' + new Date().toLocaleString('en-US', {timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) + ' ET' +
+        (state.isLive && state.fixturesTotal !== undefined
+          ? '<br>Ongoing Games: ' + state.fixturesOngoing + ' · Games Remaining: ' + state.fixturesRemaining
+          : '') +
+        '</div>' +
       '<div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
       '<thead><tr>' +
       '<th style="width:36px">#</th>' +
@@ -2196,7 +2206,14 @@ async function init() {
     const teamsWithFixture = new Set();
     const finishedTeams = new Set();
     if (fixturesRes.status === 'fulfilled') {
-      fixturesRes.value.forEach(f => {
+      const allFixtures = fixturesRes.value;
+      const totalFixtures = allFixtures.length;
+      const ongoingFixtures = allFixtures.filter(f => f.started && !f.finished).length;
+      const finishedFixtures = allFixtures.filter(f => f.finished).length;
+      state.fixturesOngoing = ongoingFixtures;
+      state.fixturesRemaining = Math.max(0, totalFixtures - finishedFixtures - ongoingFixtures);
+      state.fixturesTotal = totalFixtures;
+      allFixtures.forEach(f => {
         teamsWithFixture.add(f.team_h);
         teamsWithFixture.add(f.team_a);
         if (f.finished || f.started) {
