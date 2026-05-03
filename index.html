@@ -1696,7 +1696,7 @@ async function init() {
     requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('standings-table'); });
 
     // Row click — expand drawer
-    initDrawer('standings-table');
+    initDrawer('standings-table', currentGW);
 
     // Attach sort click handlers
     document.querySelectorAll('#standings-table th.sortable').forEach(th => {
@@ -1719,11 +1719,12 @@ async function init() {
     });
   }
 
-  function initDrawer(tableId) {
+  function initDrawer(tableId, gw) {
     let _openDrawerRow = null;
     const table = document.getElementById(tableId);
     if (!table) return;
     const outer = table.closest('.table-outer');
+    const drawerGW = gw || (state.isLive ? state.liveGW : state.latestGW);
 
     function syncDrawerScroll() {
       const inner = document.querySelector('.manager-drawer-inner');
@@ -1736,6 +1737,11 @@ async function init() {
     if (outer) outer.addEventListener('scroll', syncDrawerScroll, { passive: true });
 
     table.querySelectorAll('tbody tr').forEach(tr => {
+      // Get managerId from the row's data
+      const managerName = tr.querySelector('.m-name')?.textContent?.trim();
+      const manager = state.managers.find(m => m.name === managerName);
+      const managerId = manager?.id;
+
       tr.addEventListener('click', () => {
         const existing = document.querySelector('.manager-drawer');
         if (existing) {
@@ -1748,15 +1754,82 @@ async function init() {
         const colCount = tr.querySelectorAll('td').length;
         const drawer = document.createElement('tr');
         drawer.className = 'manager-drawer';
-        drawer.innerHTML = '<td colspan="' + colCount + '"><div class="manager-drawer-inner">' +
-          '<span style="font-size:16px;">🚧</span>' +
-          '<span>Working on something good here soon!</span>' +
-          '</div></td>';
+
+        // Build drawer content async
+        const drawerTd = document.createElement('td');
+        drawerTd.setAttribute('colspan', colCount);
+        drawerTd.innerHTML = '<div class="manager-drawer-inner"><span class="spinner"></span><span>Loading...</span></div>';
+        drawer.appendChild(drawerTd);
         tr.after(drawer);
         tr.classList.add('drawer-open');
         _openDrawerRow = tr;
-        // Sync position immediately
         requestAnimationFrame(syncDrawerScroll);
+
+        // Fetch picks + live/historical scores
+        (async () => {
+          try {
+            const picks = await fetchFPL('entry/' + managerId + '/event/' + drawerGW + '/picks/');
+            const chip = picks.active_chip || null;
+            const isBB = chip === 'bboost';
+
+            // Get player scores
+            let playerPts = {};
+            if (state.isLive && window._liveScoreCacheGW?.[drawerGW]) {
+              Object.entries(window._liveScoreCacheGW[drawerGW]).forEach(([pid, s]) => {
+                // _liveScoreCacheGW stores per-manager, not per-player
+              });
+              // Fetch live player stats directly
+              try {
+                const liveData = await fetchFPL('event/' + drawerGW + '/live/');
+                liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; });
+              } catch(e) {}
+            } else {
+              try {
+                const liveData = await fetchFPL('event/' + drawerGW + '/live/');
+                liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; });
+              } catch(e) {}
+            }
+
+            const startingPicks = picks.picks.filter(p => isBB || p.position <= 11);
+            const benchPicks = picks.picks.filter(p => !isBB && p.position > 11);
+
+            const renderPick = (p) => {
+              const name = state.bootstrapPlayers[p.element] || ('Player ' + p.element);
+              const pts = playerPts[p.element] ?? '—';
+              const effectivePts = pts !== '—' ? pts * p.multiplier : '—';
+              const isCap = p.multiplier > 1;
+              const capLabel = p.multiplier === 3 ? ' (TC)' : p.multiplier === 2 ? ' (C)' : '';
+              const color = pts !== '—' && pts > 0 ? 'var(--text)' : 'var(--text3)';
+              return '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--border);">' +
+                '<span style="color:' + color + ';font-size:12px;">' + esc(name) + '<span style="color:var(--amber);font-size:10px;">' + capLabel + '</span></span>' +
+                '<span style="font-family:var(--font-mono);font-size:12px;color:' + (effectivePts !== '—' && effectivePts > 0 ? 'var(--green)' : 'var(--text3)') + ';min-width:30px;text-align:right;">' + effectivePts + '</span>' +
+                '</div>';
+            };
+
+            const totalPts = startingPicks.reduce((sum, p) => {
+              const pts = playerPts[p.element] ?? 0;
+              return sum + pts * p.multiplier;
+            }, 0);
+
+            let html = '<div class="manager-drawer-inner" style="flex-direction:column;align-items:stretch;padding:0.75rem 1.5rem;">';
+            html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">';
+            html += '<span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Starting XI' + (isBB ? ' + Bench (BB)' : '') + '</span>';
+            html += '<span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">Total: <span style="color:var(--text);">' + totalPts + ' pts</span></span>';
+            html += '</div>';
+            startingPicks.forEach(p => { html += renderPick(p); });
+
+            if (!isBB && benchPicks.length > 0) {
+              html += '<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 6px;">Bench</div>';
+              benchPicks.forEach(p => { html += renderPick(p); });
+            }
+
+            html += '</div>';
+            drawerTd.innerHTML = html;
+            requestAnimationFrame(syncDrawerScroll);
+          } catch(e) {
+            drawerTd.innerHTML = '<div class="manager-drawer-inner"><span style="color:var(--red);">Failed to load picks.</span></div>';
+          }
+        })();
       });
     });
   }
@@ -2492,7 +2565,7 @@ async function init() {
       html += '</tbody></table></div></div>';
       document.getElementById('weekly-content').innerHTML = html;
       requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('weekly-table'); });
-      initDrawer('weekly-table');
+      initDrawer('weekly-table', gw);
 
       // Attach sort handlers
       document.querySelectorAll('#weekly-table th.sortable').forEach(th => {
