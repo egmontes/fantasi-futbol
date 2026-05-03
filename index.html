@@ -339,6 +339,7 @@
     .manager-drawer { background: var(--bg2); border-bottom: 1px solid var(--border); }
     .manager-drawer td { padding: 0; border-top: none; }
     .manager-drawer-inner {
+      position: relative;
       padding: 0.75rem 1.5rem;
       font-size: 13px;
       color: var(--text3);
@@ -347,6 +348,7 @@
       align-items: center;
       gap: 10px;
       border-left: 3px solid var(--green);
+      box-sizing: border-box;
     }
     tbody tr.drawer-open td { background: var(--bg2) !important; border-bottom: none; }
     tbody tr.drawer-open td:nth-child(1),
@@ -1694,31 +1696,7 @@ async function init() {
     requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('standings-table'); });
 
     // Row click — expand drawer
-    let _openDrawerRow = null;
-    document.querySelectorAll('#standings-table tbody tr').forEach(tr => {
-      tr.addEventListener('click', () => {
-        // Close existing drawer if same row clicked
-        const existing = document.querySelector('.manager-drawer');
-        if (existing) {
-          const wasThisRow = existing.previousElementSibling === tr;
-          existing.previousElementSibling?.classList.remove('drawer-open');
-          existing.remove();
-          _openDrawerRow = null;
-          if (wasThisRow) return;
-        }
-        // Get column count for colspan
-        const colCount = tr.querySelectorAll('td').length;
-        const drawer = document.createElement('tr');
-        drawer.className = 'manager-drawer';
-        drawer.innerHTML = '<td colspan="' + colCount + '"><div class="manager-drawer-inner">' +
-          '<span style="font-size:16px;">🚧</span>' +
-          '<span>Working on something good here soon!</span>' +
-          '</div></td>';
-        tr.after(drawer);
-        tr.classList.add('drawer-open');
-        _openDrawerRow = tr;
-      });
-    });
+    initDrawer('standings-table');
 
     // Attach sort click handlers
     document.querySelectorAll('#standings-table th.sortable').forEach(th => {
@@ -1737,6 +1715,48 @@ async function init() {
           const el = document.querySelector('#standings-table')?.closest('.table-outer');
           if (el) el.scrollLeft = scrollLeft;
         });
+      });
+    });
+  }
+
+  function initDrawer(tableId) {
+    let _openDrawerRow = null;
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const outer = table.closest('.table-outer');
+
+    function syncDrawerScroll() {
+      const inner = document.querySelector('.manager-drawer-inner');
+      if (inner && outer) {
+        inner.style.transform = 'translateX(' + outer.scrollLeft + 'px)';
+        inner.style.width = (outer.clientWidth) + 'px';
+      }
+    }
+
+    if (outer) outer.addEventListener('scroll', syncDrawerScroll, { passive: true });
+
+    table.querySelectorAll('tbody tr').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const existing = document.querySelector('.manager-drawer');
+        if (existing) {
+          const wasThisRow = existing.previousElementSibling === tr;
+          existing.previousElementSibling?.classList.remove('drawer-open');
+          existing.remove();
+          _openDrawerRow = null;
+          if (wasThisRow) return;
+        }
+        const colCount = tr.querySelectorAll('td').length;
+        const drawer = document.createElement('tr');
+        drawer.className = 'manager-drawer';
+        drawer.innerHTML = '<td colspan="' + colCount + '"><div class="manager-drawer-inner">' +
+          '<span style="font-size:16px;">🚧</span>' +
+          '<span>Working on something good here soon!</span>' +
+          '</div></td>';
+        tr.after(drawer);
+        tr.classList.add('drawer-open');
+        _openDrawerRow = tr;
+        // Sync position immediately
+        requestAnimationFrame(syncDrawerScroll);
       });
     });
   }
@@ -2472,6 +2492,7 @@ async function init() {
       html += '</tbody></table></div></div>';
       document.getElementById('weekly-content').innerHTML = html;
       requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('weekly-table'); });
+      initDrawer('weekly-table');
 
       // Attach sort handlers
       document.querySelectorAll('#weekly-table th.sortable').forEach(th => {
