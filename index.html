@@ -919,6 +919,8 @@ async function init() {
       });
       // Cache full elements for transfer stats
       state.bootstrapElements = bootstrap.elements;
+      // Second half of season starts at GW20 — chips reset each half
+      state.secondHalfStart = 20;
 
       const finished = bootstrap.events.filter(e => e.finished || e.data_checked);
       state.latestGW = finished.length > 0 ? finished[finished.length - 1].id : 1;
@@ -1102,6 +1104,7 @@ async function init() {
     const BATCH = 5;
     const CACHE_KEY = 'ff_history_gw' + state.latestGW;
     const CACHE_TS_KEY = 'ff_history_ts' + state.latestGW;
+    const CHIPS_CACHE_KEY = 'ff_chips_gw' + state.latestGW;
     const CACHE_TTL = state.isLive ? 5 * 60 * 1000 : 60 * 60 * 1000; // 5min live, 1hr otherwise
 
     // Try cache first unless forceRefresh
@@ -1116,6 +1119,16 @@ async function init() {
           const hasData = managerIds.every(id => parsed[id] !== undefined);
           if (hasData) {
             state.gwHistory = parsed;
+            // Restore chipsHistory from cache too
+            try {
+              const cachedChips = localStorage.getItem(CHIPS_CACHE_KEY);
+              if (cachedChips) {
+                const parsedChips = JSON.parse(cachedChips);
+                // Only use cache if it has data for our managers
+                const hasChips = state.managers.some(m => parsedChips[m.id] && Object.keys(parsedChips[m.id]).length > 0);
+                if (hasChips) state.chipsHistory = parsedChips;
+              }
+            } catch(e) {}
             const el = document.getElementById('standings-content');
             if (el) el.innerHTML = '<div class="loading-state"><span class="spinner"></span>Loaded from cache (' + state.managers.length + '/' + state.managers.length + ')</div>';
             return;
@@ -1160,6 +1173,7 @@ async function init() {
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify(state.gwHistory));
       localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
+      localStorage.setItem(CHIPS_CACHE_KEY, JSON.stringify(state.chipsHistory || {}));
       console.log('History cached for GW' + state.latestGW);
     } catch(e) {
       console.warn('Cache write failed:', e.message);
@@ -2158,19 +2172,19 @@ async function init() {
 
   // Build chip badges for a manager: all 4 chips, colored by status
   function buildChipBadges(managerId, currentGWChip, referenceGW) {
-    // Find which chips used in GWs BEFORE referenceGW from chipsHistory
+    // Find which chips used in the CURRENT HALF before referenceGW
+    // Chips used in the previous half don't count (managers get a fresh set each half)
+    const secondHalfStart = state.secondHalfStart || 20;
+    const isH2 = referenceGW >= secondHalfStart;
+    const halfStart = isH2 ? secondHalfStart : 1;
+    const halfEnd = isH2 ? referenceGW : Math.min(referenceGW, secondHalfStart);
     const usedInPast = new Set();
     const managerChips = (state.chipsHistory || {})[managerId] || {};
     Object.entries(managerChips).forEach(([gw, chip]) => {
-      if (parseInt(gw) < referenceGW && chip !== currentGWChip) usedInPast.add(chip);
+      const gwNum = parseInt(gw);
+      if (gwNum >= halfStart && gwNum < halfEnd && chip !== currentGWChip) usedInPast.add(chip);
     });
-    // Also check _chipCache for any GWs not in history yet
-    Object.entries(_chipCache).forEach(([gw, gwChips]) => {
-      if (parseInt(gw) < referenceGW) {
-        const chip = gwChips[managerId];
-        if (chip && chip !== currentGWChip) usedInPast.add(chip);
-      }
-    });
+    if (managerId === 1845913) console.log('Mitch chips:', managerChips, 'halfStart:', halfStart, 'refGW:', referenceGW, 'usedInPast:', [...usedInPast]);
     return ALL_CHIPS.map(chip => {
       const label = CHIP_LABELS[chip];
       const isActive = chip === currentGWChip;
