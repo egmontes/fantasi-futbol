@@ -653,9 +653,25 @@
     t => 'https://proxy.cors.sh/' + t,
   ];
 
+  // Restore chip/captain caches from localStorage on hard refresh
+  (function restoreCaches() {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('ff_chips_cache_')) {
+        const gw = parseInt(key.replace('ff_chips_cache_', ''));
+        try { _chipCache[gw] = JSON.parse(localStorage.getItem(key)); } catch(e) {}
+      }
+      if (key && key.startsWith('ff_captains_cache_')) {
+        const gw = parseInt(key.replace('ff_captains_cache_', ''));
+        try { _captainCache[gw] = JSON.parse(localStorage.getItem(key)); } catch(e) {}
+      }
+    }
+  })();
+
   const state = {
     managers: [],
     gwHistory: {},
+    historyLoaded: false,
     latestGW: 1,
     currentGW: 1,
     bootstrapPlayers: {},
@@ -1167,11 +1183,7 @@ async function init() {
           state.gwHistory[m.id] = [];
         }
       }));
-      const done = Math.min(i + BATCH, managers.length);
-      // Re-render standings with partial data so user sees progress
-      if (document.getElementById('standings-content') && done < managers.length) {
-        renderStandings();
-      }
+
     }
 
     // Save to cache
@@ -1359,6 +1371,16 @@ async function init() {
 
     // If live, fetch real-time player scores — use cache, fire in background if missing
     if (!window._liveScoreCacheGW) window._liveScoreCacheGW = {};
+    // Restore live scores from localStorage if available and fresh (< 5min)
+    if (!window._liveScoreCacheGW[currentGW]) {
+      try {
+        const saved = localStorage.getItem('ff_live_scores_' + currentGW);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Date.now() - parsed.ts < 5 * 60 * 1000) window._liveScoreCacheGW[currentGW] = parsed.data;
+        }
+      } catch(e) {}
+    }
     let liveScoreMap = window._liveScoreCacheGW[currentGW] || {};
     if (state.isLive && !window._liveScoreCacheGW[currentGW] && !window._liveScoreFetchInProgress) {
       window._liveScoreFetchInProgress = true;
@@ -1383,6 +1405,10 @@ async function init() {
           }
           window._liveScoreCacheGW[currentGW] = tempMap;
           window._liveScoreFetchInProgress = false;
+          // Persist live scores briefly (5min TTL)
+          try {
+            localStorage.setItem('ff_live_scores_' + currentGW, JSON.stringify({ data: tempMap, ts: Date.now() }));
+          } catch(e) {}
           renderStandings();
         } catch(e) { window._liveScoreFetchInProgress = false; }
       })();
@@ -1568,7 +1594,7 @@ async function init() {
       '<div class="stat-card stat-card-red"><div class="s-label">🔴 Lowest GW Score</div><div class="s-value">' + esc(tickerInsights.lowest.manager) + '<br>GW' + tickerInsights.lowest.gw + ' · ' + tickerInsights.lowest.points + ' pts' + '</div></div>' +
       '<div class="stat-card"><div class="s-label">👑 Biggest Win Margin</div><div class="s-value">' + esc(tickerInsights.biggestMargin.manager) + '<br>GW' + tickerInsights.biggestMargin.gw + ' · ' + tickerInsights.biggestMargin.margin + ' pts' + '</div></div>' +
       '<div class="stat-card"><div class="s-label">💰 Top Money Earned</div><div class="s-value">' + (topMoney ? esc(topMoney.name) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') : '—') + '</div></div>';
-    let html = '<div class="stat-ticker-wrap"><div class="stat-ticker">' + cards + cards + '</div></div>' +
+    let html = (state.historyLoaded ? '<div class="stat-ticker-wrap"><div class="stat-ticker">' + cards + cards + '</div></div>' : '') +
       '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:right;">' +
         (state.isLive
           ? '<span style="color:var(--red);margin-right:8px;">● Live scores</span>'
@@ -2462,6 +2488,11 @@ async function init() {
 
     _chipCache[gw] = chips;
     _captainCache[gw] = captains;
+    // Persist to localStorage for hard refresh survival
+    try {
+      localStorage.setItem('ff_chips_cache_' + gw, JSON.stringify(chips));
+      localStorage.setItem('ff_captains_cache_' + gw, JSON.stringify(captains));
+    } catch(e) {}
     return chips;
   }
 
@@ -4402,6 +4433,13 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         window._liveScoreFetchInProgress = false;
         Object.keys(_chipCache).forEach(k => delete _chipCache[k]);
         Object.keys(_captainCache).forEach(k => delete _captainCache[k]);
+        // Clear old GW caches from localStorage
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('ff_chips_cache_') || key.startsWith('ff_captains_cache_') || key.startsWith('ff_live_scores_'))) {
+            localStorage.removeItem(key);
+          }
+        }
         state.latestGW = newLatest;
         await loadLeague();
         await loadAllHistory(false);
