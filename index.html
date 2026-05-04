@@ -960,10 +960,9 @@ async function init() {
 
       document.getElementById('page-loader-text').textContent = 'Loading managers...';
       await loadLeague();
-      document.getElementById('page-loader-text').textContent = 'Loading gameweek history...';
-      await loadAllHistory(state.isLive); // bypass cache when live
+
+      // Dismiss loader right after bootstrap+league — show page immediately
       document.getElementById('page-loader-text').textContent = 'Almost ready...';
-      await loadGuinnessDebts();
 
       // Populate GW callout
       const callout = document.getElementById('gw-callout');
@@ -1052,30 +1051,32 @@ async function init() {
       // Hide gw-bar if on standings tab
       const activeTabOnLoad = document.querySelector('.tab-btn.active')?.dataset.tab;
       const gwBarEl = document.querySelector('.gw-bar');
-      if (gwBarEl && activeTabOnLoad === 'standings') {
-        gwBarEl.classList.add('hidden');
-      }
+      if (gwBarEl && activeTabOnLoad === 'standings') gwBarEl.classList.add('hidden');
 
       // Restore tab + GW from URL hash
       const activeTab = restoreHashState();
 
+      // Render immediately with whatever data we have (managers list, no history yet)
       renderStandings();
       if (activeTab === 'weekly') {
         const gwVal = document.getElementById('gw-select').value;
-        if (gwVal === 'live') renderLive();
-        else if (gwVal === 'preview') renderPreview();
+        if (gwVal === 'preview') renderPreview();
         else renderWeekly(parseInt(gwVal));
       } else if (activeTab === 'cup') {
         loadCupData();
       } else if (activeTab === 'recap') {
         setupRecapTab();
-      } else {
-        // Default to weekly tab initial state if on standings
-        if (state.isLive) {
-          // don't auto-switch, just prep the GW selector
-        }
       }
-      if (activeTab === 'recap') setupRecapTab();
+
+      // Load history + guinness in background, then re-render with full data
+      loadGuinnessDebts();
+      await loadAllHistory(state.isLive);
+      renderStandings();
+      if (activeTab === 'weekly') {
+        const gwVal = document.getElementById('gw-select').value;
+        if (gwVal === 'preview') renderPreview();
+        else renderWeekly(parseInt(gwVal));
+      }
 
     } catch (e) {
       const errHtml = `<div class="error-state">Failed to load league data — the FPL API or CORS proxy may be temporarily unavailable.<small>${e.message}</small><br><br>Try hitting ↺ Refresh, or wait a moment and reload the page.</div>`;
@@ -1167,8 +1168,10 @@ async function init() {
         }
       }));
       const done = Math.min(i + BATCH, managers.length);
-      const el = document.getElementById('page-loader-text');
-      if (el) el.textContent = 'Loading manager history... (' + done + '/' + managers.length + ')';
+      // Re-render standings with partial data so user sees progress
+      if (document.getElementById('standings-content') && done < managers.length) {
+        renderStandings();
+      }
     }
 
     // Save to cache
@@ -1345,41 +1348,44 @@ async function init() {
 
     const currentGW = state.isLive ? state.liveGW : state.latestGW;
 
-    // Show loading state while fetching chips/captains
+    // If chips not cached yet, fetch in background and re-render when done
     if (!_chipCache[currentGW]) {
-      document.getElementById('standings-content').innerHTML =
-        '<div class="loading-state"><span class="spinner"></span>Loading GW' + currentGW + ' data...</div>';
+      fetchChipsForGW(currentGW).then(() => {
+        renderStandings();
+      }).catch(() => {});
     }
-
-    // Always wait for chips/captains before rendering
-    await fetchChipsForGW(currentGW).catch(() => {});
     const standingsChips = _chipCache[currentGW] || {};
     const standingsCaptains = _captainCache[currentGW] || {};
 
-    // If live, fetch real-time player scores — use cache on re-renders (sorts)
+    // If live, fetch real-time player scores — use cache, fire in background if missing
     if (!window._liveScoreCacheGW) window._liveScoreCacheGW = {};
     let liveScoreMap = window._liveScoreCacheGW[currentGW] || {};
-    if (state.isLive && !window._liveScoreCacheGW[currentGW]) {
-      try {
-        const liveData = await fetchFPL('event/' + currentGW + '/live/');
-        const playerPts = {};
-        liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; });
-
-        const BATCH = 5;
-        for (let i = 0; i < state.managers.length; i += BATCH) {
-          const batch = state.managers.slice(i, i + BATCH);
-          await Promise.all(batch.map(async m => {
-            try {
-              const picks = await fetchFPL('entry/' + m.id + '/event/' + currentGW + '/picks/');
-              let rawPts = 0;
-              picks.picks.forEach(p => { rawPts += (playerPts[p.element] || 0) * p.multiplier; });
-              const hit = picks.entry_history?.event_transfers_cost || 0;
-              liveScoreMap[m.id] = { rawPts, netPts: rawPts - hit, hit };
-            } catch(e) {}
-          }));
-        }
-        window._liveScoreCacheGW[currentGW] = liveScoreMap;
-      } catch(e) {}
+    if (state.isLive && !window._liveScoreCacheGW[currentGW] && !window._liveScoreFetchInProgress) {
+      window._liveScoreFetchInProgress = true;
+      (async () => {
+        try {
+          const liveData = await fetchFPL('event/' + currentGW + '/live/');
+          const playerPts = {};
+          liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; });
+          const tempMap = {};
+          const BATCH = 5;
+          for (let i = 0; i < state.managers.length; i += BATCH) {
+            const batch = state.managers.slice(i, i + BATCH);
+            await Promise.all(batch.map(async m => {
+              try {
+                const picks = await fetchFPL('entry/' + m.id + '/event/' + currentGW + '/picks/');
+                let rawPts = 0;
+                picks.picks.forEach(p => { rawPts += (playerPts[p.element] || 0) * p.multiplier; });
+                const hit = picks.entry_history?.event_transfers_cost || 0;
+                tempMap[m.id] = { rawPts, netPts: rawPts - hit, hit };
+              } catch(e) {}
+            }));
+          }
+          window._liveScoreCacheGW[currentGW] = tempMap;
+          window._liveScoreFetchInProgress = false;
+          renderStandings();
+        } catch(e) { window._liveScoreFetchInProgress = false; }
+      })();
     }
 
     const rows = state.managers.map(m => {
@@ -1542,14 +1548,15 @@ async function init() {
     let mostTransOut = window._transferCache[transCacheKey]?.out || null;
 
     // If not cached, fetch in background after render
-    const needsTransferFetch = !window._transferCache[transCacheKey] && gwLabel > 1;
+    const transferFetchInProgress = window._transferFetchInProgress === transCacheKey;
+    const needsTransferFetch = !window._transferCache[transCacheKey] && gwLabel > 1 && !transferFetchInProgress;
 
     const topMoney = topMoneyManager ? state.managers.find(m => m.id === parseInt(topMoneyManager, 10)) : null;
     const topMoneyValue = topMoneyManager ? stats[topMoneyManager].moneyWon : 0;
 
     const cards =
-      (mostTransIn ? '<div class="stat-card stat-card-green" data-widget="trans-in"><div class="s-label">📈 GW' + gwLabel + ' Most Transferred In</div><div class="s-value">' + esc(mostTransIn.web_name) + '<br>' + mostTransIn.transfers_in_event.toLocaleString() + ' transfers' + '</div></div>' : '<div class="stat-card stat-card-green" data-widget="trans-in"><div class="s-label">📈 GW' + gwLabel + ' Most Transferred In</div><div class="s-value">Loading...</div></div>') +
-      (mostTransOut ? '<div class="stat-card stat-card-red" data-widget="trans-out"><div class="s-label">📉 GW' + gwLabel + ' Most Transferred Out</div><div class="s-value">' + esc(mostTransOut.web_name) + '<br>' + mostTransOut.transfers_out_event.toLocaleString() + ' transfers' + '</div></div>' : '<div class="stat-card stat-card-red" data-widget="trans-out"><div class="s-label">📉 GW' + gwLabel + ' Most Transferred Out</div><div class="s-value">Loading...</div></div>') +
+      (mostTransIn ? '<div class="stat-card stat-card-green" data-widget="trans-in"><div class="s-label">📈 GW' + gwLabel + ' Most Transferred In</div><div class="s-value">' + esc(mostTransIn.web_name) + '<br>' + mostTransIn.transfers_in_event.toLocaleString() + ' transfers</div></div>' : '') +
+      (mostTransOut ? '<div class="stat-card stat-card-red" data-widget="trans-out"><div class="s-label">📉 GW' + gwLabel + ' Most Transferred Out</div><div class="s-value">' + esc(mostTransOut.web_name) + '<br>' + mostTransOut.transfers_out_event.toLocaleString() + ' transfers</div></div>' : '') +
       (mostCaptained ? '<div class="stat-card stat-card-gold"><div class="s-label">©️ GW' + gwLabel + ' Most Captained</div><div class="s-value">' + esc(mostCaptained.name) + '<br>' + mostCaptained.count + ' mgrs</div></div>' : '') +
       (biggestMoverUp ? '<div class="stat-card stat-card-green"><div class="s-label">🚀 GW' + gwLabel + ' Biggest Mover Up</div><div class="s-value">' + esc(biggestMoverUp.name) + (biggestMoverUp.change !== 0 ? '<br>▲' + biggestMoverUp.change + ' spots' : '') + '</div></div>' : '') +
       (biggestMoverDown ? '<div class="stat-card stat-card-red"><div class="s-label">📉 GW' + gwLabel + ' Biggest Mover Down</div><div class="s-value">' + esc(biggestMoverDown.name) + (biggestMoverDown.change !== 0 ? '<br>▼' + Math.abs(biggestMoverDown.change) + ' spots' : '') + '</div></div>' : '') +
@@ -1685,6 +1692,7 @@ async function init() {
 
     // Background fetch for transfer data if not cached yet — updates ticker after load
     if (needsTransferFetch) {
+      window._transferFetchInProgress = transCacheKey;
       (async () => {
         try {
           const transIn = {}, transOut = {};
@@ -1706,16 +1714,26 @@ async function init() {
           const ti = topIn ? { web_name: state.bootstrapPlayers[topIn[0]] || 'Unknown', transfers_in_event: topIn[1] } : null;
           const to = topOut ? { web_name: state.bootstrapPlayers[topOut[0]] || 'Unknown', transfers_out_event: topOut[1] } : null;
           window._transferCache[transCacheKey] = { in: ti, out: to };
-          // Only update the ticker HTML directly — don't re-render the whole table
+          window._transferFetchInProgress = null;
+          // Insert transfer cards at front of ticker without disturbing anything else
           const tickerEl = document.querySelector('.stat-ticker');
-          if (tickerEl) {
+          if (tickerEl && ti) {
             const savedOffset = window.__fantasiTickerOffset || 0;
             if (window.__fantasiTickerCleanup) window.__fantasiTickerCleanup();
-            // Update just the first two cards (transferred in/out)
-            const inCard = tickerEl.querySelector('[data-widget="trans-in"]');
-            const outCard = tickerEl.querySelector('[data-widget="trans-out"]');
-            if (inCard && ti) inCard.querySelector('.s-value').innerHTML = esc(ti.web_name) + '<br>' + ti.transfers_in_event + ' transfers';
-            if (outCard && to) outCard.querySelector('.s-value').innerHTML = esc(to.web_name) + '<br>' + to.transfers_out_event + ' transfers';
+            // Build new card HTML
+            const inHtml = '<div class="stat-card stat-card-green" data-widget="trans-in"><div class="s-label">📈 GW' + gwLabel + ' Most Transferred In</div><div class="s-value">' + esc(ti.web_name) + '<br>' + ti.transfers_in_event + ' transfers</div></div>';
+            const outHtml = to ? '<div class="stat-card stat-card-red" data-widget="trans-out"><div class="s-label">📉 GW' + gwLabel + ' Most Transferred Out</div><div class="s-value">' + esc(to.web_name) + '<br>' + to.transfers_out_event + ' transfers</div></div>' : '';
+            // Find the midpoint (ticker is doubled) and insert before both halves
+            const allCards = [...tickerEl.children];
+            const half = Math.floor(allCards.length / 2);
+            const tempIn1 = document.createElement('div'); tempIn1.innerHTML = inHtml; 
+            const tempOut1 = document.createElement('div'); tempOut1.innerHTML = outHtml;
+            const tempIn2 = document.createElement('div'); tempIn2.innerHTML = inHtml;
+            const tempOut2 = document.createElement('div'); tempOut2.innerHTML = outHtml;
+            tickerEl.insertBefore(tempIn1.firstChild, allCards[0]);
+            if (outHtml) tickerEl.insertBefore(tempOut1.firstChild, tickerEl.children[1]);
+            tickerEl.insertBefore(tempIn2.firstChild, allCards[half] || null);
+            if (outHtml) tickerEl.insertBefore(tempOut2.firstChild, tickerEl.children[half + 2] || null);
             makeTickerInteractive(tickerEl, savedOffset);
             requestAnimationFrame(fitStatCards);
           }
@@ -4370,6 +4388,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     state.workingProxy = null;
     window._liveScoreCacheGW = {};
     window._transferCache = {};
+    window._liveScoreFetchInProgress = false;
     try {
       // Re-fetch bootstrap to pick up any new gameweeks
       document.getElementById('page-loader-text').textContent = 'Loading league data...';
