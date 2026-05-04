@@ -4383,42 +4383,38 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const btn = document.getElementById('btn-refresh');
     btn.disabled = true;
     btn.textContent = 'Refreshing...';
-    state.gwHistory = {};
-    state.managers = [];
     state.workingProxy = null;
-    window._liveScoreCacheGW = {};
-    window._transferCache = {};
-    window._liveScoreFetchInProgress = false;
+
     try {
-      // Re-fetch bootstrap to pick up any new gameweeks
-      document.getElementById('page-loader-text').textContent = 'Loading league data...';
+      // Re-fetch bootstrap to check if GW has changed
       const bootstrap = await fetchFPL('bootstrap-static/');
-      state.bootstrap = bootstrap;
       bootstrap.elements.forEach(p => { state.bootstrapPlayers[p.id] = p.web_name; });
       const finished = bootstrap.events.filter(e => e.finished || e.data_checked);
       const newLatest = finished.length > 0 ? finished[finished.length - 1].id : 1;
+      const gwChanged = newLatest !== state.latestGW;
 
-      // Rebuild GW dropdown if a new gameweek has appeared
-      if (newLatest !== state.latestGW) {
+      if (gwChanged) {
+        // New GW — clear everything and do a full reload
+        state.gwHistory = {};
+        state.managers = [];
+        window._liveScoreCacheGW = {};
+        window._transferCache = {};
+        window._liveScoreFetchInProgress = false;
+        Object.keys(_chipCache).forEach(k => delete _chipCache[k]);
+        Object.keys(_captainCache).forEach(k => delete _captainCache[k]);
         state.latestGW = newLatest;
-        const gwSel = document.getElementById('gw-select');
-        gwSel.innerHTML = '';
-        for (let i = state.latestGW; i >= 1; i--) {
-          const opt = document.createElement('option');
-          opt.value = i;
-          opt.textContent = 'GW ' + i;
-          if (i === state.latestGW) opt.selected = true;
-          gwSel.appendChild(opt);
-        }
+        await loadLeague();
+        await loadAllHistory(false);
+        await loadGuinnessDebts();
+      } else {
+        // Same GW — only live scores can change (no transfers/chips mid-week)
+        const currentGW = state.isLive ? state.liveGW : state.latestGW;
+        if (window._liveScoreCacheGW) delete window._liveScoreCacheGW[currentGW];
+        window._liveScoreFetchInProgress = false;
+        // Live scores will be re-fetched automatically by renderStandings
       }
 
-      document.getElementById('page-loader-text').textContent = 'Loading managers...';
-      await loadLeague();
-      await loadAllHistory(true); // force refresh, bypass cache
-      document.getElementById('page-loader-text').textContent = 'Almost ready...';
-      await loadGuinnessDebts();
-      document.getElementById('header-meta').textContent = '';
-      // Rebuild dropdown in case GW state changed
+      // Rebuild GW dropdown
       const gwSel = document.getElementById('gw-select');
       const currentVal = gwSel.value;
       gwSel.innerHTML = '';
@@ -4429,20 +4425,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         if (String(i) === currentVal) opt.selected = true;
         gwSel.appendChild(opt);
       }
-      // Don't add live GW to selector while in progress
-      if (state.showPreview) {
-        const prevOpt = document.createElement('option');
-        prevOpt.value = 'preview';
-        prevOpt.textContent = 'GW ' + state.nextGW + ' Preview';
-        if (currentVal === 'preview') prevOpt.selected = true;
-        gwSel.appendChild(prevOpt);
-      }
 
       loadLastUpdated();
       renderStandings();
       const refreshVal = gwSel.value;
       if (refreshVal === 'preview') renderPreview();
-      else if (refreshVal === 'live') renderLive();
       else renderWeekly(parseInt(refreshVal));
     } catch (e) {
       document.getElementById('standings-content').innerHTML =
