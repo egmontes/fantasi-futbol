@@ -958,6 +958,9 @@ async function init() {
           const fixtures = await fetchFPL('fixtures/?event=' + currentGWEvent.id);
           if (fixtures.length > 0 && fixtures.every(f => f.finished_provisional)) {
             state.isLive = false;
+            // Treat this GW as complete — update latestGW so data shows correctly
+            state.latestGW = currentGWEvent.id;
+            state.currentGW = state.latestGW;
           }
         } catch(e) {} // fail silently — stay live if fixtures can't be fetched
       }
