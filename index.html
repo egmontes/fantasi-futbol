@@ -1881,21 +1881,66 @@ async function init() {
 
             // Get player scores
             let playerPts = {};
+            let playerStats = {};
+            let fixtureMap = {}; // teamId -> fixture
             if (state.isLive && window._liveScoreCacheGW?.[drawerGW]) {
               Object.entries(window._liveScoreCacheGW[drawerGW]).forEach(([pid, s]) => {
                 // _liveScoreCacheGW stores per-manager, not per-player
               });
-              // Fetch live player stats directly
+              // Fetch live player stats and fixtures
               try {
-                const liveData = await fetchFPL('event/' + drawerGW + '/live/');
-                liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; });
+                const [liveData, fixtureData] = await Promise.all([
+                  fetchFPL('event/' + drawerGW + '/live/'),
+                  fetchFPL('fixtures/?event=' + drawerGW)
+                ]);
+                liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; playerStats[e.id] = e.stats; });
+                fixtureData.forEach(f => {
+                  if (f.started) {
+                    fixtureMap[f.team_h] = f;
+                    fixtureMap[f.team_a] = f;
+                  }
+                });
               } catch(e) {}
             } else {
               try {
-                const liveData = await fetchFPL('event/' + drawerGW + '/live/');
-                liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; });
+                const [liveData, fixtureData] = await Promise.all([
+                  fetchFPL('event/' + drawerGW + '/live/'),
+                  fetchFPL('fixtures/?event=' + drawerGW)
+                ]);
+                liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; playerStats[e.id] = e.stats; });
+                fixtureData.forEach(f => {
+                  if (f.started) {
+                    fixtureMap[f.team_h] = f;
+                    fixtureMap[f.team_a] = f;
+                  }
+                });
               } catch(e) {}
             }
+
+            // Build emoji badge string from player stats
+            const getEmojis = (elementId) => {
+              const s = playerStats[elementId];
+              const el = (state.bootstrapElements || []).find(e => e.id === elementId);
+              const pos = el ? el.element_type : 0; // 1=GK, 2=DEF, 3=MID, 4=FWD
+              if (!s) return '';
+              let badges = '';
+              for (let i = 0; i < (s.goals_scored || 0); i++) badges += '⚽';
+              for (let i = 0; i < (s.assists || 0); i++) badges += '🎁';
+              if ((s.clean_sheets || 0) > 0 && pos >= 1 && pos <= 3) badges += '🧱';
+              for (let i = 0; i < (s.yellow_cards || 0); i++) badges += '🟨';
+              for (let i = 0; i < (s.red_cards || 0); i++) badges += '🟥';
+              // ⚔️ per 10 defcons for DEF/GK, per 12 for MID/FWD
+              const defcons = s.clearances_blocks_interceptions || 0;
+              const defThreshold = pos <= 2 ? 10 : 12;
+              const swords = Math.floor(defcons / defThreshold);
+              for (let i = 0; i < swords; i++) badges += '⚔️';
+              // Every 3 saves = 1pt, show one glove per save point earned
+              const savePts = Math.floor((s.saves || 0) / 3);
+              for (let i = 0; i < savePts; i++) badges += '🧤';
+              const bonus = s.bonus || 0;
+              const bonusStr = bonus > 0 ? '<span style="font-size:9px;color:var(--amber);font-family:var(--font-mono);margin-left:2px;">+' + bonus + '</span>' : '';
+              return badges ? { badges, bonusStr } : { badges: '', bonusStr };
+            };
 
             const startingPicks = picks.picks.filter(p => p.position <= 11);
             const benchPicks = picks.picks.filter(p => p.position > 11);
@@ -1905,10 +1950,42 @@ async function init() {
               const pts = playerPts[p.element] ?? '—';
               const effectivePts = isBench ? pts : (pts !== '—' ? pts * p.multiplier : '—');
               const capLabel = p.multiplier === 3 ? ' (TC)' : p.multiplier === 2 ? ' (C)' : '';
-              const nameColor = isBench ? 'var(--text3)' : (pts !== '—' && pts > 0 ? 'var(--text)' : 'var(--text3)');
+              const mins = playerStats[p.element]?.minutes ?? null;
+              const played = mins !== null && mins > 0;
+              const nameColor = isBench ? 'var(--text3)' : (played ? 'var(--text)' : 'var(--text3)');
               const ptsColor = isBench ? 'var(--text3)' : (effectivePts !== '—' && effectivePts > 0 ? 'var(--green)' : 'var(--text3)');
-              return '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--border);">' +
-                '<span style="color:' + nameColor + ';font-size:12px;">' + esc(name) + '<span style="color:var(--amber);font-size:10px;">' + capLabel + '</span></span>' +
+              const { badges: emojis, bonusStr } = getEmojis(p.element);
+              const el = (state.bootstrapElements || []).find(e => e.id === p.element);
+              const teamId = el ? el.team : null;
+              const teamEl = teamId && state.bootstrap ? (state.bootstrap.teams || []).find(t => t.id === teamId) : null;
+              const teamName = teamEl ? teamEl.short_name : '';
+              // Build score string
+              let scoreStr = '';
+              if (teamId && fixtureMap[teamId]) {
+                const f = fixtureMap[teamId];
+                if (f.team_h_score !== null && f.team_a_score !== null) {
+                  const isHome = f.team_h === teamId;
+                  const myScore = isHome ? f.team_h_score : f.team_a_score;
+                  const oppScore = isHome ? f.team_a_score : f.team_h_score;
+                  const result = myScore > oppScore ? 'var(--green)' : myScore < oppScore ? 'var(--red)' : 'var(--text3)';
+                  scoreStr = '<span style="color:' + result + ';font-family:var(--font-mono);">' + myScore + '-' + oppScore + '</span>';
+                }
+              }
+              const subLine = (teamName || mins !== null || scoreStr) ?
+                '<div style="font-size:10px;color:var(--text3);margin-top:1px;display:flex;gap:4px;align-items:center;">' +
+                (teamName ? '<span>' + esc(teamName) + '</span>' : '') +
+                (mins !== null ? '<span>· ' + mins + ' min</span>' : '') +
+                (scoreStr ? '<span>· ' + scoreStr + '</span>' : '') +
+                '</div>' : '';
+              return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">' +
+                '<div>' +
+                '<div style="color:' + nameColor + ';font-size:12px;">' + esc(name) +
+                '<span style="color:var(--theme);font-size:10px;">' + capLabel + '</span>' +
+                (emojis ? '<span style="font-size:10px;margin-left:4px;letter-spacing:2px;">' + emojis + '</span>' : '') +
+                bonusStr +
+                '</div>' +
+                subLine +
+                '</div>' +
                 '<span style="font-family:var(--font-mono);font-size:12px;color:' + ptsColor + ';min-width:30px;text-align:right;">' + effectivePts + '</span>' +
                 '</div>';
             };
