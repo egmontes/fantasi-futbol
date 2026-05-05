@@ -280,11 +280,13 @@
       left: 0;
       background: var(--bg);
       z-index: 3;
+      min-width: 52px;
+      width: 52px;
     }
     .table-outer td:nth-child(2),
     .table-outer th:nth-child(2) {
       position: sticky;
-      left: 36px;
+      left: 52px;
       background: var(--bg);
       z-index: 3;
     }
@@ -308,13 +310,6 @@
       width: 6px;
       background: linear-gradient(to right, rgba(0,0,0,0.15), transparent);
       pointer-events: none;
-    }
-    .table-outer th:nth-child(2),
-    .table-outer td:nth-child(2) {
-      position: sticky;
-      left: 36px;
-      background: var(--bg);
-      z-index: 3;
     }
 
     table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
@@ -1624,7 +1619,7 @@ async function init() {
         '</div>' +
       '<div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
       '<thead><tr>' +
-      '<th style="width:44px">Rank</th>' +
+      '<th style="width:52px">Rank</th>' +
       '<th ' + thClass('name') + ' data-col="name">Manager</th>' +
       '<th style="width:70px" ' + thClass('gwpts') + ' data-col="gwpts">GW' + (state.isLive ? state.liveGW : state.latestGW) + ' Pts</th>' +
       (state.isLive ? '<th style="width:60px" title="Players played / total">Played</th>' : '') +
@@ -2572,7 +2567,7 @@ async function init() {
         '</div>' +
         '<div class="table-outer"><div class="table-wrap"><table id="weekly-table">' +
         '<thead><tr>' +
-        '<th style="width:44px">Rank</th>' +
+        '<th style="width:52px">Rank</th>' +
         '<th ' + wthClass('name') + ' data-col="name">Manager</th>' +
         '<th style="width:70px" ' + wthClass('gwpts') + ' data-col="gwpts">GW pts</th>' +
         '<th style="width:90px" ' + wthClass('captain') + ' data-col="captain">Captain</th>' +
