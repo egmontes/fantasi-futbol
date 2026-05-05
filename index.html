@@ -1100,6 +1100,9 @@ async function init() {
         else renderWeekly(parseInt(gwVal));
       }
 
+      // Prefetch picks for current GW in background so drawer opens instantly
+      prefetchPicks(state.isLive ? state.liveGW : state.latestGW);
+
     } catch (e) {
       const errHtml = `<div class="error-state">Failed to load league data — the FPL API or CORS proxy may be temporarily unavailable.<small>${e.message}</small><br><br>Try hitting ↺ Refresh, or wait a moment and reload the page.</div>`;
       document.getElementById('standings-content').innerHTML = errHtml;
@@ -1805,6 +1808,25 @@ async function init() {
     });
   }
 
+  // Cache for picks per manager per GW
+  if (!window._picksCache) window._picksCache = {};
+
+  async function prefetchPicks(gw) {
+    if (!gw) return;
+    const BATCH = 5;
+    for (let i = 0; i < state.managers.length; i += BATCH) {
+      const batch = state.managers.slice(i, i + BATCH);
+      await Promise.all(batch.map(async m => {
+        const key = m.id + '_' + gw;
+        if (window._picksCache[key]) return; // already cached
+        try {
+          const picks = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/');
+          window._picksCache[key] = picks;
+        } catch(e) {}
+      }));
+    }
+  }
+
   function initDrawer(tableId, gw) {
     let _openDrawerRow = null;
     const table = document.getElementById(tableId);
@@ -1851,10 +1873,13 @@ async function init() {
         _openDrawerRow = tr;
         requestAnimationFrame(syncDrawerScroll);
 
-        // Fetch picks + live/historical scores
+        // Fetch picks + live/historical scores (use cache if available)
         (async () => {
           try {
-            const picks = await fetchFPL('entry/' + managerId + '/event/' + drawerGW + '/picks/');
+            const cacheKey = managerId + '_' + drawerGW;
+            const picks = window._picksCache?.[cacheKey] || await fetchFPL('entry/' + managerId + '/event/' + drawerGW + '/picks/');
+            if (!window._picksCache) window._picksCache = {};
+            window._picksCache[cacheKey] = picks;
             const chip = picks.active_chip || null;
             const isBB = chip === 'bboost';
 
@@ -4463,6 +4488,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         window._liveScoreCacheGW = {};
         window._transferCache = {};
         window._liveScoreFetchInProgress = false;
+        window._picksCache = {};
         Object.keys(_chipCache).forEach(k => delete _chipCache[k]);
         Object.keys(_captainCache).forEach(k => delete _captainCache[k]);
         // Clear old GW caches from localStorage
