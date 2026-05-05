@@ -195,7 +195,7 @@
     }
     .stat-card {
       background: var(--bg2);
-      border: 1px solid var(--border);
+      border: 2px solid var(--theme-border);
       border-radius: 8px;
       padding: 0.7rem;
       flex-shrink: 0;
@@ -208,32 +208,32 @@
       overflow: visible;
     }
     .stat-card.stat-card-green {
-      background: rgba(22, 101, 52, 0.18);
-      border-color: rgba(74, 222, 128, 0.25);
+      background: var(--bg2);
+      border-color: var(--theme-border);
     }
     .stat-card.stat-card-green .s-label,
     .stat-card.stat-card-green .s-value {
       color: var(--green);
     }
     .stat-card.stat-card-red {
-      background: rgba(139, 17, 38, 0.16);
-      border-color: rgba(248, 113, 113, 0.25);
+      background: var(--bg2);
+      border-color: var(--theme-border);
     }
     .stat-card.stat-card-red .s-label,
     .stat-card.stat-card-red .s-value {
       color: #f8c4c8;
     }
     .stat-card.stat-card-gold {
-      background: var(--amber-dim);
-      border-color: rgba(251,191,36,0.3);
+      background: var(--bg2);
+      border-color: var(--theme-border);
     }
     .stat-card.stat-card-gold .s-label,
     .stat-card.stat-card-gold .s-value {
       color: var(--amber);
     }
     .stat-card.stat-card-guinness {
-      background: #0a0a0a;
-      border-color: rgba(212,175,55,0.4);
+      background: var(--bg2);
+      border-color: var(--theme-border);
     }
     .stat-card.stat-card-guinness .s-label,
     .stat-card.stat-card-guinness .s-value {
@@ -1765,28 +1765,8 @@ async function init() {
           const to = topOut ? { web_name: state.bootstrapPlayers[topOut[0]] || 'Unknown', transfers_out_event: topOut[1] } : null;
           window._transferCache[transCacheKey] = { in: ti, out: to };
           window._transferFetchInProgress = null;
-          // Insert transfer cards at front of ticker without disturbing anything else
-          const tickerEl = document.querySelector('.stat-ticker');
-          if (tickerEl && ti) {
-            const savedOffset = window.__fantasiTickerOffset || 0;
-            if (window.__fantasiTickerCleanup) window.__fantasiTickerCleanup();
-            // Build new card HTML
-            const inHtml = '<div class="stat-card stat-card-green" data-widget="trans-in"><div class="s-label">📈 GW' + gwLabel + ' Most Transferred In</div><div class="s-value">' + esc(ti.web_name) + '<br>' + ti.transfers_in_event + ' transfers</div></div>';
-            const outHtml = to ? '<div class="stat-card stat-card-red" data-widget="trans-out"><div class="s-label">📉 GW' + gwLabel + ' Most Transferred Out</div><div class="s-value">' + esc(to.web_name) + '<br>' + to.transfers_out_event + ' transfers</div></div>' : '';
-            // Find the midpoint (ticker is doubled) and insert before both halves
-            const allCards = [...tickerEl.children];
-            const half = Math.floor(allCards.length / 2);
-            const tempIn1 = document.createElement('div'); tempIn1.innerHTML = inHtml; 
-            const tempOut1 = document.createElement('div'); tempOut1.innerHTML = outHtml;
-            const tempIn2 = document.createElement('div'); tempIn2.innerHTML = inHtml;
-            const tempOut2 = document.createElement('div'); tempOut2.innerHTML = outHtml;
-            tickerEl.insertBefore(tempIn1.firstChild, allCards[0]);
-            if (outHtml) tickerEl.insertBefore(tempOut1.firstChild, tickerEl.children[1]);
-            tickerEl.insertBefore(tempIn2.firstChild, allCards[half] || null);
-            if (outHtml) tickerEl.insertBefore(tempOut2.firstChild, tickerEl.children[half + 2] || null);
-            makeTickerInteractive(tickerEl, savedOffset);
-            requestAnimationFrame(fitStatCards);
-          }
+          // Re-render standings to show transfer cards — fastest and cleanest approach
+          renderStandings();
         } catch(e) {}
       })();
     }
