@@ -1488,6 +1488,15 @@ async function init() {
 
     const thClass = c => 'class="sortable' + (col === c ? ' sort-' + standingsSort.dir : '') + '"';
 
+    // Compute season rank by total pts (independent of current sort)
+    const seasonRankMap = {};
+    const byTotal = [...rows].sort((a, b) => b.total - a.total);
+    let sRank = 1;
+    byTotal.forEach((m, i) => {
+      if (i > 0 && byTotal[i].total < byTotal[i-1].total) sRank = i + 1;
+      seasonRankMap[m.id] = sRank;
+    });
+
     // Build basic ticker cards immediately (no expensive fetches)
     const tickerInsights = computeTickerInsights();
     const topMoneyManager = Object.keys(stats).reduce((bestId, id) => {
@@ -1605,7 +1614,7 @@ async function init() {
         '</div>' +
       '<div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
       '<thead><tr>' +
-      '<th style="width:36px">#</th>' +
+      '<th style="width:44px">Rank</th>' +
       '<th ' + thClass('name') + ' data-col="name">Manager</th>' +
       '<th style="width:70px" ' + thClass('gwpts') + ' data-col="gwpts">GW' + (state.isLive ? state.liveGW : state.latestGW) + ' Pts</th>' +
       (state.isLive ? '<th style="width:60px" title="Players played / total">Played</th>' : '') +
@@ -1654,6 +1663,7 @@ async function init() {
             : '<span class="badge-zero">—</span>';
       html += '<tr class="' + rowCls + '">' +
         '<td>' + (() => {
+          const rank = seasonRankMap[m.id] || pos;
           const change = rankChangeMap[m.id];
           let indicator = '';
           if (!allGWZero && change !== undefined && change !== 0) {
@@ -1665,7 +1675,7 @@ async function init() {
               '<span style="color:' + color + ';font-size:8px;line-height:1;font-family:var(--font-mono);">' + diff + '</span>' +
               '</div>';
           }
-          return '<div style="display:flex;align-items:center;"><span class="rank-num">' + pos + '</span>' + indicator + '</div>';
+          return '<div style="display:flex;align-items:center;"><span class="rank-num">' + rank + '</span>' + indicator + '</div>';
         })() + '</td>' +
         '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + '<div style="display:flex;gap:2px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + buildChipBadges(m.id, m.chip, currentGW) + '</div></td>' +
         '<td>' + (() => {
@@ -2121,7 +2131,7 @@ async function init() {
             if (change > 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">▲</span><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">' + change + '</span></div>';
             else if (change < 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">▼</span><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">' + Math.abs(change) + '</span></div>';
           }
-          return '<div style="display:flex;align-items:center;"><span class="rank-num">' + (idx + 1) + '</span>' + indicator + '</div>';
+          return '<div style="display:flex;align-items:center;"><span class="rank-num">' + gwSeasonRank + '</span>' + indicator + '</div>';
         })() + '</td>' +
         '<td><div class="m-name" style="' + kickedStyle + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div></td>' +
         '<td>' + (() => {
@@ -2552,7 +2562,7 @@ async function init() {
         '</div>' +
         '<div class="table-outer"><div class="table-wrap"><table id="weekly-table">' +
         '<thead><tr>' +
-        '<th style="width:36px">#</th>' +
+        '<th style="width:44px">Rank</th>' +
         '<th ' + wthClass('name') + ' data-col="name">Manager</th>' +
         '<th style="width:70px" ' + wthClass('gwpts') + ' data-col="gwpts">GW pts</th>' +
         '<th style="width:90px" ' + wthClass('captain') + ' data-col="captain">Captain</th>' +
@@ -2596,6 +2606,21 @@ async function init() {
         const missedCell = missedThisGW
           ? '<span style="color:var(--red);font-size:16px;font-weight:bold;">✗</span>'
           : '<span class="badge-zero">—</span>';
+        // Season rank at this GW
+        const gwSeasonRank = (() => {
+          const sorted = state.managers.map(m2 => {
+            const hist = state.gwHistory[m2.id] || [];
+            const entry = [...hist].filter(h => h.event <= gw).sort((a, b) => b.event - a.event)[0];
+            return { id: m2.id, total: entry ? entry.total_points : 0 };
+          }).sort((a, b) => b.total - a.total);
+          let r = 1;
+          for (let i = 0; i < sorted.length; i++) {
+            if (i > 0 && sorted[i].total < sorted[i-1].total) r = i + 1;
+            if (sorted[i].id === m.id) return r;
+          }
+          return idx + 1;
+        })();
+
         html += '<tr class="' + rowCls + '">' +
           '<td>' + (() => {
           let indicator = '';
@@ -2619,7 +2644,7 @@ async function init() {
             if (change > 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">▲</span><span style="color:var(--green);font-size:8px;line-height:1;font-family:var(--font-mono);">' + change + '</span></div>';
             else if (change < 0) indicator = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin-left:4px;"><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">▼</span><span style="color:var(--red);font-size:8px;line-height:1;font-family:var(--font-mono);">' + Math.abs(change) + '</span></div>';
           }
-          return '<div style="display:flex;align-items:center;"><span class="rank-num">' + (idx + 1) + '</span>' + indicator + '</div>';
+          return '<div style="display:flex;align-items:center;"><span class="rank-num">' + gwSeasonRank + '</span>' + indicator + '</div>';
         })() + '</td>' +
           '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + '<div style="display:flex;gap:2px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + buildChipBadges(m.id, m.chip, gw) + '</div></td>' +
           '<td><span class="pts-val">' + m.rawPoints + '</span>' + (m.transferCost > 0 ? '<span class="hit-cost">(-' + m.transferCost + ')</span>' : '') + '</td>' +
