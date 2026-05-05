@@ -442,7 +442,7 @@
     /* LOADING / ERROR */
     .loading-state {
       text-align: center;
-      padding: 3rem;
+      padding: 3rem 1.5rem;
       color: var(--text3);
       font-size: 14px;
     }
@@ -1064,6 +1064,7 @@ async function init() {
       // Dismiss page loader
       const pageLoader = document.getElementById('page-loader');
       if (pageLoader) pageLoader.style.display = 'none';
+      requestAnimationFrame(() => updateStickyOffsets());
       // Hide gw-bar if on standings tab
       const activeTabOnLoad = document.querySelector('.tab-btn.active')?.dataset.tab;
       const gwBarEl = document.querySelector('.gw-bar');
@@ -1072,21 +1073,16 @@ async function init() {
       // Restore tab + GW from URL hash
       const activeTab = restoreHashState();
 
-      // Render immediately with whatever data we have (managers list, no history yet)
-      renderStandings();
-      if (activeTab === 'weekly') {
-        const gwVal = document.getElementById('gw-select').value;
-        if (gwVal === 'preview') renderPreview();
-        else renderWeekly(parseInt(gwVal));
-      } else if (activeTab === 'cup') {
-        loadCupData();
-      } else if (activeTab === 'recap') {
-        setupRecapTab();
-      }
+      // Show loading placeholder while history fetches
+      document.getElementById('standings-content').innerHTML =
+        '<div class="loading-state"><span class="spinner"></span>Loading standings...</div>';
+      if (activeTab === 'cup') loadCupData();
+      else if (activeTab === 'recap') setupRecapTab();
 
-      // Load history + guinness in background, then re-render with full data
+      // Load history + guinness in background, then render everything at once
       loadGuinnessDebts();
       await loadAllHistory(state.isLive);
+      state.historyLoaded = true;
       renderStandings();
       if (activeTab === 'weekly') {
         const gwVal = document.getElementById('gw-select').value;
@@ -1138,6 +1134,7 @@ async function init() {
           const hasData = managerIds.every(id => parsed[id] !== undefined);
           if (hasData) {
             state.gwHistory = parsed;
+            state.historyLoaded = true;
             // Restore chipsHistory from cache too
             try {
               const cachedChips = localStorage.getItem(CHIPS_CACHE_KEY);
