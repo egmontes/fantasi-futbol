@@ -346,7 +346,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      border-left: 3px solid var(--green);
+      border-left: 3px solid var(--theme);
       box-sizing: border-box;
     }
     tbody tr.drawer-open td { background: var(--bg2) !important; border-bottom: none; }
@@ -509,8 +509,8 @@
 
     th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
     th.sortable:hover { color: var(--text2); }
-    th.sortable.sort-asc::after { content: ' ↑'; color: var(--green); }
-    th.sortable.sort-desc::after { content: ' ↓'; color: var(--green); }
+    th.sortable.sort-asc::after { content: ' ↑'; color: var(--theme); }
+    th.sortable.sort-desc::after { content: ' ↓'; color: var(--theme); }
 
     /* CUP BRACKET */
     .cup-round { margin-bottom: 2rem; }
@@ -527,9 +527,9 @@
     .cup-match-row + .cup-match-row { border-top: 1px solid var(--border); }
     .cup-match-row.winner { background: rgba(74,222,128,0.06); }
     .cup-match-row.loser { opacity: 0.5; }
-    .cup-match-row.bye { opacity: 0.4; font-style: italic; }
+    .cup-match-row.bye { color: var(--text3); font-style: italic; }
+    .cup-team { font-size: 11px; color: var(--theme); }
     .cup-manager { font-size: 13px; font-weight: 500; flex: 1; }
-    .cup-team { font-size: 11px; color: var(--text3); }
     .cup-pts { font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
     .cup-pts.high { color: var(--green); }
     .cup-winner-badge { font-size: 10px; color: var(--amber); margin-left: 4px; }
@@ -1905,19 +1905,19 @@ async function init() {
               } catch(e) {}
             }
 
-            const startingPicks = picks.picks.filter(p => isBB || p.position <= 11);
-            const benchPicks = picks.picks.filter(p => !isBB && p.position > 11);
+            const startingPicks = picks.picks.filter(p => p.position <= 11);
+            const benchPicks = picks.picks.filter(p => p.position > 11);
 
-            const renderPick = (p) => {
+            const renderPick = (p, isBench = false) => {
               const name = state.bootstrapPlayers[p.element] || ('Player ' + p.element);
               const pts = playerPts[p.element] ?? '—';
-              const effectivePts = pts !== '—' ? pts * p.multiplier : '—';
-              const isCap = p.multiplier > 1;
+              const effectivePts = isBench ? pts : (pts !== '—' ? pts * p.multiplier : '—');
               const capLabel = p.multiplier === 3 ? ' (TC)' : p.multiplier === 2 ? ' (C)' : '';
-              const color = pts !== '—' && pts > 0 ? 'var(--text)' : 'var(--text3)';
+              const nameColor = isBench ? 'var(--text3)' : (pts !== '—' && pts > 0 ? 'var(--text)' : 'var(--text3)');
+              const ptsColor = isBench ? 'var(--text3)' : (effectivePts !== '—' && effectivePts > 0 ? 'var(--green)' : 'var(--text3)');
               return '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--border);">' +
-                '<span style="color:' + color + ';font-size:12px;">' + esc(name) + '<span style="color:var(--amber);font-size:10px;">' + capLabel + '</span></span>' +
-                '<span style="font-family:var(--font-mono);font-size:12px;color:' + (effectivePts !== '—' && effectivePts > 0 ? 'var(--green)' : 'var(--text3)') + ';min-width:30px;text-align:right;">' + effectivePts + '</span>' +
+                '<span style="color:' + nameColor + ';font-size:12px;">' + esc(name) + '<span style="color:var(--amber);font-size:10px;">' + capLabel + '</span></span>' +
+                '<span style="font-family:var(--font-mono);font-size:12px;color:' + ptsColor + ';min-width:30px;text-align:right;">' + effectivePts + '</span>' +
                 '</div>';
             };
 
@@ -1928,14 +1928,14 @@ async function init() {
 
             let html = '<div class="manager-drawer-inner" style="flex-direction:column;align-items:stretch;padding:0.75rem 1.5rem;">';
             html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">';
-            html += '<span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Starting XI' + (isBB ? ' + Bench (BB)' : '') + '</span>';
-            html += '<span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">Total: <span style="color:var(--text);">' + totalPts + ' pts</span></span>';
+            html += '<span style="font-size:11px;color:var(--theme);text-transform:uppercase;letter-spacing:0.06em;">Starting XI' + (isBB ? ' + Bench (BB)' : '') + '</span>';
+            html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);">Total: <span style="color:var(--text);">' + totalPts + ' pts</span></span>';
             html += '</div>';
-            startingPicks.forEach(p => { html += renderPick(p); });
+            startingPicks.forEach(p => { html += renderPick(p, false); });
 
-            if (!isBB && benchPicks.length > 0) {
-              html += '<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 6px;">Bench</div>';
-              benchPicks.forEach(p => { html += renderPick(p); });
+            if (benchPicks.length > 0) {
+              html += '<div style="font-size:11px;color:var(--theme);text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 6px;">Bench' + (isBB ? ' (Boost Active)' : '') + '</div>';
+              benchPicks.forEach(p => { html += renderPick(p, !isBB); });
             }
 
             html += '</div>';
@@ -3856,7 +3856,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const pts1 = match.entry_1_points;
       const pts2 = match.entry_2_points;
       const winner = match.winner;
-      const isPlayed = pts1 !== null && pts2 !== null;
+      const isPlayed = !!winner; // only consider played when a winner is confirmed
 
       const getHit = (managerId, event) => {
         const hist = state.gwHistory[managerId] || [];
@@ -3873,11 +3873,12 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         const rawPts = pts !== null ? pts + hit : null;
         const hitStr = hit > 0 ? '<span class="hit-cost">(-' + hit + ')</span>' : '';
         const seed = seedMap[manager.id] || '?';
+        const managerColor = !isPlayed ? 'var(--text)' : isWinner ? 'var(--text)' : 'inherit';
         return '<div class="cup-match-row' + rowClass + (isBye ? ' bye' : '') + '">' +
           '<div style="display:flex;align-items:center;gap:8px;">' +
           '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);min-width:18px;text-align:right;">' + seed + '</span>' +
-          '<div><div class="cup-manager">' + esc(manager.name) + badge + '</div>' +
-          '<div class="cup-team">' + esc(manager.team) + '</div></div>' +
+          '<div><div class="cup-manager" style="color:' + managerColor + ';">' + esc(manager.name) + badge + '</div>' +
+          '<div style="font-size:11px;color:var(--theme);">' + esc(manager.team) + '</div></div>' +
           '</div>' +
           (isPlayed && rawPts !== null ? '<div class="cup-pts' + ptsClass + '">' + rawPts + hitStr + '</div>' : '') +
           '</div>';
@@ -3977,7 +3978,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const leftCols = realThs.slice(0, 2);
     leftCols.forEach((th, i) => {
       const div = document.createElement('div');
-      div.style.cssText = `display:flex;align-items:center;padding:8px 10px;font-size:11px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap;background:var(--bg2);border-bottom:1px solid var(--border);box-sizing:border-box;`;
+      div.style.cssText = `display:flex;align-items:center;padding:8px 10px;font-size:11px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap;background:var(--bg2);border-bottom:1px solid var(--border);box-sizing:border-box;`;
       div.textContent = th.textContent;
       if (th.dataset.col) div.addEventListener('click', () => th.click());
       fhLeft.appendChild(div);
@@ -3988,6 +3989,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const tr = document.createElement('tr');
     realThs.slice(2).forEach((th, i) => {
       const clone = th.cloneNode(true);
+      clone.style.color = 'var(--theme)';
       if (th.dataset.col) clone.addEventListener('click', () => th.click());
       tr.appendChild(clone);
     });
