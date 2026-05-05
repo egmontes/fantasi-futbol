@@ -966,9 +966,11 @@ async function init() {
       }
 
       // Detect transition state: next GW deadline passed but it's not live yet
-      // e.g. GW34 done, GW35 deadline locked but matches not started
-      const nextGWDeadlinePassed = nextDeadline && now >= nextDeadline;
-      const nextGWIsLive = nextGWEvent && bootstrap.events.find(e => e.id === state.latestGW + 1 && e.is_current);
+      // Must run AFTER fixture check may have updated state.latestGW
+      const nextGWEventCurrent = bootstrap.events.find(e => e.id === state.latestGW + 1);
+      const nextDeadlineCurrent = nextGWEventCurrent ? new Date(nextGWEventCurrent.deadline_time).getTime() : null;
+      const nextGWDeadlinePassed = nextDeadlineCurrent && now >= nextDeadlineCurrent;
+      const nextGWIsLive = nextGWEventCurrent && nextGWEventCurrent.is_current;
       state.isTransition = !state.isLive && nextGWDeadlinePassed && !nextGWIsLive;
       if (state.isTransition) state.transitionGW = state.latestGW + 1;
 
