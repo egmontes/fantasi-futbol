@@ -955,7 +955,17 @@ async function init() {
       const currentGWEvent = bootstrap.events.find(e => e.is_current);
       const currentDeadline = currentGWEvent ? new Date(currentGWEvent.deadline_time).getTime() : null;
       state.isLive = currentGWEvent && !currentGWEvent.finished && !currentGWEvent.data_checked && currentDeadline && now >= currentDeadline;
-      if (state.isLive) state.liveGW = currentGWEvent.id;
+      if (state.isLive) {
+        state.liveGW = currentGWEvent.id;
+        // Double-check: fetch fixtures to see if all games are actually done
+        // FPL sometimes delays setting finished/data_checked by hours after final whistle
+        try {
+          const fixtures = await fetchFPL('fixtures/?event=' + currentGWEvent.id);
+          if (fixtures.length > 0 && fixtures.every(f => f.finished_provisional)) {
+            state.isLive = false;
+          }
+        } catch(e) {} // fail silently — stay live if fixtures can't be fetched
+      }
 
       // Detect transition state: next GW deadline passed but it's not live yet
       // e.g. GW34 done, GW35 deadline locked but matches not started
