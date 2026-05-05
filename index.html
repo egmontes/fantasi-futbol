@@ -479,7 +479,7 @@
     .recap-gw-label {
       font-family: var(--font-display);
       font-size: 36px;
-      color: var(--green);
+      color: var(--theme);
       letter-spacing: 1px;
       line-height: 1;
       margin-bottom: 0.25rem;
@@ -3380,9 +3380,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   async function setupRecapTab() {
     const gwVal = document.getElementById('gw-select').value;
-    const isLiveGW = gwVal === 'live';
     const isPreview = gwVal === 'preview';
-    const gw = isLiveGW ? state.liveGW : (isPreview ? state.nextGW : parseInt(gwVal) || state.latestGW);
+    // Always use latestGW for recap — it reflects the most recently completed GW
+    const gw = isPreview ? state.nextGW : (state.isLive ? state.liveGW : state.latestGW);
 
     // Live GW — show pending message
     if (isLiveGW) {
@@ -3500,9 +3500,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const status = document.getElementById('prepare-confirm');
       if (btn.disabled) return;
       
-      // Get current GW from dropdown (in case it changed since tab setup)
-      const gwVal = document.getElementById('gw-select').value;
-      const currentGW = parseInt(gwVal) || state.latestGW;
+      // Use the GW the current page is showing
+      const currentGW = state.isLive ? state.liveGW : state.latestGW;
       
       btn.disabled = true;
       btn.textContent = 'Fetching player data...';
@@ -4213,9 +4212,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const status = document.getElementById('standings-prepare-confirm');
       if (btn.disabled) return;
       
-      // Get current GW from dropdown (in case it changed since tab setup)
-      const gwVal = document.getElementById('gw-select').value;
-      const currentGW = parseInt(gwVal) || state.latestGW;
+      // Use the GW the current page is showing
+      const currentGW = state.isLive ? state.liveGW : state.latestGW;
       
       btn.disabled = true;
       btn.textContent = 'Fetching player data...';
@@ -4376,9 +4374,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const status = document.getElementById('weekly-prepare-confirm');
       if (btn.disabled) return;
       
-      // Get current GW from dropdown (in case it changed since tab setup)
-      const gwVal = document.getElementById('gw-select').value;
-      const currentGW = parseInt(gwVal) || state.latestGW;
+      // Use the selected GW from the weekly dropdown
+      const currentGW = parseInt(document.getElementById('gw-select').value) || state.latestGW;
       
       btn.disabled = true; btn.textContent = 'Fetching player data...';
       status.textContent = 'Fetching picks & transfers...'; status.style.display = 'inline';
