@@ -3302,11 +3302,7 @@ async function buildPrompt(gw) {
       const seasonRankChange = prevSeasonRank ? prevSeasonRank - seasonRank : 0; // positive = moved up
       const seasonRankStr = seasonRankChange > 0 ? ' ↑' + seasonRankChange : seasonRankChange < 0 ? ' ↓' + Math.abs(seasonRankChange) : ' (no change)';
 
-      const prevGWRank = prevGWRankMap[m.id];
-      const gwRankChange = prevGWRank ? prevGWRank - m._displayRank : 0;
-      const gwRankStr = gwRankChange > 0 ? ' ↑' + gwRankChange + ' vs last week' : gwRankChange < 0 ? ' ↓' + Math.abs(gwRankChange) + ' vs last week' : ' (same position as last week)';
-
-      let line = m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts' + gwRankStr + ' | Season total: ' + gwTotal + ' (Rank ' + seasonRank + seasonRankStr + ') | Top-4 finishes: ' + s.top4 + ' | Bottom-2 finishes: ' + s.bottom2 + ' | ' + result;
+      let line = m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts | Season total: ' + gwTotal + ' (Rank ' + seasonRank + seasonRankStr + ') | Top-4 finishes: ' + s.top4 + ' | Bottom-2 finishes: ' + s.bottom2 + ' | ' + result;
       if (extras.length > 0) line += ' | ' + extras.join(' | ');
       return line;
     }).join('\n');
