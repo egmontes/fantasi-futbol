@@ -965,6 +965,18 @@ async function init() {
             // Treat this GW as complete — update latestGW so data shows correctly
             state.latestGW = currentGWEvent.id;
             state.currentGW = state.latestGW;
+            // Rebuild GW selector now that latestGW has changed
+            const gwSel = document.getElementById('gw-select');
+            if (gwSel) {
+              gwSel.innerHTML = '';
+              for (let i = state.latestGW; i >= 1; i--) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = 'GW ' + i;
+                if (i === state.latestGW) opt.selected = true;
+                gwSel.appendChild(opt);
+              }
+            }
           }
         } catch(e) {} // fail silently — stay live if fixtures can't be fetched
       }
