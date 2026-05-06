@@ -48,6 +48,35 @@
       min-height: 100vh;
       font-size: 15px;
       line-height: 1.6;
+      overscroll-behavior-y: none;
+    }
+
+    #ptr-bar {
+      position: fixed; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--theme); z-index: 9999;
+      opacity: 0; transform: scaleX(0); transform-origin: left;
+    }
+    #ptr-bar.ptr-loading {
+      opacity: 1;
+      animation: ptr-anim 1.2s ease-in-out infinite;
+    }
+    @keyframes ptr-anim {
+      0%   { transform: scaleX(0); transform-origin: left; }
+      49%  { transform: scaleX(1); transform-origin: left; }
+      50%  { transform: scaleX(1); transform-origin: right; }
+      100% { transform: scaleX(0); transform-origin: right; }
+    }
+    #ptr-indicator {
+      position: fixed; top: 12px; left: 50%;
+      transform: translateX(-50%) translateY(-60px);
+      background: var(--bg2); border: 1px solid var(--theme-border);
+      border-radius: 20px; padding: 6px 14px;
+      font-size: 12px; font-family: var(--font-mono); color: var(--theme);
+      z-index: 9999; opacity: 0; pointer-events: none; white-space: nowrap;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    #ptr-indicator.ptr-visible {
+      opacity: 1; transform: translateX(-50%) translateY(0);
     }
 
     /* HEADER */
@@ -571,6 +600,8 @@
 </style>
 </head>
 <body>
+  <div id="ptr-bar"></div>
+  <div id="ptr-indicator">↓ Pull to refresh</div>
 
 <div id="page-loader" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
   <div style="font-family:var(--font-display);font-size:36px;letter-spacing:1px;color:var(--text);">Fantasi <span style="color:var(--theme)">Futbol</span></div>
@@ -651,21 +682,6 @@
     t => 'https://corsproxy.io/?url=' + encodeURIComponent(t),
     t => 'https://proxy.cors.sh/' + t,
   ];
-
-  // Restore chip/captain caches from localStorage on hard refresh
-  (function restoreCaches() {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('ff_chips_cache_')) {
-        const gw = parseInt(key.replace('ff_chips_cache_', ''));
-        try { _chipCache[gw] = JSON.parse(localStorage.getItem(key)); } catch(e) {}
-      }
-      if (key && key.startsWith('ff_captains_cache_')) {
-        const gw = parseInt(key.replace('ff_captains_cache_', ''));
-        try { _captainCache[gw] = JSON.parse(localStorage.getItem(key)); } catch(e) {}
-      }
-    }
-  })();
 
   const state = {
     managers: [],
@@ -2478,8 +2494,22 @@ async function init() {
 
   // Cache chips per GW so we don't refetch
   const _chipCache = {};
-
   const _captainCache = {};
+
+  // Restore chip/captain caches from localStorage on hard refresh
+  (function restoreCaches() {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('ff_chips_cache_')) {
+        const gw = parseInt(key.replace('ff_chips_cache_', ''));
+        try { _chipCache[gw] = JSON.parse(localStorage.getItem(key)); } catch(e) {}
+      }
+      if (key && key.startsWith('ff_captains_cache_')) {
+        const gw = parseInt(key.replace('ff_captains_cache_', ''));
+        try { _captainCache[gw] = JSON.parse(localStorage.getItem(key)); } catch(e) {}
+      }
+    }
+  })();
 
   async function fetchChipsForGW(gw) {
     if (_chipCache[gw]) return _chipCache[gw];
@@ -4607,7 +4637,59 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   document.addEventListener('DOMContentLoaded', () => {
     updateStickyOffsets();
   });
-  init();
+  function initPullToRefresh() {
+    const bar = document.getElementById('ptr-bar');
+    const indicator = document.getElementById('ptr-indicator');
+    const THRESHOLD = 80;
+    let startY = 0, pulling = false, triggered = false;
+
+    document.addEventListener('touchstart', e => {
+      if (window.scrollY === 0) {
+        startY = e.touches[0].clientY;
+        pulling = true;
+        triggered = false;
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', e => {
+      if (!pulling) return;
+      const dy = e.touches[0].clientY - startY;
+      if (dy <= 0) { pulling = false; return; }
+      if (dy > 10) {
+        indicator.classList.add('ptr-visible');
+        indicator.textContent = dy >= THRESHOLD ? '↑ Release to refresh' : '↓ Pull to refresh';
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchend', async e => {
+      if (!pulling) return;
+      pulling = false;
+      const dy = e.changedTouches[0].clientY - startY;
+      indicator.classList.remove('ptr-visible');
+      if (dy < THRESHOLD || triggered) return;
+      triggered = true;
+      bar.classList.add('ptr-loading');
+      try {
+        const bootstrap = await fetchFPL('bootstrap-static/');
+        bootstrap.elements.forEach(p => { state.bootstrapPlayers[p.id] = p.web_name; });
+        const finished = bootstrap.events.filter(ev => ev.finished || ev.data_checked);
+        const newLatest = finished.length > 0 ? finished[finished.length - 1].id : 1;
+        if (newLatest !== state.latestGW) {
+          window.location.reload();
+        } else {
+          const currentGW = state.isLive ? state.liveGW : state.latestGW;
+          if (window._liveScoreCacheGW) delete window._liveScoreCacheGW[currentGW];
+          window._liveScoreFetchInProgress = false;
+          renderStandings();
+          const gwVal = document.getElementById('gw-select')?.value;
+          if (gwVal && gwVal !== 'preview') renderWeekly(parseInt(gwVal));
+        }
+      } catch(err) { console.warn('PTR error:', err); }
+      bar.classList.remove('ptr-loading');
+    }, { passive: true });
+  }
+
+  init().then(() => initPullToRefresh());
 </script>
 </body>
 </html>
