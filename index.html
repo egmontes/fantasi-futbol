@@ -2115,25 +2115,26 @@ async function init() {
   }
 
   function fitStatCards() {
+    // First pass: reset all to base size so measurements are fresh
+    document.querySelectorAll('.stat-card .s-value').forEach(v => {
+      v.style.fontSize = '42px';
+      v.style.whiteSpace = 'nowrap';
+    });
+    document.querySelectorAll('.stat-card .s-label').forEach(l => {
+      l.style.fontSize = '9px';
+      l.style.whiteSpace = 'nowrap';
+    });
+
+    // Second pass: shrink to fit
     document.querySelectorAll('.stat-card').forEach(card => {
       const label = card.querySelector('.s-label');
       const value = card.querySelector('.s-value');
-
-      // Label: fixed 9px, nowrap — card width expands to fit it
-      if (label) {
-        label.style.whiteSpace = 'nowrap';
-        label.style.fontSize = '9px';
-      }
-
-      // Value: shrink to fit within card's actual rendered width/height
       if (value) {
         const cardW = card.offsetWidth - 22;
         const cardH = card.offsetHeight - 22;
         const labelH = label ? label.offsetHeight + 5 : 0;
         const availH = cardH - labelH;
         let vSize = 42;
-        value.style.fontSize = vSize + 'px';
-        value.style.whiteSpace = 'nowrap';
         while (vSize > 12 && (value.scrollWidth > cardW || value.scrollHeight > availH)) {
           vSize -= 1;
           value.style.fontSize = vSize + 'px';
