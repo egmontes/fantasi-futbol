@@ -1527,6 +1527,11 @@ async function init() {
       if (col === 'captain') { const ca = a.captain?.name||''; const cb = b.captain?.name||''; return dir * ca.localeCompare(cb); }
       if (col === 'gwpts') return dir * ((a.gwLatestPts||0) - (b.gwLatestPts||0));
       if (col === 'pts')  return dir * (a.total - b.total);
+      if (col === 'played') {
+        const ap = (window._playedCache || {})[currentGW]?.[a.id]?.played || 0;
+        const bp = (window._playedCache || {})[currentGW]?.[b.id]?.played || 0;
+        return dir * (ap - bp);
+      }
       if (col === 'top4') return dir * (a.top4 - b.top4);
       if (col === 'bot2') return dir * (a.bottom2 - b.bottom2);
       if (col === 'earned') return dir * (a.earned - b.earned);
@@ -1666,7 +1671,7 @@ async function init() {
       '<th style="width:52px">Rank</th>' +
       '<th ' + thClass('name') + ' data-col="name">Manager</th>' +
       '<th style="width:70px" ' + thClass('gwpts') + ' data-col="gwpts">GW' + (state.isLive ? state.liveGW : state.latestGW) + ' Pts</th>' +
-      (( state.isLive || (window._playedCache || {})[currentGW]) ? '<th style="width:60px" title="Players played / total">Played</th>' : '') +
+      (( state.isLive || (window._playedCache || {})[currentGW]) ? '<th style="width:60px" ' + thClass('played') + ' data-col="played" title="Players played / total">Played</th>' : '') +
       '<th style="width:90px" ' + thClass('captain') + ' data-col="captain">Captain</th>' +
       '<th style="width:70px" ' + thClass('pts') + ' data-col="pts">Total PTS</th>' +
       '<th style="width:60px;text-align:center" ' + thClass('top4') + ' data-col="top4" title="Top-4 finishes">Top 4</th>' +
@@ -1829,18 +1834,57 @@ async function init() {
 
   async function prefetchPicks(gw) {
     if (!gw) return;
+    // Fetch fixtures once for played calculation
+    let startedTeams = new Set();
+    try {
+      const fixtures = await fetchFPL('fixtures/?event=' + gw);
+      fixtures.filter(f => f.started).forEach(f => {
+        startedTeams.add(f.team_h);
+        startedTeams.add(f.team_a);
+      });
+    } catch(e) {}
+
     const BATCH = 5;
     for (let i = 0; i < state.managers.length; i += BATCH) {
       const batch = state.managers.slice(i, i + BATCH);
       await Promise.all(batch.map(async m => {
         const key = m.id + '_' + gw;
-        if (window._picksCache[key]) return; // already cached
+        if (window._picksCache[key]) {
+          // Already have picks — still compute played if not cached
+          if (!(window._playedCache || {})[gw]?.[m.id]) {
+            computePlayedFromPicks(window._picksCache[key], m.id, gw, startedTeams);
+          }
+          return;
+        }
         try {
           const picks = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/');
           window._picksCache[key] = picks;
+          computePlayedFromPicks(picks, m.id, gw, startedTeams);
         } catch(e) {}
       }));
     }
+    // Re-render once all played data is ready
+    renderStandings();
+  }
+
+  function computePlayedFromPicks(picks, managerId, gw, startedTeams) {
+    if (!picks) return;
+    const chip = picks.active_chip || null;
+    const isBB = chip === 'bboost';
+    const isTC = chip === '3xc';
+    const activePicks = isBB ? picks.picks : picks.picks.filter(p => p.position <= 11);
+    const captainMultiplier = isTC ? 3 : 2;
+    const totalPlayers = activePicks.length + (captainMultiplier - 1);
+    let playedCount = 0;
+    activePicks.forEach(p => {
+      const teamId = state.playerTeams?.[p.element];
+      if (teamId && startedTeams.has(teamId)) {
+        playedCount += p.is_captain ? captainMultiplier : 1;
+      }
+    });
+    if (!window._playedCache) window._playedCache = {};
+    if (!window._playedCache[gw]) window._playedCache[gw] = {};
+    window._playedCache[gw][managerId] = { played: playedCount, total: totalPlayers };
   }
 
   function initDrawer(tableId, gw) {
@@ -2595,44 +2639,6 @@ async function init() {
       }
 
       captains[managerId] = { name: captainName, isVC };
-
-      // Compute played/total for this manager
-      const chip = picks.active_chip || null;
-      const isBB = chip === 'bboost';
-      const isTC = chip === '3xc';
-      // Starting picks (or all 15 if BB)
-      const activePicks = isBB ? picks.picks : picks.picks.filter(p => p.position <= 11);
-      // Captain multiplier: TC = 3 total (counts as 3), normal = 2, VC after DNP = 2
-      const captainMultiplier = isTC ? 3 : 2;
-      // Total effective players = active picks count + captain bonus
-      const totalPlayers = activePicks.length + (captainMultiplier - 1);
-      // Played = picks whose team has started
-      let playedCount = 0;
-      activePicks.forEach(p => {
-        const teamId = state.playerTeams?.[p.element];
-        if (teamId && finishedTeams.has(teamId)) {
-          playedCount += p.is_captain ? captainMultiplier : 1;
-        }
-      });
-      // Also count ongoing (started but not finished) as "playing"
-      const startedTeams = new Set();
-      if (fixturesRes.status === 'fulfilled') {
-        fixturesRes.value.filter(f => f.started).forEach(f => {
-          startedTeams.add(f.team_h);
-          startedTeams.add(f.team_a);
-        });
-      }
-      // Recount with started teams
-      playedCount = 0;
-      activePicks.forEach(p => {
-        const teamId = state.playerTeams?.[p.element];
-        if (teamId && startedTeams.has(teamId)) {
-          playedCount += p.is_captain ? captainMultiplier : 1;
-        }
-      });
-      if (!window._playedCache) window._playedCache = {};
-      if (!window._playedCache[gw]) window._playedCache[gw] = {};
-      window._playedCache[gw][managerId] = { played: playedCount, total: totalPlayers };
     });
 
     _chipCache[gw] = chips;
