@@ -2071,6 +2071,38 @@ async function init() {
               benchPicks.forEach(p => { html += renderPick(p, !isBB); });
             }
 
+            // Transfers made this GW
+            try {
+              const transfers = await fetchFPL('entry/' + managerId + '/transfers/');
+              const gwTransfers = transfers.filter(t => t.event === drawerGW);
+
+              if (gwTransfers.length > 0) {
+                html += '<div style="font-size:11px;color:var(--theme);text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 6px;">Transfers</div>';
+                gwTransfers.forEach(t => {
+                  const nameOut = state.bootstrapPlayers[t.element_out] || ('Player ' + t.element_out);
+                  const nameIn = state.bootstrapPlayers[t.element_in] || ('Player ' + t.element_in);
+                  const ptsIn = playerPts[t.element_in] ?? null;
+                  const ptsOut = playerPts[t.element_out] ?? null;
+                  const delta = (ptsIn !== null && ptsOut !== null) ? ptsIn - ptsOut : null;
+                  const deltaStr = delta !== null
+                    ? '<span style="font-family:var(--font-mono);font-size:11px;color:' +
+                      (delta > 0 ? 'var(--green)' : delta < 0 ? 'var(--red)' : 'var(--text3)') +
+                      ';margin-left:auto;white-space:nowrap;">' +
+                      (delta > 0 ? '+' : '') + delta + ' pts</span>'
+                    : '';
+                  html += '<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);font-size:12px;">' +
+                    '<span style="color:var(--text3);text-decoration:line-through;">' + esc(nameOut) + '</span>' +
+                    '<span style="color:var(--text3);">→</span>' +
+                    '<span style="color:var(--text);">' + esc(nameIn) + '</span>' +
+                    deltaStr +
+                    '</div>';
+                });
+                if (gwTransfers.length === 0) {
+                  html += '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">No transfers this GW</div>';
+                }
+              }
+            } catch(e) {}
+
             html += '</div>';
             drawerTd.innerHTML = html;
             requestAnimationFrame(syncDrawerScroll);
