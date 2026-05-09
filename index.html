@@ -3815,68 +3815,21 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       }
 
       // The correct FPL cup matches endpoint uses leagues-h2h-matches
-      const cupEndpoints = cupLeagueId ? [
-        'leagues-h2h-matches/league/' + cupLeagueId + '/',
-        'leagues-h2h-matches/league/' + cupLeagueId + '/?page=1',
-        'leagues-h2h/' + cupLeagueId + '/standings/',
-      ] : [];
-
-      for (const ep of cupEndpoints) {
+      if (cupLeagueId) {
         try {
-          const data = await fetchFPL(ep);
-          console.log('Cup response from', ep, ':', JSON.stringify(data).slice(0, 500));
-          // h2h matches use 'results', cup matches use 'cup_matches'
-          const matches = data.results || data.cup_matches || [];
-          // Also handle paginated results
-          const hasNext = data.has_next || false;
-          matches.forEach(m => {
-            const key = [m.entry_1_entry, m.entry_2_entry, m.event].sort().join('-');
-            if (!seen.has(key)) { seen.add(key); allMatches.push(m); }
-          });
-          // Fetch additional pages if needed
-          if (hasNext && ep.includes('page=1')) {
-            let page = 2;
-            while (true) {
-              try {
-                const pageData = await fetchFPL(ep.replace('page=1', 'page=' + page));
-                const pageMatches = pageData.results || [];
-                if (!pageMatches.length) break;
-                pageMatches.forEach(m => {
-                  const key = [m.entry_1_entry, m.entry_2_entry, m.event].sort().join('-');
-                  if (!seen.has(key)) { seen.add(key); allMatches.push(m); }
-                });
-                if (!pageData.has_next) break;
-                page++;
-              } catch(e) { break; }
-            }
+          let page = 1;
+          while (true) {
+            const data = await fetchFPL('leagues-h2h-matches/league/' + cupLeagueId + '/?page=' + page);
+            const matches = data.results || [];
+            matches.forEach(m => {
+              const key = [m.entry_1_entry, m.entry_2_entry, m.event].sort().join('-');
+              if (!seen.has(key)) { seen.add(key); allMatches.push(m); }
+            });
+            if (!data.has_next || matches.length === 0) break;
+            page++;
           }
-          if (allMatches.length > 0) break;
         } catch(e) {
-          console.warn('Cup endpoint failed:', ep, e.message);
-        }
-      }
-
-      // Fallback: fetch cup data from each manager's history
-      // The entry/{id}/history/ endpoint includes a 'cups' array
-      if (allMatches.length === 0) {
-        console.log('Trying per-manager history for cup data...');
-        const BATCH = 5;
-        for (let i = 0; i < state.managers.length; i += BATCH) {
-          const batch = state.managers.slice(i, i + BATCH);
-          await Promise.all(batch.map(async m => {
-            try {
-              const hist = await fetchFPL('entry/' + m.id + '/history/');
-              const cups = hist.cups || [];
-              console.log('Manager', m.name, 'cups:', JSON.stringify(cups).slice(0, 200));
-              cups.forEach(match => {
-                const key = [match.entry_1_entry, match.entry_2_entry, match.event].sort().join('-');
-                if (!seen.has(key)) { seen.add(key); allMatches.push(match); }
-              });
-            } catch(e) {}
-          }));
-          const done = Math.min(i + BATCH, state.managers.length);
-          document.getElementById('cup-content').innerHTML =
-            '<div class="loading-state"><span class="spinner"></span>Loading cup data... (' + done + '/' + state.managers.length + ')</div>';
+          console.warn('Cup h2h endpoint failed:', e.message);
         }
       }
 
@@ -3989,8 +3942,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     sortedMatches.forEach(match => {
       const m1 = state.managers.find(m => m.id === match.entry_1_entry);
       const m2 = state.managers.find(m => m.id === match.entry_2_entry);
-      const pts1 = match.entry_1_points;
-      const pts2 = match.entry_2_points;
+      const currentGW = state.isLive ? state.liveGW : state.latestGW;
+      const isCurrentGW = match.event === currentGW;
+      const liveScores = (window._liveScoreCacheGW || {})[currentGW] || {};
+      // Use live scores for current GW, otherwise use stored FPL points
+      const pts1 = (isCurrentGW && liveScores[match.entry_1_entry])
+        ? liveScores[match.entry_1_entry].netPts
+        : match.entry_1_points;
+      const pts2 = (isCurrentGW && liveScores[match.entry_2_entry])
+        ? liveScores[match.entry_2_entry].netPts
+        : match.entry_2_points;
       const winner = match.winner;
       const isPlayed = !!winner; // only consider played when a winner is confirmed
 
@@ -4000,7 +3961,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         return entry ? entry.event_transfers_cost : 0;
       };
 
-      const row = (manager, pts, isWinner, isBye, event) => {
+      const row = (manager, pts, isWinner, isBye, event, showPts) => {
         if (!manager) return '';
         const rowClass = !isPlayed ? '' : isWinner ? ' winner' : ' loser';
         const ptsClass = isWinner ? ' high' : '';
@@ -4016,7 +3977,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           '<div><div class="cup-manager" style="color:' + managerColor + ';">' + esc(manager.name) + badge + '</div>' +
           '<div style="font-size:11px;color:var(--theme);">' + esc(manager.team) + '</div></div>' +
           '</div>' +
-          (isPlayed && rawPts !== null ? '<div class="cup-pts' + ptsClass + '">' + rawPts + hitStr + '</div>' : '') +
+          (showPts && rawPts !== null ? '<div class="cup-pts' + ptsClass + '">' + rawPts + hitStr + '</div>' : '') +
           '</div>';
       };
 
@@ -4025,10 +3986,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         topManager = m2; topPts = pts2; botManager = m1; botPts = pts1;
       }
       html += '<div class="cup-match">';
-      if (topManager) html += row(topManager, topPts, winner === topManager.id, false, match.event);
-      if (botManager) html += row(botManager, botPts, winner === botManager.id, false, match.event);
+      if (topManager) html += row(topManager, topPts, winner === topManager.id, false, match.event, isPlayed || isCurrentGW);
+      if (botManager) html += row(botManager, botPts, winner === botManager.id, false, match.event, isPlayed || isCurrentGW);
       else html += '<div class="cup-match-row bye"><div class="cup-manager">BYE</div></div>';
-      if (!isPlayed) html += '<div class="cup-status">Upcoming</div>';
+      const hasScores = (pts1 !== null && pts1 > 0) || (pts2 !== null && pts2 > 0);
+      if (!isPlayed && !hasScores) html += '<div class="cup-status">Upcoming</div>';
       html += '</div>';
     });
 
