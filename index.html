@@ -1467,6 +1467,7 @@ async function init() {
     const rows = state.managers.map(m => {
       const s = stats[m.id] || {};
       const gmisses = getGuinnessOwed(m.name);
+      const missedG = (state.guinnessDebts[m.name]?.missed_gws || []).length;
       const totalG = getTotalGuinnesses(m.name, s.bottom2 || 0);
       const latestHist = (state.gwHistory[m.id] || []).find(h => h.event === currentGW);
       // Use live score if available, fall back to history
@@ -1481,7 +1482,7 @@ async function init() {
         : m.total;
       const chip = standingsChips[m.id] || null;
       const captain = standingsCaptains[m.id] || null;
-      return { ...m, total: liveTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain };
+      return { ...m, total: liveTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, missedG, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain };
     });
 
     // Compute rank changes vs last GW
@@ -1540,6 +1541,7 @@ async function init() {
       if (col === 'bot2') return dir * (a.bottom2 - b.bottom2);
       if (col === 'earned') return dir * (a.earned - b.earned);
       if (col === 'gmisses') return dir * (a.gmisses - b.gmisses);
+      if (col === 'missed') return dir * (a.missedG - b.missedG);
       if (col === 'totalg') return dir * (a.totalG - b.totalG);
       return 0;
     });
@@ -1682,6 +1684,7 @@ async function init() {
       '<th style="width:60px;text-align:center" ' + thClass('bot2') + ' data-col="bot2" title="Bottom-2 finishes">Bot 2</th>' +
       '<th style="width:80px" ' + thClass('earned') + ' data-col="earned">Earned</th>' +
       '<th style="width:70px;text-align:center" ' + thClass('gmisses') + ' data-col="gmisses" title="Missed Guinness shotguns owed">🍺 Owes</th>' +
+      '<th style="width:70px;text-align:center" ' + thClass('missed') + ' data-col="missed" title="Shotguns missed this season">🍺 Missed</th>' +
       '<th style="width:70px;text-align:center" ' + thClass('totalg') + ' data-col="totalg" title="Total Guinnesses shotgunned this season">🍺 Total</th>' +
       '</tr></thead><tbody>';
 
@@ -1761,6 +1764,7 @@ async function init() {
         '<td style="text-align:center">' + (!state.historyLoaded ? '<span class="badge-zero">—</span>' : m.bottom2 > 0 ? '<span class="badge badge-bot">' + m.bottom2 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
         '<td><span class="' + (m.earned > 0 ? 'money-pos' : 'money-zero') + '">$' + (!state.historyLoaded ? '—' : m.earned.toFixed(2).replace('.00','')) + '</span></td>' +
         '<td style="text-align:center">' + (!state.historyLoaded ? '—' : gmissCell) + '</td>' +
+        '<td style="text-align:center;font-family:var(--font-mono);font-size:13px;font-weight:500;color:' + (m.missedG > 0 ? 'var(--red)' : 'var(--text3)') + '">' + (!state.historyLoaded ? '—' : m.missedG > 0 ? m.missedG : '—') + '</td>' +
         '<td style="text-align:center;font-family:var(--font-mono);font-size:13px;font-weight:500;color:' + (m.totalG > 0 ? 'var(--amber)' : 'var(--text3)') + '">' + (!state.historyLoaded ? '—' : m.totalG > 0 ? m.totalG : '—') + '</td>' +
         '</tr>';
     });
