@@ -1478,6 +1478,17 @@ async function init() {
         renderStandings();
       }).catch(() => {});
     }
+
+    // Always refresh fixture counts when live (needed for Games Completed/Ongoing/Remaining)
+    if (state.isLive && state.fixturesTotal === undefined) {
+      fetchFPL('fixtures/?event=' + currentGW).then(fixtures => {
+        const total = fixtures.length;
+        state.fixturesOngoing = fixtures.filter(f => f.started && !f.finished).length;
+        state.fixturesRemaining = Math.max(0, total - fixtures.filter(f => f.finished).length - state.fixturesOngoing);
+        state.fixturesTotal = total;
+        renderStandings();
+      }).catch(() => {});
+    }
     const standingsChips = _chipCache[currentGW] || {};
     const standingsCaptains = _captainCache[currentGW] || {};
 
