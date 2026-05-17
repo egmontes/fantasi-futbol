@@ -179,8 +179,6 @@
       padding: 8px 1.5rem;
     }
     .tab-btn { flex: 1; }
-    .tab-btn-dropdown { flex: 1; }
-    .tab-btn-dropdown .tab-btn { width: 100%; }
     /* All tab badges and toggle buttons share same equal width */
     .unified-btn-width {
       width: calc(50% - 3px);
@@ -204,8 +202,8 @@
     .tab-btn:hover { color: var(--text2); background: var(--bg2); }
     .tab-btn.active { background: var(--theme-dim); color: var(--theme); border-color: var(--theme-border); font-weight: 600; }
 
+    #weekly-tab-wrapper { position: absolute; left: 0; }
     /* Weekly tab dropdown */
-    .tab-btn-dropdown { position: relative; flex: 1; }
     .tab-btn-dropdown .tab-btn { width: 100%; }
     .tab-dropdown-menu {
       position: absolute;
@@ -718,17 +716,17 @@
   </div>
 </div>
 <div class="tabs" id="main-tabs" style="visibility:hidden;">
-    <div class="tab-btn-dropdown" id="weekly-tab-wrapper">
-      <button class="tab-btn active" id="weekly-tab-btn" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;">
-        <span style="display:flex;align-items:center;gap:4px;">
-          <span id="weekly-tab-label" style="font-size:13px;">Gameweek 36</span>
-          <span style="font-size:10px;opacity:0.6;">▾</span>
-        </span>
-        <span id="weekly-tab-live" style="font-size:9px;color:var(--red);display:none;">● Live</span>
-      </button>
-      <div id="weekly-tab-menu" class="tab-dropdown-menu" style="display:none;"></div>
-    </div>
-    <button class="tab-btn" data-tab="cup">Cup 🏆</button>
+    <button class="tab-btn active" id="weekly-tab-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;">
+      <span style="display:flex;align-items:center;gap:4px;">
+        <span id="weekly-tab-label" style="font-size:13px;">Gameweek 36</span>
+        <span style="font-size:10px;opacity:0.6;">▾</span>
+      </span>
+      <span id="weekly-tab-live" style="font-size:9px;color:var(--red);display:none;">● Live</span>
+    </button>
+    <button class="tab-btn" data-tab="cup" style="flex:1;">Cup 🏆</button>
+  </div>
+  <div id="weekly-tab-wrapper" style="position:relative;">
+    <div id="weekly-tab-menu" class="tab-dropdown-menu" style="display:none;"></div>
   </div>
 <div class="gw-bar hidden">
     <label for="gw-select" style="display:none;">Gameweek</label>
@@ -4350,6 +4348,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Weekly tab btn — if not active, switch to it first; if already active, open dropdown
       if (btn.id === 'weekly-tab-btn') {
         const isActive = btn.classList.contains('active');
+        const menu = document.getElementById('weekly-tab-menu');
         if (!isActive) {
           // Switch to gameweek tab (show standings by default)
           document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -4369,9 +4368,15 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           });
           return;
         }
-        // Already active — open dropdown
-        const menu = document.getElementById('weekly-tab-menu');
-        if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        // Already active — position and toggle dropdown
+        const rect = btn.getBoundingClientRect();
+        if (menu) {
+          menu.style.left = rect.left + 'px';
+          menu.style.top = (rect.bottom + 4) + 'px';
+          menu.style.position = 'fixed';
+          menu.style.transform = 'none';
+          menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
         return;
       }
       // Close dropdown
@@ -5075,9 +5080,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   // Close weekly dropdown when clicking outside
   document.addEventListener('click', (e) => {
-    const wrapper = document.getElementById('weekly-tab-wrapper');
+    const wrapper = document.getElementById('weekly-tab-btn');
     const menu = document.getElementById('weekly-tab-menu');
-    if (wrapper && menu && !wrapper.contains(e.target)) {
+    if (menu && wrapper && !wrapper.contains(e.target) && !menu.contains(e.target)) {
       menu.style.display = 'none';
     }
   });
