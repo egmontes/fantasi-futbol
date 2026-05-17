@@ -1,0 +1,364 @@
+{
+  "season": "2023/2024",
+  "entry_fee": 100,
+  "num_players": 31,
+  "awards": {
+    "League": {
+      "winner": "Jimmy Romanelli",
+      "runner_up": "Aidan White",
+      "third": null,
+      "fourth": "Mike Delaus",
+      "fifth": "Andrew Denucci"
+    },
+    "Cup": {
+      "winner": "Aidan White",
+      "runner_up": "Jimmy Romanelli",
+      "third": "Liam Cashman",
+      "fourth": null,
+      "fifth": null
+    }
+  },
+  "managers": [
+    {
+      "name": "Jimmy Romanelli",
+      "earned": 735.83,
+      "guinness": 0,
+      "top1": 1.0,
+      "top2": 0.5,
+      "top3": 2.83,
+      "top4": 4.33,
+      "second_last": 0.0,
+      "last": 0.0
+    },
+    {
+      "name": "Aidan White",
+      "earned": 520.0,
+      "guinness": 5,
+      "top1": 2.0,
+      "top2": 1.0,
+      "top3": 1.0,
+      "top4": 1.0,
+      "second_last": 2.5,
+      "last": 1.5
+    },
+    {
+      "name": "Liam Kelly",
+      "earned": 172.08,
+      "guinness": 2,
+      "top1": 1.0,
+      "top2": 3.0,
+      "top3": 1.5,
+      "top4": 0.33,
+      "second_last": 0.33,
+      "last": 0.5
+    },
+    {
+      "name": "Mike Delaus",
+      "earned": 162.92,
+      "guinness": 1,
+      "top1": 3.0,
+      "top2": 1.33,
+      "top3": 1.5,
+      "top4": 0.0,
+      "second_last": 0.0,
+      "last": 0.5
+    },
+    {
+      "name": "John King",
+      "earned": 112.5,
+      "guinness": 1,
+      "top1": 3.0,
+      "top2": 3.0,
+      "top3": 0.0,
+      "top4": 0.0,
+      "second_last": 0.0,
+      "last": 1.0
+    },
+    {
+      "name": "Luke Civantos",
+      "earned": 95.0,
+      "guinness": 4,
+      "top1": 2.0,
+      "top2": 3.0,
+      "top3": 0.83,
+      "top4": 0.5,
+      "second_last": 3.0,
+      "last": 0.5
+    },
+    {
+      "name": "John Morcos",
+      "earned": 81.25,
+      "guinness": 2,
+      "top1": 2.0,
+      "top2": 1.0,
+      "top3": 2.5,
+      "top4": 0.0,
+      "second_last": 1.0,
+      "last": 1.0
+    },
+    {
+      "name": "JCarr Gamble",
+      "earned": 80.83,
+      "guinness": 3,
+      "top1": 3.0,
+      "top2": 0.0,
+      "top3": 0.33,
+      "top4": 1.33,
+      "second_last": 1.0,
+      "last": 2.0
+    },
+    {
+      "name": "Liam Cashman",
+      "earned": 78.33,
+      "guinness": 2,
+      "top1": 2.0,
+      "top2": 1.0,
+      "top3": 3.0,
+      "top4": 0.33,
+      "second_last": 1.0,
+      "last": 1.0
+    },
+    {
+      "name": "Harry Wang",
+      "earned": 78.33,
+      "guinness": 6,
+      "top1": 3.0,
+      "top2": 0.0,
+      "top3": 0.0,
+      "top4": 1.33,
+      "second_last": 0.0,
+      "last": 6.0
+    },
+    {
+      "name": "Mitch Maisel",
+      "earned": 76.25,
+      "guinness": 1,
+      "top1": 2.0,
+      "top2": 1.0,
+      "top3": 1.5,
+      "top4": 2.0,
+      "second_last": 0.5,
+      "last": 0.0
+    },
+    {
+      "name": "Jack Bernatchez",
+      "earned": 70.0,
+      "guinness": 2,
+      "top1": 2.0,
+      "top2": 1.0,
+      "top3": 1.0,
+      "top4": 0.0,
+      "second_last": 1.33,
+      "last": 0.0
+    },
+    {
+      "name": "Dave Bambrick",
+      "earned": 68.33,
+      "guinness": 3,
+      "top1": 1.0,
+      "top2": 3.0,
+      "top3": 0.5,
+      "top4": 0.83,
+      "second_last": 2.0,
+      "last": 1.0
+    },
+    {
+      "name": "Eddy GM",
+      "earned": 67.92,
+      "guinness": 2,
+      "top1": 1.0,
+      "top2": 2.5,
+      "top3": 1.0,
+      "top4": 1.67,
+      "second_last": 1.0,
+      "last": 1.0
+    },
+    {
+      "name": "Richard Katz",
+      "earned": 65.0,
+      "guinness": 3,
+      "top1": 2.0,
+      "top2": 1.0,
+      "top3": 0.0,
+      "top4": 1.0,
+      "second_last": 2.0,
+      "last": 1.0
+    },
+    {
+      "name": "Tommy Mayer",
+      "earned": 60.42,
+      "guinness": 5,
+      "top1": 2.0,
+      "top2": 0.33,
+      "top3": 0.5,
+      "top4": 0.0,
+      "second_last": 2.5,
+      "last": 2.0
+    },
+    {
+      "name": "James McMullen",
+      "earned": 57.08,
+      "guinness": 1,
+      "top1": 1.5,
+      "top2": 0.0,
+      "top3": 1.0,
+      "top4": 2.33,
+      "second_last": 1.0,
+      "last": 0.0
+    },
+    {
+      "name": "Ryan Kelly",
+      "earned": 51.25,
+      "guinness": 2,
+      "top1": 0.0,
+      "top2": 3.0,
+      "top3": 1.5,
+      "top4": 0.0,
+      "second_last": 1.0,
+      "last": 1.0
+    },
+    {
+      "name": "Tucker Cina",
+      "earned": 50.42,
+      "guinness": 2,
+      "top1": 1.0,
+      "top2": 0.33,
+      "top3": 2.67,
+      "top4": 1.5,
+      "second_last": 0.0,
+      "last": 2.0
+    },
+    {
+      "name": "Andrew Denucci",
+      "earned": 47.08,
+      "guinness": 0,
+      "top1": 0.0,
+      "top2": 2.0,
+      "top3": 3.0,
+      "top4": 0.5,
+      "second_last": 0.0,
+      "last": 0.0
+    },
+    {
+      "name": "Matt Nicolai",
+      "earned": 46.67,
+      "guinness": 1,
+      "top1": 0.5,
+      "top2": 1.5,
+      "top3": 0.0,
+      "top4": 2.67,
+      "second_last": 1.0,
+      "last": 0.0
+    },
+    {
+      "name": "Rob Disanto",
+      "earned": 40.0,
+      "guinness": 3,
+      "top1": 1.0,
+      "top2": 1.0,
+      "top3": 0.0,
+      "top4": 1.0,
+      "second_last": 1.0,
+      "last": 2.0
+    },
+    {
+      "name": "Tyler Ray",
+      "earned": 40.0,
+      "guinness": 6,
+      "top1": 0.0,
+      "top2": 3.0,
+      "top3": 0.0,
+      "top4": 1.0,
+      "second_last": 4.0,
+      "last": 2.0
+    },
+    {
+      "name": "Christian Jamison",
+      "earned": 37.5,
+      "guinness": 4,
+      "top1": 1.0,
+      "top2": 0.0,
+      "top3": 1.0,
+      "top4": 2.0,
+      "second_last": 1.0,
+      "last": 2.5
+    },
+    {
+      "name": "Logan Kluis",
+      "earned": 30.0,
+      "guinness": 5,
+      "top1": 1.0,
+      "top2": 0.0,
+      "top3": 1.0,
+      "top4": 0.0,
+      "second_last": 2.33,
+      "last": 2.0
+    },
+    {
+      "name": "Tom Raggio",
+      "earned": 25.0,
+      "guinness": 1,
+      "top1": 0.0,
+      "top2": 2.0,
+      "top3": 0.0,
+      "top4": 0.0,
+      "second_last": 0.5,
+      "last": 0.0
+    },
+    {
+      "name": "Tyler Wasser",
+      "earned": 23.75,
+      "guinness": 2,
+      "top1": 0.0,
+      "top2": 0.5,
+      "top3": 3.0,
+      "top4": 0.0,
+      "second_last": 1.0,
+      "last": 1.0
+    },
+    {
+      "name": "Eric Wallerstein",
+      "earned": 20.0,
+      "guinness": 1,
+      "top1": 0.0,
+      "top2": 1.0,
+      "top3": 1.0,
+      "top4": 1.0,
+      "second_last": 1.0,
+      "last": 0.0
+    },
+    {
+      "name": "Cole Baker",
+      "earned": 6.25,
+      "guinness": 5,
+      "top1": 0.0,
+      "top2": 0.0,
+      "top3": 0.83,
+      "top4": 0.0,
+      "second_last": 2.0,
+      "last": 2.5
+    },
+    {
+      "name": "Kemdi Onwuzurike",
+      "earned": 0.83,
+      "guinness": 3,
+      "top1": 0.0,
+      "top2": 0.0,
+      "top3": 0.0,
+      "top4": 0.33,
+      "second_last": 0.0,
+      "last": 3.0
+    },
+    {
+      "name": "John Heyer",
+      "earned": 0.0,
+      "guinness": 2,
+      "top1": 0.0,
+      "top2": 0.0,
+      "top3": 0.0,
+      "top4": 0.0,
+      "second_last": 1.0,
+      "last": 1.0
+    }
+  ]
+}
