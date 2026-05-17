@@ -524,6 +524,10 @@
       color: var(--text);
       white-space: pre-wrap;
     }
+    .recap-body strong {
+      color: var(--theme);
+      font-weight: 700;
+    }
     .recap-body.streaming { opacity: 0.85; }
 
     /* PRIZE KEY */
@@ -3582,7 +3586,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const gw = isPreview ? state.nextGW : (state.isLive ? state.liveGW : state.latestGW);
 
     // Live GW — show pending message
-    if (isLiveGW) {
+    if (state.isLive) {
       document.getElementById('recap-content').innerHTML = `
         <div style="text-align:center;padding:3rem 1rem;">
           <div style="font-size:2rem;margin-bottom:1rem;">⏳</div>
