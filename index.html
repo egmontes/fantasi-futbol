@@ -86,11 +86,11 @@
     /* HEADER */
     .site-header {
       border-bottom: 1px solid var(--border);
-      padding: 0 2rem;
+      padding: 0 1.5rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 56px;
+      height: 68px;
       position: fixed;
       top: 0;
       left: 0;
@@ -678,12 +678,12 @@
     }
 
     :root {
-      --header-h: 56px;
+      --header-h: 68px;
       --callout-h: 40px;
-      --sticky-gw-bar-top: 96px;
-      --sticky-tabs-top: 141px;
-      --sticky-thead-top: 230px;
-      --content-top: 246px;
+      --sticky-gw-bar-top: 108px;
+      --sticky-tabs-top: 153px;
+      --sticky-thead-top: 242px;
+      --content-top: 258px;
     }
 </style>
 </head>
@@ -702,7 +702,21 @@
   <div id="fh-right" style="overflow:hidden;margin-left:0;"><table id="fh-right-table" style="border-collapse:separate;border-spacing:0;font-size:13px;table-layout:fixed;"><thead id="floating-header-row"></thead></table></div>
 </div>
 <header class="site-header">
-  <div class="site-logo">Fantasi <span style="color:var(--theme)">Futbol</span></div>
+  <div style="display:flex;flex-direction:column;justify-content:center;gap:2px;">
+    <div class="site-logo">Fantasi <span style="color:var(--theme)">Futbol</span></div>
+    <div style="position:relative;display:inline-block;">
+      <button id="season-btn" onclick="toggleSeasonMenu()" style="background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;font-size:11px;font-family:var(--font-mono);color:var(--text3);">
+        <span id="season-label" style="color:var(--theme);">2025 / 2026</span>
+        <span style="font-size:9px;opacity:0.6;">▾</span>
+      </button>
+      <div id="season-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:8px;padding:4px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);min-width:120px;">
+        <button onclick="selectSeason('2025/2026')" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:var(--theme-dim);color:var(--theme);border:none;border-radius:6px;cursor:pointer;font-weight:600;">2025 / 2026</button>
+        <button onclick="selectSeason('2024/2025')" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2024 / 2025</button>
+        <button onclick="selectSeason('2023/2024')" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2023 / 2024</button>
+        <button onclick="selectSeason('2022/2023')" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2022 / 2023</button>
+      </div>
+    </div>
+  </div>
   <div class="header-meta"><span id="header-meta">Loading...</span><span id="deploy-status" style="margin-left:10px;font-size:11px;opacity:0.6;">Loading...</span></div>
 </header>
 <div id="gw-callout" style="position:fixed;top:var(--header-h,56px);left:0;right:0;background:var(--bg);z-index:14;padding:8px 1.5rem;border-bottom:1px solid var(--border);min-height:40px;">
@@ -760,6 +774,10 @@
 
   <div id="tab-cup" class="section">
     <div id="cup-content"><div class="loading-state">Click the Cup tab to load bracket data.</div></div>
+  </div>
+
+  <div id="tab-historical" class="section">
+    <div id="historical-content"><div class="loading-state"><span class="spinner"></span>Loading season data...</div></div>
   </div>
 
 
@@ -5078,12 +5096,155 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   init().then(() => initPullToRefresh());
 
-  // Close weekly dropdown when clicking outside
+  // Season selector — exposed globally for onclick handlers
+  window.toggleSeasonMenu = function() {
+    const menu = document.getElementById('season-menu');
+    if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+  };
+
+  window.selectSeason = async function(season) {
+    document.getElementById('season-label').textContent = season.replace(/\//g, ' / ');
+    document.getElementById('season-menu').style.display = 'none';
+
+    // Highlight active item
+    document.querySelectorAll('.season-item').forEach(btn => {
+      const match = btn.textContent.trim().replace(/\s/g,'') === season.replace(/\s/g,'');
+      btn.style.background = match ? 'var(--theme-dim)' : 'none';
+      btn.style.color = match ? 'var(--theme)' : 'var(--text3)';
+      btn.style.fontWeight = match ? '600' : 'normal';
+    });
+
+    if (season === '2025/2026') {
+      // Switch back to live season
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('weekly-tab-btn').classList.add('active');
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById('tab-standings').classList.add('active');
+      document.getElementById('standings-toggle-bar').style.display = 'flex';
+      document.getElementById('weekly-toggle-bar').style.display = 'none';
+      document.getElementById('tab-historical').classList.remove('active');
+      updateStickyOffsets();
+      renderStandings();
+      return;
+    }
+
+    // Switch to historical tab
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('tab-historical').classList.add('active');
+    document.getElementById('standings-toggle-bar').style.display = 'none';
+    document.getElementById('weekly-toggle-bar').style.display = 'none';
+    updateStickyOffsets();
+
+    const el = document.getElementById('historical-content');
+    el.innerHTML = '<div class="loading-state"><span class="spinner"></span>Loading ' + season + '...</div>';
+
+    const fileMap = { '2024/2025': '2024-2025', '2023/2024': '2023-2024', '2022/2023': '2022-2023' };
+    const file = fileMap[season];
+    if (!file) return;
+
+    try {
+      const res = await fetch('data/seasons/' + file + '.json?nocache=' + Date.now());
+      const data = await res.json();
+      el.innerHTML = renderHistoricalSeason(data);
+    } catch(e) {
+      el.innerHTML = '<div class="loading-state" style="color:var(--red);">Failed to load season data.</div>';
+    }
+  };
+
+  function renderHistoricalSeason(data) {
+    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const { season, managers, awards, entry_fee, num_players } = data;
+    const league = awards?.League || {};
+    const cup = awards?.Cup || {};
+    const has4 = managers[0]?.top4 !== undefined;
+
+    let html = '<div class="container">';
+
+    // Season header + awards
+    html += '<div style="margin-bottom:1.5rem;">';
+    html += '<div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px;">' + season + ' Season</div>';
+    html += '<div style="font-size:12px;color:var(--text3);font-family:var(--font-mono);">' + num_players + ' managers · $' + entry_fee + ' entry fee</div>';
+    html += '</div>';
+
+    // Award badges
+    html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:1.5rem;">';
+    if (league.winner) {
+      html += '<div style="background:var(--theme-dim);border:1px solid var(--theme-border);border-radius:8px;padding:10px 14px;">' +
+        '<div style="font-size:10px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">🏆 League Champion</div>' +
+        '<div style="font-weight:700;color:var(--text);">' + esc(league.winner) + '</div>' +
+        (league.runner_up ? '<div style="font-size:11px;color:var(--text3);">Runner-up: ' + esc(league.runner_up) + '</div>' : '') +
+        (league.third ? '<div style="font-size:11px;color:var(--text3);">3rd: ' + esc(league.third) + '</div>' : '') +
+        '</div>';
+    }
+    if (cup.winner) {
+      html += '<div style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);border-radius:8px;padding:10px 14px;">' +
+        '<div style="font-size:10px;color:#FFD700;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">🥇 Cup Champion</div>' +
+        '<div style="font-weight:700;color:var(--text);">' + esc(cup.winner) + '</div>' +
+        (cup.runner_up ? '<div style="font-size:11px;color:var(--text3);">Runner-up: ' + esc(cup.runner_up) + '</div>' : '') +
+        '</div>';
+    }
+    html += '</div>';
+
+    // Standings table
+    html += '<div class="table-scroll-wrap scroll-at-start"><div class="table-outer"><div class="table-wrap"><table style="width:100%;border-collapse:separate;border-spacing:0;font-size:13px;">';
+    html += '<thead><tr style="border-bottom:1px solid var(--border);">';
+    html += '<th style="width:40px;padding:8px 6px;text-align:center;color:var(--text3);font-weight:600;font-family:var(--font-mono);font-size:11px;">#</th>';
+    html += '<th style="padding:8px 10px;text-align:left;color:var(--text3);font-weight:600;font-family:var(--font-mono);font-size:11px;">Manager</th>';
+    html += '<th style="width:70px;padding:8px 6px;text-align:center;color:var(--text3);font-weight:600;font-family:var(--font-mono);font-size:11px;">💰 Earned</th>';
+    if (has4) {
+      html += '<th style="width:60px;padding:8px 6px;text-align:center;color:var(--text3);font-weight:600;font-family:var(--font-mono);font-size:11px;">🥇 1st</th>';
+      html += '<th style="width:60px;padding:8px 6px;text-align:center;color:var(--text3);font-weight:600;font-family:var(--font-mono);font-size:11px;">🥈 2nd</th>';
+      html += '<th style="width:60px;padding:8px 6px;text-align:center;color:var(--text3);font-weight:600;font-family:var(--font-mono);font-size:11px;">🥉 3rd</th>';
+      html += '<th style="width:60px;padding:8px 6px;text-align:center;color:var(--text3);font-weight:600;font-family:var(--font-mono);font-size:11px;">4th</th>';
+    } else {
+      html += '<th style="width:60px;padding:8px 6px;text-align:center;color:var(--text3);font-weight:600;font-family:var(--font-mono);font-size:11px;">🥇 1st</th>';
+      html += '<th style="width:60px;padding:8px 6px;text-align:center;color:var(--text3);font-weight:600;font-family:var(--font-mono);font-size:11px;">🥈 2nd</th>';
+    }
+    html += '<th style="width:60px;padding:8px 6px;text-align:center;color:var(--text3);font-weight:600;font-family:var(--font-mono);font-size:11px;">💀 Last</th>';
+    html += '<th style="width:60px;padding:8px 6px;text-align:center;color:var(--text3);font-weight:600;font-family:var(--font-mono);font-size:11px;">🍺</th>';
+    html += '</tr></thead><tbody>';
+
+    managers.forEach((m, i) => {
+      const isChamp = m.name === league.winner;
+      const isCup = m.name === cup.winner;
+      const bg = i % 2 === 0 ? '' : 'background:var(--bg2);';
+      html += '<tr style="' + bg + 'border-bottom:1px solid var(--border);">';
+      html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:700;color:var(--theme);">' + (i+1) + '</td>';
+      html += '<td style="padding:8px 10px;">';
+      html += '<div style="font-weight:600;color:var(--text);">' + esc(m.name) + (isChamp ? ' 🏆' : '') + (isCup ? ' 🥇' : '') + '</div>';
+      html += '</td>';
+      html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:600;color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(0) + '</td>';
+      if (has4) {
+        html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top1 || '—') + '</td>';
+        html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top2 || '—') + '</td>';
+        html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top3 || '—') + '</td>';
+        html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top4 || '—') + '</td>';
+      } else {
+        html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top1 || '—') + '</td>';
+        html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top2 || '—') + '</td>';
+      }
+      html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:' + (m.last > 0 ? 'var(--red)' : 'var(--text3)') + ';">' + (m.last || '—') + '</td>';
+      html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:' + (m.guinness > 0 ? 'var(--amber)' : 'var(--text3)') + ';">' + (m.guinness || '—') + '</td>';
+      html += '</tr>';
+    });
+
+    html += '</tbody></table></div></div></div>';
+    html += '</div>';
+    return html;
+  }
+
   document.addEventListener('click', (e) => {
-    const wrapper = document.getElementById('weekly-tab-btn');
-    const menu = document.getElementById('weekly-tab-menu');
-    if (menu && wrapper && !wrapper.contains(e.target) && !menu.contains(e.target)) {
+    const menu = document.getElementById('season-menu');
+    const btn = document.getElementById('season-btn');
+    if (menu && btn && !btn.contains(e.target) && !menu.contains(e.target)) {
       menu.style.display = 'none';
+    }
+    // Also close weekly dropdown
+    const wMenu = document.getElementById('weekly-tab-menu');
+    const wBtn = document.getElementById('weekly-tab-btn');
+    if (wMenu && wBtn && !wBtn.contains(e.target) && !wMenu.contains(e.target)) {
+      wMenu.style.display = 'none';
     }
   });
 </script>
