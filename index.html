@@ -990,26 +990,26 @@
       state.workingProxy = null;
     }
 
-    // Race all proxies simultaneously — use whichever responds first
+    // Race all proxies simultaneously — use whichever responds first with valid data
     return new Promise((resolve, reject) => {
       let settled = false;
       let failed = 0;
+      const total = PROXIES.length;
 
       PROXIES.forEach((proxy, i) => {
         tryFetch(proxy(target))
-          .then(res => {
-            if (settled || !res.ok) {
-              if (!res.ok) failed++;
-              if (failed === PROXIES.length && !settled) reject(new Error('All proxies failed'));
-              return;
-            }
+          .then(async res => {
+            if (settled) return;
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            if (settled) return;
             settled = true;
             state.workingProxy = i;
-            res.json().then(resolve).catch(reject);
+            resolve(data);
           })
           .catch(() => {
             failed++;
-            if (failed === PROXIES.length && !settled) {
+            if (failed === total && !settled) {
               reject(new Error('All proxies failed — FPL API may be temporarily unavailable. Please try again.'));
             }
           });
@@ -4347,8 +4347,29 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      // Weekly tab btn — toggle dropdown
+      // Weekly tab btn — if not active, switch to it first; if already active, open dropdown
       if (btn.id === 'weekly-tab-btn') {
+        const isActive = btn.classList.contains('active');
+        if (!isActive) {
+          // Switch to gameweek tab (show standings by default)
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('tab-standings').classList.add('active');
+          setHashState('standings');
+          document.getElementById('standings-toggle-bar').style.display = 'flex';
+          const weeklyToggleEl = document.getElementById('weekly-toggle-bar');
+          if (weeklyToggleEl) weeklyToggleEl.style.display = 'none';
+          document.getElementById('floating-header').classList.remove('visible');
+          updateStickyOffsets();
+          requestAnimationFrame(() => {
+            initFloatingHeader('standings-table');
+            const tickerEl = document.querySelector('.stat-ticker');
+            if (tickerEl) makeTickerInteractive(tickerEl, window.__fantasiTickerOffset || 0);
+          });
+          return;
+        }
+        // Already active — open dropdown
         const menu = document.getElementById('weekly-tab-menu');
         if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
         return;
