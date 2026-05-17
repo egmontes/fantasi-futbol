@@ -3537,16 +3537,46 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   }
 
   function renderRecapDisplay(gw, text) {
+    // Normalize: if text has **markdown**, use it; otherwise detect headers by pattern
+    const hasMarkdown = /\*\*.+?\*\*/.test(text);
+
     const html = text
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .split('\n')
+      .map(line => {
+        const trimmed = line.trim();
+        // Already markdown bold
+        if (hasMarkdown) {
+          line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        } else {
+          // Auto-detect headers: lines that are ALL CAPS (with spaces/punctuation), or start with emoji + caps
+          const isHeader = /^[\p{Emoji}\s]*[A-Z0-9][A-Z0-9\s'':,\-!&\/]{4,}$/u.test(trimmed) && trimmed.length < 100;
+          if (isHeader) {
+            line = '<strong>' + line + '</strong>';
+          }
+        }
+        return line;
+      })
+      .join('\n')
       .replace(/\n/g, '<br>');
 
-    // Format for WhatsApp: convert **header** to *header*, ensure blank line before each header
-    const plain = text
-      .replace(/\*\*(.+?)\*\*/g, '*$1*')           // ** to * for WhatsApp bold
-      .replace(/^(\*.+?\*)/gm, '\n$1')             // blank line before each bold header
-      .replace(/\n{3,}/g, '\n\n')                  // collapse excessive blank lines
-      .trim();
+    // Format for WhatsApp: convert **header** to *header*, or auto-bold ALL CAPS headers
+    const hasMarkdownWA = /\*\*.+?\*\*/.test(text);
+    const plain = hasMarkdownWA
+      ? text
+          .replace(/\*\*(.+?)\*\*/g, '*$1*')
+          .replace(/^(\*.+?\*)/gm, '\n$1')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim()
+      : text
+          .split('\n')
+          .map(line => {
+            const trimmed = line.trim();
+            const isHeader = /^[\p{Emoji}\s]*[A-Z0-9][A-Z0-9\s'':,\-!&\/]{4,}$/u.test(trimmed) && trimmed.length < 100;
+            return isHeader ? '\n*' + line.trim() + '*' : line;
+          })
+          .join('\n')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
     const waUrl = 'https://wa.me/?text=' + encodeURIComponent(plain);
 
     document.getElementById('recap-display').innerHTML =
