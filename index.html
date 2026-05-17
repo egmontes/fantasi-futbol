@@ -1708,6 +1708,11 @@ async function init() {
     const topMoney = topMoneyManager ? state.managers.find(m => m.id === parseInt(topMoneyManager, 10)) : null;
     const topMoneyValue = topMoneyManager ? stats[topMoneyManager].moneyWon : 0;
 
+    // Compute season leader widgets
+    const mostBottom2 = state.historyLoaded ? [...rows].sort((a,b) => b.bottom2 - a.bottom2)[0] : null;
+    const mostTop4 = state.historyLoaded ? [...rows].sort((a,b) => b.top4 - a.top4)[0] : null;
+    const mostGuinness = state.historyLoaded ? [...rows].sort((a,b) => b.totalG - a.totalG)[0] : null;
+
     const cards =
       (mostTransIn ? '<div class="stat-card stat-card-green" data-widget="trans-in"><div class="s-label">📈 GW' + gwLabel + ' Most Transferred In</div><div class="s-value">' + esc(mostTransIn.web_name) + '<br>' + mostTransIn.transfers_in_event.toLocaleString() + ' transfers</div></div>' : '') +
       (mostTransOut ? '<div class="stat-card stat-card-red" data-widget="trans-out"><div class="s-label">📉 GW' + gwLabel + ' Most Transferred Out</div><div class="s-value">' + esc(mostTransOut.web_name) + '<br>' + mostTransOut.transfers_out_event.toLocaleString() + ' transfers</div></div>' : '') +
@@ -1718,6 +1723,9 @@ async function init() {
       '<div class="stat-card"><div class="s-label">🏟 GWs Played</div><div class="s-value single-line">' + state.latestGW + '</div></div>' +
       '<div class="stat-card"><div class="s-label">💵 Payouts So Far</div><div class="s-value single-line">$' + totalPool + '</div></div>' +
       '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Guinness Chugged</div><div class="s-value single-line">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
+      (mostGuinness && mostGuinness.totalG > 0 ? '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Most Guinness</div><div class="s-value">' + esc(mostGuinness.name) + '<br>' + mostGuinness.totalG + '</div></div>' : '') +
+      (mostTop4 && mostTop4.top4 > 0 ? '<div class="stat-card stat-card-green"><div class="s-label">🏆 Most Top 4 Finishes</div><div class="s-value">' + esc(mostTop4.name) + '<br>' + mostTop4.top4 + ' times</div></div>' : '') +
+      (mostBottom2 && mostBottom2.bottom2 > 0 ? '<div class="stat-card stat-card-red"><div class="s-label">💀 Most Bottom 2 Finishes</div><div class="s-value">' + esc(mostBottom2.name) + '<br>' + mostBottom2.bottom2 + ' times</div></div>' : '') +
       '<div class="stat-card stat-card-green"><div class="s-label">🟢 Highest GW Score</div><div class="s-value">' + esc(tickerInsights.highest.manager) + '<br>GW' + tickerInsights.highest.gw + ' · ' + tickerInsights.highest.points + ' pts' + '</div></div>' +
       '<div class="stat-card stat-card-red"><div class="s-label">🔴 Lowest GW Score</div><div class="s-value">' + esc(tickerInsights.lowest.manager) + '<br>GW' + tickerInsights.lowest.gw + ' · ' + tickerInsights.lowest.points + ' pts' + '</div></div>' +
       '<div class="stat-card"><div class="s-label">👑 Biggest Win Margin</div><div class="s-value">' + esc(tickerInsights.biggestMargin.manager) + '<br>GW' + tickerInsights.biggestMargin.gw + ' · ' + tickerInsights.biggestMargin.margin + ' pts' + '</div></div>' +
