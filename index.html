@@ -1757,11 +1757,11 @@ async function init() {
         })() + '</td>' : '') +
         '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = m.captain; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
         '<td><span class="pts-val">' + m.total + '</span></td>' +
-        '<td style="text-align:center">' + (m.top4 > 0 ? '<span class="badge badge-top">' + m.top4 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
-        '<td style="text-align:center">' + (m.bottom2 > 0 ? '<span class="badge badge-bot">' + m.bottom2 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
-        '<td><span class="' + (m.earned > 0 ? 'money-pos' : 'money-zero') + '">$' + m.earned.toFixed(2).replace('.00','') + '</span></td>' +
-        '<td style="text-align:center">' + gmissCell + '</td>' +
-        '<td style="text-align:center;font-family:var(--font-mono);font-size:13px;font-weight:500;color:' + (m.totalG > 0 ? 'var(--amber)' : 'var(--text3)') + '">' + (m.totalG > 0 ? m.totalG : '—') + '</td>' +
+        '<td style="text-align:center">' + (!state.historyLoaded ? '<span class="badge-zero">—</span>' : m.top4 > 0 ? '<span class="badge badge-top">' + m.top4 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
+        '<td style="text-align:center">' + (!state.historyLoaded ? '<span class="badge-zero">—</span>' : m.bottom2 > 0 ? '<span class="badge badge-bot">' + m.bottom2 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
+        '<td><span class="' + (m.earned > 0 ? 'money-pos' : 'money-zero') + '">$' + (!state.historyLoaded ? '—' : m.earned.toFixed(2).replace('.00','')) + '</span></td>' +
+        '<td style="text-align:center">' + (!state.historyLoaded ? '—' : gmissCell) + '</td>' +
+        '<td style="text-align:center;font-family:var(--font-mono);font-size:13px;font-weight:500;color:' + (m.totalG > 0 ? 'var(--amber)' : 'var(--text3)') + '">' + (!state.historyLoaded ? '—' : m.totalG > 0 ? m.totalG : '—') + '</td>' +
         '</tr>';
     });
 
@@ -2119,30 +2119,28 @@ async function init() {
   }
 
   function fitStatCards() {
-    // First pass: reset all to base size so measurements are fresh
-    document.querySelectorAll('.stat-card .s-value').forEach(v => {
-      v.style.fontSize = '42px';
-      v.style.whiteSpace = 'nowrap';
-    });
+    // Reset all inline sizes first so measurements start fresh
     document.querySelectorAll('.stat-card .s-label').forEach(l => {
       l.style.fontSize = '9px';
       l.style.whiteSpace = 'nowrap';
     });
-
-    // Second pass: shrink to fit
+    document.querySelectorAll('.stat-card .s-value').forEach(v => {
+      v.style.fontSize = '42px';
+      v.style.whiteSpace = 'nowrap';
+    });
+    // Shrink to fit
     document.querySelectorAll('.stat-card').forEach(card => {
       const label = card.querySelector('.s-label');
       const value = card.querySelector('.s-value');
-      if (value) {
-        const cardW = card.offsetWidth - 22;
-        const cardH = card.offsetHeight - 22;
-        const labelH = label ? label.offsetHeight + 5 : 0;
-        const availH = cardH - labelH;
-        let vSize = 42;
-        while (vSize > 12 && (value.scrollWidth > cardW || value.scrollHeight > availH)) {
-          vSize -= 1;
-          value.style.fontSize = vSize + 'px';
-        }
+      if (!value) return;
+      const cardW = card.offsetWidth - 22;
+      const cardH = card.offsetHeight - 22;
+      const labelH = label ? label.offsetHeight + 5 : 0;
+      const availH = cardH - labelH;
+      let vSize = 42;
+      while (vSize > 12 && (value.scrollWidth > cardW || value.scrollHeight > availH)) {
+        vSize -= 1;
+        value.style.fontSize = vSize + 'px';
       }
     });
   }
@@ -3548,8 +3546,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         if (hasMarkdown) {
           line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         } else {
-          // Auto-detect headers: lines that are ALL CAPS (with spaces/punctuation), or start with emoji + caps
-          const isHeader = /^[\p{Emoji}\s]*[A-Z0-9][A-Z0-9\s'':,\-!&\/]{4,}$/u.test(trimmed) && trimmed.length < 100;
+          // Auto-detect headers: lines that are ALL CAPS (with spaces/punctuation/emoji)
+          const stripped = trimmed.replace(/[\u{1F000}-\u{1FFFF}]/gu, '').trim();
+          const isHeader = stripped.length > 4 && stripped.length < 100 && stripped === stripped.toUpperCase() && /[A-Z]/.test(stripped);
           if (isHeader) {
             line = '<strong>' + line + '</strong>';
           }
@@ -3571,7 +3570,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           .split('\n')
           .map(line => {
             const trimmed = line.trim();
-            const isHeader = /^[\p{Emoji}\s]*[A-Z0-9][A-Z0-9\s'':,\-!&\/]{4,}$/u.test(trimmed) && trimmed.length < 100;
+            const isHeader = (() => { const s = trimmed.replace(/[\uD83C-\uDBFF\uDC00-\uDFFF]/g,'').trim(); return s.length>4 && s.length<100 && s===s.toUpperCase() && /[A-Z]/.test(s); })() && trimmed.length < 100;
             return isHeader ? '\n*' + line.trim() + '*' : line;
           })
           .join('\n')
@@ -4114,9 +4113,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       if (tab === 'standings') {
         requestAnimationFrame(() => {
           initFloatingHeader('standings-table');
-          // Re-attach ticker since DOM may have been recreated
           const tickerEl = document.querySelector('.stat-ticker');
-          if (tickerEl) makeTickerInteractive(tickerEl);
+          if (tickerEl) {
+            const savedOffset = window.__fantasiTickerOffset || 0;
+            makeTickerInteractive(tickerEl, savedOffset);
+          }
         });
       }
       if (tab === 'weekly') {
