@@ -3409,11 +3409,11 @@ async function buildPrompt(gw) {
     }
 
     // Cup context
-    const cupMatches = window._allCupMatches || [];
-    const gwCupMatches = cupMatches.filter(m => m.event === gw);
-    if (gwCupMatches.length > 0) {
-      const roundName = gwCupMatches[0].knockout_name || 'Cup Round';
-      const completed = gwCupMatches.filter(m => m.winner);
+    const allCupMatchesForPrompt = window._allCupMatches || [];
+    const thisgwCupMatches = allCupMatchesForPrompt.filter(m => m.event === gw);
+    if (thisgwCupMatches.length > 0) {
+      const roundName = thisgwCupMatches[0].knockout_name || 'Cup Round';
+      const completed = thisgwCupMatches.filter(m => m.winner);
       if (roundName.toLowerCase().includes('final') && !roundName.toLowerCase().includes('semi') && !roundName.toLowerCase().includes('quarter')) {
         leagueContextLines.push('THIS IS THE CUP FINAL! The biggest cup match of the season is happening this gameweek. Champion will be crowned.');
       } else if (roundName.toLowerCase().includes('semi')) {
