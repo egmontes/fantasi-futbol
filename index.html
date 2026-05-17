@@ -291,6 +291,38 @@
     /* TABLE */
     .table-outer { overflow-x: auto; }
     .table-outer table { width: 100%; }
+    /* Column peek — on narrow screens, let last column peek out slightly */
+    @media (max-width: 600px) {
+      .table-outer { padding-right: 24px; }
+    }
+
+    /* Scroll hint — gradient fades on left/right edges */
+    .table-scroll-wrap {
+      position: relative;
+    }
+    .table-scroll-wrap::before,
+    .table-scroll-wrap::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 32px;
+      pointer-events: none;
+      z-index: 4;
+      transition: opacity 0.2s;
+    }
+    .table-scroll-wrap::before {
+      left: var(--sticky-width, 0px);
+      background: linear-gradient(to right, var(--bg), transparent);
+      opacity: 0;
+    }
+    .table-scroll-wrap::after {
+      right: 0;
+      background: linear-gradient(to left, var(--bg), transparent);
+      opacity: 1;
+    }
+    .table-scroll-wrap.scroll-at-start::before { opacity: 0; }
+    .table-scroll-wrap.scroll-at-end::after { opacity: 0; }
+    .table-scroll-wrap:not(.scroll-at-start)::before { opacity: 1; }
     .table-wrap { }
     .table-outer thead th {
       background: var(--bg2);
@@ -1672,7 +1704,7 @@ async function init() {
           ? '<br>Games Completed: ' + (state.fixturesTotal - state.fixturesOngoing - state.fixturesRemaining) + ' · Ongoing: ' + state.fixturesOngoing + ' · Remaining: ' + state.fixturesRemaining
           : '') +
         '</div>' +
-      '<div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
+      '<div class="table-scroll-wrap scroll-at-start"><div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
       '<thead><tr>' +
       '<th style="width:52px">Rank</th>' +
       '<th ' + thClass('name') + ' data-col="name">Manager</th>' +
@@ -1781,6 +1813,30 @@ async function init() {
     }
     requestAnimationFrame(fitStatCards);
     requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('standings-table'); });
+
+    // Scroll hint — update gradient visibility and column peek on scroll
+    const tableOuter = document.querySelector('#standings-table')?.closest('.table-outer');
+    const scrollWrap = document.querySelector('#standings-table')?.closest('.table-scroll-wrap');
+    if (tableOuter && scrollWrap) {
+      // Position left gradient dynamically after sticky columns
+      const positionLeftGradient = () => {
+        const stickyCol1 = tableOuter.querySelector('td:nth-child(1), th:nth-child(1)');
+        const stickyCol2 = tableOuter.querySelector('td:nth-child(2), th:nth-child(2)');
+        if (stickyCol1 && stickyCol2) {
+          const stickyWidth = stickyCol1.offsetWidth + stickyCol2.offsetWidth;
+          scrollWrap.style.setProperty('--sticky-width', stickyWidth + 'px');
+        }
+      };
+      requestAnimationFrame(positionLeftGradient);
+
+      const updateScrollHint = () => {
+        const { scrollLeft, scrollWidth, clientWidth } = tableOuter;
+        scrollWrap.classList.toggle('scroll-at-start', scrollLeft <= 2);
+        scrollWrap.classList.toggle('scroll-at-end', scrollLeft + clientWidth >= scrollWidth - 2);
+      };
+      tableOuter.addEventListener('scroll', updateScrollHint, { passive: true });
+      requestAnimationFrame(updateScrollHint);
+    }
 
     // Row click — expand drawer
     initDrawer('standings-table', currentGW);
