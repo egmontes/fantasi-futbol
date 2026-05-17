@@ -3384,8 +3384,53 @@ async function buildPrompt(gw) {
       return line;
     }).join('\n');
 
-    return `You are the snarky, brutally funny commissioner of a Fantasy Premier League league called "Fantasi Futbol". Write a roast-filled weekly recap for Gameweek ${gw}.
+    // Build league context blurbs
+    const leagueContextLines = [];
+    const totalGWs = 38;
+    const halfwayGW = 19; // second half starts GW20
+    const gwsRemaining = totalGWs - gw;
 
+    // Season milestone context
+    if (gw === halfwayGW) {
+      leagueContextLines.push('This is GW' + gw + ' — the FINAL gameweek of the first half of the season. Chips reset next week (GW20). Everyone gets a fresh set of Wildcard, Bench Boost, Free Hit, and Triple Captain for the second half.');
+    } else if (gw === halfwayGW - 1) {
+      leagueContextLines.push('Only one gameweek left in the first half of the season. Chips reset after GW' + halfwayGW + ' — managers who haven\'t used their first-half chips are about to lose them forever.');
+    } else if (gw < halfwayGW) {
+      const gwsToHalf = halfwayGW - gw;
+      if (gwsToHalf <= 3) leagueContextLines.push('The first half of the season ends in ' + gwsToHalf + ' gameweek' + (gwsToHalf > 1 ? 's' : '') + '. Chips reset at GW20 — use them or lose them.');
+    } else if (gw === 20) {
+      leagueContextLines.push('Welcome to the second half of the season! GW20 means everyone\'s chips have reset. A fresh Wildcard, Bench Boost, Free Hit, and Triple Captain for everyone — the second half starts now.');
+    }
+    if (gwsRemaining <= 5 && gwsRemaining > 0) {
+      leagueContextLines.push('Only ' + gwsRemaining + ' gameweek' + (gwsRemaining > 1 ? 's' : '') + ' remaining in the season. The race for prizes is almost over.');
+    }
+    if (gw === totalGWs) {
+      leagueContextLines.push('This is the FINAL gameweek of the season. Every point matters.');
+    }
+
+    // Cup context
+    const cupMatches = window._allCupMatches || [];
+    const gwCupMatches = cupMatches.filter(m => m.event === gw);
+    if (gwCupMatches.length > 0) {
+      const roundName = gwCupMatches[0].knockout_name || 'Cup Round';
+      const completed = gwCupMatches.filter(m => m.winner);
+      if (roundName.toLowerCase().includes('final') && !roundName.toLowerCase().includes('semi') && !roundName.toLowerCase().includes('quarter')) {
+        leagueContextLines.push('THIS IS THE CUP FINAL! The biggest cup match of the season is happening this gameweek. Champion will be crowned.');
+      } else if (roundName.toLowerCase().includes('semi')) {
+        leagueContextLines.push('Cup Semifinals are happening this gameweek (' + roundName + '). Four managers remain — two will make the final.');
+      } else if (roundName.toLowerCase().includes('quarter')) {
+        leagueContextLines.push('Cup Quarterfinals are this gameweek (' + roundName + '). Eight managers still alive in the cup.');
+      } else {
+        leagueContextLines.push('The cup is active this gameweek (' + roundName + ').');
+      }
+    }
+
+    const leagueContext = leagueContextLines.length > 0
+      ? '\nLeague context for this gameweek:\n' + leagueContextLines.map(l => '- ' + l).join('\n') + '\n'
+      : '';
+
+    return `You are the snarky, brutally funny commissioner of a Fantasy Premier League league called "Fantasi Futbol". Write a roast-filled weekly recap for Gameweek ${gw}.
+${leagueContext}
 League rules:
 - Weekly prizes: 1st = $30, 2nd = $15, 3rd = $10, 4th = $5
 - The bottom 2 managers each week must shotgun a Guinness before 7:30am ET the following Saturday. No exceptions.
@@ -3494,8 +3539,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     // Format for WhatsApp: convert **header** to *header*, ensure blank line before each header
     const plain = text
-      .replace(/\*\*(.+?)\*\*/g, '*$1*')         // ** to * for WhatsApp bold
-      .replace(/\n(\*[^\n]+\*)\n/g, '\n\n$1\n'); // ensure blank line before each bold header
+      .replace(/\*\*(.+?)\*\*/g, '*$1*')           // ** to * for WhatsApp bold
+      .replace(/^(\*.+?\*)/gm, '\n$1')             // blank line before each bold header
+      .replace(/\n{3,}/g, '\n\n')                  // collapse excessive blank lines
+      .trim();
     const waUrl = 'https://wa.me/?text=' + encodeURIComponent(plain);
 
     document.getElementById('recap-display').innerHTML =
