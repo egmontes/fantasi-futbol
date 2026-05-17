@@ -175,8 +175,16 @@
       left: 0;
       right: 0;
       background: var(--bg);
-      z-index: 14;
+      z-index: 60;
       padding: 8px 1.5rem;
+    }
+    .tab-btn { flex: 1; }
+    .tab-btn-dropdown { flex: 1; }
+    .tab-btn-dropdown .tab-btn { width: 100%; }
+    /* All tab badges and toggle buttons share same equal width */
+    .unified-btn-width {
+      width: calc(50% - 3px);
+      box-sizing: border-box;
     }
     .tab-btn {
       flex: 1;
@@ -195,6 +203,47 @@
     }
     .tab-btn:hover { color: var(--text2); background: var(--bg2); }
     .tab-btn.active { background: var(--theme-dim); color: var(--theme); border-color: var(--theme-border); font-weight: 600; }
+
+    /* Weekly tab dropdown */
+    .tab-btn-dropdown { position: relative; flex: 1; }
+    .tab-btn-dropdown .tab-btn { width: 100%; }
+    .tab-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg2);
+      border: 1px solid var(--theme-border);
+      border-radius: 8px;
+      min-width: 160px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      padding: 4px;
+    }
+    .tab-dropdown-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: var(--font-body);
+      background: none;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text2);
+      white-space: nowrap;
+    }
+    .tab-dropdown-item:hover { background: var(--theme-dim); color: var(--theme); }
+    .tab-dropdown-item.active { background: var(--theme-dim); color: var(--theme); font-weight: 600; }
+    .tab-dropdown-item .live-badge {
+      font-size: 10px;
+      color: var(--red);
+      margin-left: 6px;
+      font-family: var(--font-mono);
+    }
 
     /* STAT CARDS */
     .stat-ticker-wrap {
@@ -615,6 +664,7 @@
       .prize-key-label { font-size: 10px; }
       .container { padding: 1.5rem 1rem 3rem; }
       .tab-btn { padding: 10px 12px; font-size: 13px; }
+    .tab-btn, .tab-btn-dropdown .tab-btn { justify-content: center; text-align: center; }
       .stat-card .s-value { font-size: 26px; }
       /* Tighter manager column on mobile — only truncate if it genuinely overflows */
       .m-name { font-size: 12px; }
@@ -668,25 +718,33 @@
   </div>
 </div>
 <div class="tabs" id="main-tabs" style="visibility:hidden;">
-    <button class="tab-btn active" data-tab="standings" id="standings-tab-btn">Season standings</button>
-    <button class="tab-btn" data-tab="weekly">Weekly History</button>
+    <div class="tab-btn-dropdown" id="weekly-tab-wrapper">
+      <button class="tab-btn active" id="weekly-tab-btn" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;">
+        <span style="display:flex;align-items:center;gap:4px;">
+          <span id="weekly-tab-label" style="font-size:13px;">Gameweek 36</span>
+          <span style="font-size:10px;opacity:0.6;">▾</span>
+        </span>
+        <span id="weekly-tab-live" style="font-size:9px;color:var(--red);display:none;">● Live</span>
+      </button>
+      <div id="weekly-tab-menu" class="tab-dropdown-menu" style="display:none;"></div>
+    </div>
     <button class="tab-btn" data-tab="cup">Cup 🏆</button>
   </div>
 <div class="gw-bar hidden">
-    <label for="gw-select">Gameweek</label>
-    <select id="gw-select"></select>
-    <button class="btn" id="btn-refresh">↺ Refresh</button>
+    <label for="gw-select" style="display:none;">Gameweek</label>
+    <select id="gw-select" style="display:none;"></select>
+    <button class="btn" id="btn-refresh" style="display:none;">↺ Refresh</button>
   </div>
 <div id="standings-toggle-bar" style="display:none;position:fixed;left:0;right:0;background:var(--bg);z-index:13;padding:10px 1.5rem;border-bottom:1px solid var(--border);top:var(--sticky-toggle-top,150px);justify-content:center;">
   <div style="display:flex;width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:3px;">
-    <button id="toggle-league" onclick="switchStandingsView('league')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;text-align:center;">League Table</button>
-    <button id="toggle-recap" onclick="switchStandingsView('recap')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
+    <button id="toggle-league" onclick="switchStandingsView('league')" style="flex:1;width:50%;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;text-align:center;">League Table</button>
+    <button id="toggle-recap" onclick="switchStandingsView('recap')" style="flex:1;width:50%;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
   </div>
 </div>
 <div id="weekly-toggle-bar" style="display:none;position:fixed;left:0;right:0;background:var(--bg);z-index:13;padding:6px 1.5rem;border-bottom:1px solid var(--border);top:var(--sticky-gw-bar-bottom,170px);justify-content:center;">
   <div style="display:flex;width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:3px;">
-    <button id="weekly-toggle-table" onclick="switchWeeklyView('table')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;text-align:center;">GW League Table</button>
-    <button id="weekly-toggle-recap" onclick="switchWeeklyView('recap')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
+    <button id="weekly-toggle-table" onclick="switchWeeklyView('table')" style="flex:1;width:50%;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;text-align:center;">GW League Table</button>
+    <button id="weekly-toggle-recap" onclick="switchWeeklyView('recap')" style="flex:1;width:50%;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
   </div>
 </div>
 <div class="container">
@@ -1086,6 +1144,9 @@ async function init() {
       }
       // Don't add live GW to selector while in progress — only show once complete
 
+      // Build weekly tab dropdown menu
+      buildWeeklyDropdown();
+
       document.getElementById('page-loader-text').textContent = '👥 Loading managers...';
       await loadLeague();
 
@@ -1159,10 +1220,10 @@ async function init() {
 
       loadLastUpdated();
       // Update standings tab label with live GW
-      const standingsTabBtn = document.getElementById('standings-tab-btn');
-      if (standingsTabBtn) {
-        const displayGW = state.isLive ? state.liveGW : state.latestGW;
-      if (standingsTabBtn) standingsTabBtn.textContent = 'Gameweek ' + displayGW;
+      // Update weekly tab label with current GW
+      const weeklyTabLabel = document.getElementById('weekly-tab-label');
+      if (weeklyTabLabel && weeklyTabLabel.textContent === 'GW36') {
+        weeklyTabLabel.textContent = 'Season';
       }
       // Update recap toggle label with GW number
       const recapToggleBtn = document.getElementById('toggle-recap');
@@ -4201,8 +4262,101 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     });
   }
 
+  function buildWeeklyDropdown() {
+    const menu = document.getElementById('weekly-tab-menu');
+    const label = document.getElementById('weekly-tab-label');
+    if (!menu) return;
+    menu.innerHTML = '';
+    const currentGW = state.isLive ? state.liveGW : state.latestGW;
+
+    // Live/current GW option at top (replaces "Season Standings")
+    const standingsItem = document.createElement('button');
+    standingsItem.className = 'tab-dropdown-item active';
+    standingsItem.dataset.view = 'standings';
+    standingsItem.innerHTML = 'GW ' + currentGW + (state.isLive ? ' <span style="font-size:10px;color:var(--red);">● Live</span>' : ' <span style="font-size:10px;color:var(--text3);">Current</span>');
+    menu.appendChild(standingsItem);
+
+    // Past GWs
+    for (let i = currentGW - 1; i >= 1; i--) {
+      const item = document.createElement('button');
+      item.className = 'tab-dropdown-item';
+      item.dataset.view = 'weekly';
+      item.dataset.gw = i;
+      item.textContent = 'GW ' + i;
+      menu.appendChild(item);
+    }
+
+    label.textContent = 'Gameweek ' + currentGW;
+    const liveEl = document.getElementById('weekly-tab-live');
+    if (liveEl) liveEl.style.display = state.isLive ? 'block' : 'none';
+
+    const switchView = (item) => {
+      menu.querySelectorAll('.tab-dropdown-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      menu.style.display = 'none';
+
+      // Close cup tab
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('weekly-tab-btn').classList.add('active');
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById('floating-header').classList.remove('visible');
+      const gwBarEl = document.querySelector('.gw-bar');
+      const toggleBarStandings = document.getElementById('standings-toggle-bar');
+      const weeklyToggleEl = document.getElementById('weekly-toggle-bar');
+
+      if (item.dataset.view === 'standings') {
+        label.textContent = 'Gameweek ' + currentGW;
+        const liveElS = document.getElementById('weekly-tab-live');
+        if (liveElS) liveElS.style.display = state.isLive ? 'block' : 'none';
+        document.getElementById('tab-standings').classList.add('active');
+        setHashState('standings');
+        if (gwBarEl) gwBarEl.classList.add('hidden');
+        if (toggleBarStandings) toggleBarStandings.style.display = 'flex';
+        if (weeklyToggleEl) weeklyToggleEl.style.display = 'none';
+        updateStickyOffsets();
+        requestAnimationFrame(() => {
+          initFloatingHeader('standings-table');
+          const tickerEl = document.querySelector('.stat-ticker');
+          if (tickerEl) makeTickerInteractive(tickerEl, window.__fantasiTickerOffset || 0);
+        });
+      } else {
+        const gw = parseInt(item.dataset.gw);
+        label.textContent = 'Gameweek ' + gw;
+        const liveElW = document.getElementById('weekly-tab-live');
+        if (liveElW) liveElW.style.display = 'none';
+        document.getElementById('gw-select').value = gw;
+        document.getElementById('tab-weekly').classList.add('active');
+        setHashState('weekly');
+        // gw-bar hidden — GW selection now via dropdown tab
+        if (toggleBarStandings) toggleBarStandings.style.display = 'none';
+        if (weeklyToggleEl) weeklyToggleEl.style.display = 'flex';
+        updateStickyOffsets();
+        const tableBtn = document.getElementById('weekly-toggle-table');
+        const recapBtn = document.getElementById('weekly-toggle-recap');
+        if (tableBtn) tableBtn.textContent = 'GW' + gw + ' League Table';
+        if (recapBtn) recapBtn.textContent = 'GW' + gw + ' Recap';
+        switchWeeklyView('table');
+        renderWeekly(gw);
+      }
+    };
+
+    menu.querySelectorAll('.tab-dropdown-item').forEach(item => {
+      item.addEventListener('click', (e) => { e.stopPropagation(); switchView(item); });
+    });
+  }
+
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      // Weekly tab btn — toggle dropdown
+      if (btn.id === 'weekly-tab-btn') {
+        const menu = document.getElementById('weekly-tab-menu');
+        if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        return;
+      }
+      // Close dropdown
+      const menu = document.getElementById('weekly-tab-menu');
+      if (menu) menu.style.display = 'none';
+
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       btn.classList.add('active');
@@ -4897,6 +5051,15 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   }
 
   init().then(() => initPullToRefresh());
+
+  // Close weekly dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const wrapper = document.getElementById('weekly-tab-wrapper');
+    const menu = document.getElementById('weekly-tab-menu');
+    if (wrapper && menu && !wrapper.contains(e.target)) {
+      menu.style.display = 'none';
+    }
+  });
 </script>
 </body>
 </html>
