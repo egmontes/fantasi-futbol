@@ -3160,7 +3160,7 @@ function computeTeam(picks, liveData, bootstrap, chip) {
 
   if (chip === 'bboost') total += benchPts;
 
-  return { total, cap: cap?.element, breakdown, benchPts, names };
+  return { total, cap: cap?.element, breakdown, benchPts, names, types };
 }
 
 async function buildPrompt(gw) {
@@ -3302,8 +3302,10 @@ async function buildPrompt(gw) {
     d.chip
   );
 
+  const posLabels = { 1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD' };
+  const capPos = team.cap ? posLabels[team.types?.[team.cap]] : '';
   const capName = team.cap
-    ? team.names[team.cap]
+    ? (capPos ? '[' + capPos + '] ' : '') + team.names[team.cap]
     : 'Unknown';
 
   extras.push('Captain: ' + capName);
@@ -3333,7 +3335,8 @@ async function buildPrompt(gw) {
       if (s?.cleanSheet > 0) parts.push('clean sheet');
       if (s?.bonus > 0) parts.push(s.bonus + ' bonus');
       const statStr = parts.length > 0 ? ' — ' + parts.join(', ') : '';
-      return team.names[p.id] + ': ' + p.pts + statStr;
+      const pos = posLabels[team.types?.[p.id]] || '';
+      return (pos ? '[' + pos + '] ' : '') + team.names[p.id] + ': ' + p.pts + statStr;
     });
 
   extras.push('Top players: ' + top.join(' | '));
