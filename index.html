@@ -759,7 +759,7 @@
 
   async function tryFetch(url) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    const timeout = setTimeout(() => controller.abort(), 5000);
     try {
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
@@ -923,31 +923,40 @@
   async function fetchFPL(path) {
     const target = FPL_BASE + path;
 
-    // If we have a working proxy, use it with one retry before falling back
+    // If we have a known working proxy, try it first with a short timeout
     if (state.workingProxy !== null) {
       try {
         const res = await tryFetch(PROXIES[state.workingProxy](target));
         if (res.ok) return res.json();
       } catch(e) {}
-      // Working proxy failed, reset and try all
       state.workingProxy = null;
     }
 
-    // Try each proxy in order
-    for (let i = 0; i < PROXIES.length; i++) {
-      try {
-        const res = await tryFetch(PROXIES[i](target));
-        if (!res.ok) continue;
-        const data = await res.json();
-        state.workingProxy = i;
-        console.log('Using proxy ' + i + ': ' + PROXIES[i](target).split('?')[0]);
-        return data;
-      } catch(e) {
-        console.warn('Proxy ' + i + ' failed:', e.message);
-        await sleep(300);
-      }
-    }
-    throw new Error('All proxies failed — FPL API may be temporarily unavailable. Please try again in a minute.');
+    // Race all proxies simultaneously — use whichever responds first
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let failed = 0;
+
+      PROXIES.forEach((proxy, i) => {
+        tryFetch(proxy(target))
+          .then(res => {
+            if (settled || !res.ok) {
+              if (!res.ok) failed++;
+              if (failed === PROXIES.length && !settled) reject(new Error('All proxies failed'));
+              return;
+            }
+            settled = true;
+            state.workingProxy = i;
+            res.json().then(resolve).catch(reject);
+          })
+          .catch(() => {
+            failed++;
+            if (failed === PROXIES.length && !settled) {
+              reject(new Error('All proxies failed — FPL API may be temporarily unavailable. Please try again.'));
+            }
+          });
+      });
+    });
   }
 
   
@@ -978,8 +987,29 @@ async function loadLastUpdated() {
 
 async function init() {
     try {
-      document.getElementById('page-loader-text').textContent = 'Loading league data...';
-      const bootstrap = await fetchFPL('bootstrap-static/');
+      document.getElementById('page-loader-text').textContent = '🔌 Connecting to FPL...';
+
+      // Try cached bootstrap first (10-min TTL)
+      const BOOTSTRAP_CACHE_KEY = 'ff_bootstrap';
+      const BOOTSTRAP_TS_KEY = 'ff_bootstrap_ts';
+      const BOOTSTRAP_TTL = 10 * 60 * 1000; // 10 minutes
+      let bootstrap = null;
+      try {
+        const cached = localStorage.getItem(BOOTSTRAP_CACHE_KEY);
+        const ts = parseInt(localStorage.getItem(BOOTSTRAP_TS_KEY) || '0');
+        if (cached && Date.now() - ts < BOOTSTRAP_TTL) {
+          bootstrap = JSON.parse(cached);
+          document.getElementById('page-loader-text').textContent = '⚡ Loading from cache...';
+        }
+      } catch(e) {}
+
+      if (!bootstrap) {
+        bootstrap = await fetchFPL('bootstrap-static/');
+        try {
+          localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(bootstrap));
+          localStorage.setItem(BOOTSTRAP_TS_KEY, Date.now().toString());
+        } catch(e) {} // ignore storage errors (quota etc)
+      }
 
       // Store full bootstrap data for later use (e.g., computeTeam in buildPrompt)
       state.bootstrap = bootstrap;
@@ -1056,11 +1086,11 @@ async function init() {
       }
       // Don't add live GW to selector while in progress — only show once complete
 
-      document.getElementById('page-loader-text').textContent = 'Loading managers...';
+      document.getElementById('page-loader-text').textContent = '👥 Loading managers...';
       await loadLeague();
 
       // Dismiss loader right after bootstrap+league — show page immediately
-      document.getElementById('page-loader-text').textContent = 'Almost ready...';
+      document.getElementById('page-loader-text').textContent = '⚡ Almost ready...';
 
       // Populate GW callout
       const callout = document.getElementById('gw-callout');
@@ -1157,7 +1187,7 @@ async function init() {
 
       // Show loading placeholder while history fetches
       document.getElementById('standings-content').innerHTML =
-        '<div class="loading-state"><span class="spinner"></span>Loading standings...</div>';
+        '<div class="loading-state"><span class="spinner"></span><div style="text-align:center"><div>📊 Loading season data...</div><div style="font-size:11px;color:var(--text3);margin-top:6px;font-family:var(--font-mono);">Fetching ' + state.managers.length + ' managers\' history</div></div></div>';
       if (activeTab === 'cup') loadCupData();
       else if (activeTab === 'recap') setupRecapTab();
 
@@ -4723,7 +4753,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     state.workingProxy = null;
 
     try {
-      // Re-fetch bootstrap to check if GW has changed
+      // Always fetch fresh bootstrap on manual refresh — bypass cache
+      localStorage.removeItem('ff_bootstrap');
+      localStorage.removeItem('ff_bootstrap_ts');
       const bootstrap = await fetchFPL('bootstrap-static/');
       bootstrap.elements.forEach(p => { state.bootstrapPlayers[p.id] = p.web_name; });
       const finished = bootstrap.events.filter(e => e.finished || e.data_checked);
@@ -4823,6 +4855,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       triggered = true;
       bar.classList.add('ptr-loading');
       try {
+        // Always fetch fresh bootstrap on PTR — bypass cache
+        localStorage.removeItem('ff_bootstrap');
+        localStorage.removeItem('ff_bootstrap_ts');
         const bootstrap = await fetchFPL('bootstrap-static/');
         bootstrap.elements.forEach(p => { state.bootstrapPlayers[p.id] = p.web_name; });
         const finished = bootstrap.events.filter(ev => ev.finished || ev.data_checked);
