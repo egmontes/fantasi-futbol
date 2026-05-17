@@ -3346,7 +3346,8 @@ async function buildPrompt(gw) {
   }
 
   if (d.chip) {
-    extras.push('Chip used: ' + d.chip);
+    const chipNames = { bboost: 'Bench Boost', wildcard: 'Wildcard', freehit: 'Free Hit', '3xc': 'Triple Captain' };
+    extras.push('Chip used: ' + (chipNames[d.chip] || d.chip));
   }
 }
       }
