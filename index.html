@@ -5159,6 +5159,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._histData = data;
       window._histSort = { col: 'earned', dir: -1 }; // reset sort on season change
       el.innerHTML = renderHistoricalSeason(data);
+      requestAnimationFrame(() => initFloatingHeader('historical-table'));
     } catch(e) {
       el.innerHTML = '<div class="loading-state" style="color:var(--red);">Failed to load season data.</div>';
     }
@@ -5217,10 +5218,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     html += '</div>';
 
     // Table
-    html += '<div class="table-scroll-wrap scroll-at-start"><div class="table-outer"><div class="table-wrap"><table style="width:100%;border-collapse:separate;border-spacing:0;font-size:13px;">';
+    html += '<div class="table-scroll-wrap scroll-at-start"><div class="table-outer"><div class="table-wrap"><table id="historical-table" style="width:100%;border-collapse:separate;border-spacing:0;font-size:13px;">';
     html += '<thead><tr style="border-bottom:1px solid var(--border);">';
-    html += '<th style="width:40px;padding:8px 6px;text-align:center;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;">#</th>';
-    html += '<th style="padding:8px 10px;text-align:left;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;">Manager</th>';
+    html += '<th style="width:40px;padding:8px 6px;text-align:center;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;position:sticky;left:0;background:var(--bg);z-index:2;">#</th>';
+    html += '<th style="padding:8px 10px;text-align:left;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;position:sticky;left:40px;background:var(--bg);z-index:2;">Manager</th>';
     html += th('earned', '💰 Earned', '70px');
     if (has4) {
       html += th('top1', '🥇 1st', '55px');
@@ -5240,8 +5241,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const isCup = m.name === cup.winner;
       const bg = i % 2 === 0 ? '' : 'background:var(--bg2);';
       html += '<tr style="' + bg + 'border-bottom:1px solid var(--border);">';
-      html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:700;color:var(--theme);">' + (i+1) + '</td>';
-      html += '<td style="padding:8px 10px;"><div style="font-weight:600;color:var(--text);">' + esc(m.name) + (isChamp ? ' 🥇' : '') + (isCup ? ' 🏆' : '') + '</div></td>';
+      html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:700;color:var(--theme);position:sticky;left:0;background:var(--bg' + (i%2===1?'2':'') + ');z-index:1;">' + (i+1) + '</td>';
+      html += '<td style="padding:8px 10px;position:sticky;left:40px;background:var(--bg' + (i%2===1?'2':'') + ');z-index:1;"><div style="font-weight:600;color:var(--text);">' + esc(m.name) + (isChamp ? ' 🥇' : '') + (isCup ? ' 🏆' : '') + '</div></td>';
       html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:600;color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(0) + '</td>';
       if (has4) {
         html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top1 || '—') + '</td>';
@@ -5270,9 +5271,19 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._histSort.col = col;
       window._histSort.dir = col === 'name' ? 1 : -1;
     }
-    // Re-render with cached data
     if (window._histData) {
+      const tableOuter = document.querySelector('#historical-table')?.closest('.table-outer');
+      const savedScrollX = tableOuter?.scrollLeft || 0;
+      const savedScrollY = window.scrollY;
+
       document.getElementById('historical-content').innerHTML = renderHistoricalSeason(window._histData);
+
+      requestAnimationFrame(() => {
+        window.scrollTo(0, savedScrollY);
+        const newOuter = document.querySelector('#historical-table')?.closest('.table-outer');
+        if (newOuter) newOuter.scrollLeft = savedScrollX;
+        initFloatingHeader('historical-table');
+      });
     }
   };
 
