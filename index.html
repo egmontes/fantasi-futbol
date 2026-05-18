@@ -710,10 +710,10 @@
         <span style="font-size:9px;opacity:0.6;">▾</span>
       </button>
       <div id="season-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:8px;padding:4px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);min-width:120px;">
-        <button onclick="selectSeason('2025/2026')" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:var(--theme-dim);color:var(--theme);border:none;border-radius:6px;cursor:pointer;font-weight:600;">2025 / 2026</button>
-        <button onclick="selectSeason('2024/2025')" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2024 / 2025</button>
-        <button onclick="selectSeason('2023/2024')" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2023 / 2024</button>
-        <button onclick="selectSeason('2022/2023')" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2022 / 2023</button>
+        <button onclick="window._ss2025()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:var(--theme-dim);color:var(--theme);border:none;border-radius:6px;cursor:pointer;font-weight:600;">2025 / 2026</button>
+        <button onclick="window._ss2024()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2024 / 2025</button>
+        <button onclick="window._ss2023()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2023 / 2024</button>
+        <button onclick="window._ss2022()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2022 / 2023</button>
       </div>
     </div>
   </div>
@@ -749,14 +749,14 @@
   </div>
 <div id="standings-toggle-bar" style="display:none;position:fixed;left:0;right:0;background:var(--bg);z-index:13;padding:10px 1.5rem;border-bottom:1px solid var(--border);top:var(--sticky-toggle-top,150px);justify-content:center;">
   <div style="display:flex;width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:3px;">
-    <button id="toggle-league" onclick="switchStandingsView('league')" style="flex:1;width:50%;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;text-align:center;">League Table</button>
-    <button id="toggle-recap" onclick="switchStandingsView('recap')" style="flex:1;width:50%;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
+    <button id="toggle-league" onclick="window._swLeague()" style="flex:1;width:50%;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;text-align:center;">League Table</button>
+    <button id="toggle-recap" onclick="window._swRecap()" style="flex:1;width:50%;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
   </div>
 </div>
 <div id="weekly-toggle-bar" style="display:none;position:fixed;left:0;right:0;background:var(--bg);z-index:13;padding:6px 1.5rem;border-bottom:1px solid var(--border);top:var(--sticky-gw-bar-bottom,170px);justify-content:center;">
   <div style="display:flex;width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:3px;">
-    <button id="weekly-toggle-table" onclick="switchWeeklyView('table')" style="flex:1;width:50%;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;text-align:center;">GW League Table</button>
-    <button id="weekly-toggle-recap" onclick="switchWeeklyView('recap')" style="flex:1;width:50%;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
+    <button id="weekly-toggle-table" onclick="window._swwTable()" style="flex:1;width:50%;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;text-align:center;">GW League Table</button>
+    <button id="weekly-toggle-recap" onclick="window._swwRecap()" style="flex:1;width:50%;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
   </div>
 </div>
 <div class="container">
@@ -5097,6 +5097,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   init().then(() => initPullToRefresh());
 
   // Season selector — exposed globally for onclick handlers
+  // Global shims for onclick handlers (avoid single-quote-in-double-quote HTML issues)
+  window._ss2025 = () => window.selectSeason('2025/2026');
+  window._ss2024 = () => window.selectSeason('2024/2025');
+  window._ss2023 = () => window.selectSeason('2023/2024');
+  window._ss2022 = () => window.selectSeason('2022/2023');
+  window._swLeague = () => switchStandingsView('league');
+  window._swRecap  = () => switchStandingsView('recap');
+  window._swwTable = () => switchWeeklyView('table');
+  window._swwRecap = () => switchWeeklyView('recap');
+
   window.toggleSeasonMenu = function() {
     const menu = document.getElementById('season-menu');
     if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
@@ -5161,12 +5171,14 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       el.innerHTML = renderHistoricalSeason(data);
       requestAnimationFrame(() => initFloatingHeader('historical-table'));
     } catch(e) {
-      el.innerHTML = '<div class="loading-state" style="color:var(--red);">Failed to load season data.</div>';
+      console.error('Historical load error:', e.message, e.stack);
+      el.innerHTML = '<div class="loading-state" style="color:var(--red);">Failed to load season data: ' + e.message + '</div>';
     }
   };
 
   function renderHistoricalSeason(data) {
     const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const toArr = v => !v ? [] : Array.isArray(v) ? v : [v];
     const { season, managers, awards, entry_fee, num_players } = data;
     const league = awards?.League || {};
     const cup = awards?.Cup || {};
@@ -5203,16 +5215,19 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (league.winner) {
       html += '<div style="background:var(--theme-dim);border:1px solid var(--theme-border);border-radius:8px;padding:10px 14px;">' +
         '<div style="font-size:10px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">🥇 League Champion</div>' +
-        '<div style="font-weight:700;color:var(--text);">' + esc(league.winner) + '</div>' +
-        (league.runner_up ? '<div style="font-size:11px;color:var(--text3);">Runner-up: ' + esc(league.runner_up) + '</div>' : '') +
-        (league.third ? '<div style="font-size:11px;color:var(--text3);">3rd: ' + esc(league.third) + '</div>' : '') +
+        '<div style="font-weight:700;color:var(--theme);margin-bottom:4px;">' + esc(league.winner) + '</div>' +
+        (toArr(league.runner_up).length ? '<div style="font-size:11px;color:var(--text3);">🥈 ' + toArr(league.runner_up).join(', ') + '</div>' : '') +
+        (toArr(league.third).length ? '<div style="font-size:11px;color:var(--text3);">🥉 ' + toArr(league.third).join(', ') + '</div>' : '') +
+        (toArr(league.fourth).length ? '<div style="font-size:11px;color:var(--text3);">4️⃣ ' + toArr(league.fourth).join(', ') + '</div>' : '') +
+        (toArr(league.fifth).length ? '<div style="font-size:11px;color:var(--text3);">5️⃣ ' + toArr(league.fifth).join(', ') + '</div>' : '') +
         '</div>';
     }
     if (cup.winner) {
       html += '<div style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);border-radius:8px;padding:10px 14px;">' +
         '<div style="font-size:10px;color:#FFD700;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">🏆 Cup Champion</div>' +
-        '<div style="font-weight:700;color:var(--text);">' + esc(cup.winner) + '</div>' +
-        (cup.runner_up ? '<div style="font-size:11px;color:var(--text3);">Runner-up: ' + esc(cup.runner_up) + '</div>' : '') +
+        '<div style="font-weight:700;color:var(--theme);margin-bottom:4px;">' + esc(cup.winner) + '</div>' +
+        (toArr(cup.runner_up).length ? '<div style="font-size:11px;color:var(--text3);">🥈 ' + toArr(cup.runner_up).join(', ') + '</div>' : '') +
+        (toArr(cup.third).length ? '<div style="font-size:11px;color:var(--text3);">🥉 ' + toArr(cup.third).join(', ') + '</div>' : '') +
         '</div>';
     }
     html += '</div>';
@@ -5232,23 +5247,39 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       html += th('top1', '🥇 1st', '55px');
       html += th('top2', '🥈 2nd', '55px');
     }
+    if (has4) html += th('second_last', '2nd Last', '60px');
     html += th('last', '💀 Last', '55px');
-    html += th('guinness', '🍺', '50px');
+    html += th('guinness', '🍺 Owed', '60px');
     html += '</tr></thead><tbody>';
 
+    // Build lookup maps for league top5 and cup podium
+    // Handle both old (string) and new (array) formats
+    const leaguePositions = {};
+    [toArr(league.winner), toArr(league.runner_up), toArr(league.third), toArr(league.fourth), toArr(league.fifth)].forEach((names, pos) => {
+      names.forEach(n => { if (n) leaguePositions[n] = pos; });
+    });
+    const cupPositions = {};
+    [toArr(cup.winner), toArr(cup.runner_up), toArr(cup.third)].forEach((names, pos) => {
+      names.forEach(n => { if (n) cupPositions[n] = pos; });
+    });
+
+    const leagueEmoji = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+
     sortedManagers.forEach((m, i) => {
-      const isChamp = m.name === league.winner;
-      const isCup = m.name === cup.winner;
+      const lPos = leaguePositions[m.name];
+      const cPos = cupPositions[m.name];
+      const lBadge = lPos !== undefined ? ' ' + leagueEmoji[lPos] : '';
       const bg = i % 2 === 0 ? '' : 'background:var(--bg2);';
       html += '<tr style="' + bg + 'border-bottom:1px solid var(--border);">';
       html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:700;color:var(--theme);position:sticky;left:0;background:var(--bg' + (i%2===1?'2':'') + ');z-index:1;">' + (i+1) + '</td>';
-      html += '<td style="padding:8px 10px;position:sticky;left:40px;background:var(--bg' + (i%2===1?'2':'') + ');z-index:1;"><div style="font-weight:600;color:var(--text);">' + esc(m.name) + (isChamp ? ' 🥇' : '') + (isCup ? ' 🏆' : '') + '</div></td>';
+      html += '<td style="padding:8px 10px;position:sticky;left:40px;background:var(--bg' + (i%2===1?'2':'') + ');z-index:1;"><div style="font-weight:600;color:var(--text);">' + esc(m.name) + lBadge + '</div></td>';
       html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:600;color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(0) + '</td>';
       if (has4) {
         html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top1 || '—') + '</td>';
         html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top2 || '—') + '</td>';
         html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top3 || '—') + '</td>';
         html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top4 || '—') + '</td>';
+        html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:' + (m.second_last > 0 ? 'var(--amber)' : 'var(--text3)') + ';">' + (m.second_last || '—') + '</td>';
       } else {
         html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top1 || '—') + '</td>';
         html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top2 || '—') + '</td>';
