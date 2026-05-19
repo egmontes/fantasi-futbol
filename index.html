@@ -1571,18 +1571,28 @@ async function init() {
 
     // If live, fetch real-time player scores — use cache, fire in background if missing
     if (!window._liveScoreCacheGW) window._liveScoreCacheGW = {};
-    // Restore live scores from localStorage if available and fresh (< 5min)
+    // Clear stale live score cache for current GW on each page load
+    // (history can update and cache may be stale from previous session)
+    if (!window._liveScoreClearedThisSession) {
+      window._liveScoreClearedThisSession = true;
+      localStorage.removeItem('ff_live_scores_' + currentGW);
+      delete window._liveScoreCacheGW[currentGW];
+    }
+    // Restore live scores from localStorage if available and fresh (< 15min)
     if (!window._liveScoreCacheGW[currentGW]) {
       try {
         const saved = localStorage.getItem('ff_live_scores_' + currentGW);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Date.now() - parsed.ts < 5 * 60 * 1000) window._liveScoreCacheGW[currentGW] = parsed.data;
+          if (Date.now() - parsed.ts < 15 * 60 * 1000) window._liveScoreCacheGW[currentGW] = parsed.data;
         }
       } catch(e) {}
     }
     let liveScoreMap = window._liveScoreCacheGW[currentGW] || {};
-    if (state.isLive && !window._liveScoreCacheGW[currentGW] && !window._liveScoreFetchInProgress) {
+    // Fetch live scores if: live GW, OR GW just ended (latestGW matches and history may be stale)
+    const shouldFetchLive = !window._liveScoreCacheGW[currentGW] && !window._liveScoreFetchInProgress &&
+      (state.isLive || currentGW === state.latestGW);
+    if (shouldFetchLive) {
       window._liveScoreFetchInProgress = true;
       (async () => {
         try {
@@ -1605,7 +1615,6 @@ async function init() {
           }
           window._liveScoreCacheGW[currentGW] = tempMap;
           window._liveScoreFetchInProgress = false;
-          // Persist live scores briefly (5min TTL)
           try {
             localStorage.setItem('ff_live_scores_' + currentGW, JSON.stringify({ data: tempMap, ts: Date.now() }));
           } catch(e) {}
@@ -1622,7 +1631,10 @@ async function init() {
       const latestHist = (state.gwHistory[m.id] || []).find(h => h.event === currentGW);
       // Use live score if available, fall back to history
       const liveScore = liveScoreMap[m.id];
-      const gwLatestPts = liveScore ? liveScore.netPts : (latestHist ? (latestHist.points - (latestHist.event_transfers_cost || 0)) : null);
+      const histPts = latestHist ? (latestHist.points - (latestHist.event_transfers_cost || 0)) : null;
+      const livePts = liveScore ? liveScore.netPts : null;
+      // Use whichever is available; if both exist, prefer live (history can be stale right after GW ends)
+      const gwLatestPts = livePts !== null ? livePts : histPts;
       const gwRawPts = liveScore ? liveScore.rawPts : (latestHist ? latestHist.points : null);
       const gwHit = liveScore ? liveScore.hit : (latestHist ? (latestHist.event_transfers_cost || 0) : 0);
       // Live total = last known total + live GW net score
