@@ -1639,7 +1639,8 @@ async function init() {
       const gwHit = liveScore ? liveScore.hit : (latestHist ? (latestHist.event_transfers_cost || 0) : 0);
       // Live total = last known total + live GW net score
       const prevHist = (state.gwHistory[m.id] || []).filter(h => h.event < currentGW).sort((a,b) => b.event - a.event)[0];
-      const liveTotal = (state.isLive && liveScore)
+      // Use live score for total when available (covers live GW and post-GW stale history)
+      const liveTotal = liveScore
         ? (prevHist ? prevHist.total_points : m.total) + liveScore.netPts
         : m.total;
       const chip = standingsChips[m.id] || null;
