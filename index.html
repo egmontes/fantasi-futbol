@@ -3525,30 +3525,52 @@ async function buildPrompt(gw) {
     }
   }
 
-  const top = team.breakdown
-    .sort((a,b)=>b.pts-a.pts)
-    .slice(0,3)
+  // Full starting XI with position, score, and notable stats
+  const startingXI = team.breakdown
+    .sort((a, b) => b.pts - a.pts)
     .map(p => {
       const s = p.stats;
       const parts = [];
-      if (s?.goals > 0) parts.push(s.goals + ' goal' + (s.goals > 1 ? 's' : ''));
-      if (s?.assists > 0) parts.push(s.assists + ' assist' + (s.assists > 1 ? 's' : ''));
-      if (s?.cleanSheet > 0) parts.push('clean sheet');
-      if (s?.bonus > 0) parts.push(s.bonus + ' bonus');
-      const statStr = parts.length > 0 ? ' — ' + parts.join(', ') : '';
-      const pos = posLabels[team.types?.[p.id]] || '';
-      return (pos ? '[' + pos + '] ' : '') + team.names[p.id] + ': ' + p.pts + statStr;
+      if (s?.goals > 0) parts.push(s.goals + 'G');
+      if (s?.assists > 0) parts.push(s.assists + 'A');
+      if (s?.cleanSheet > 0) parts.push('CS');
+      if (s?.bonus > 0) parts.push(s.bonus + 'BPS');
+      const pos = posLabels[team.types?.[p.id]] || '?';
+      const isCap = p.id === team.cap ? ' (C)' : '';
+      const statStr = parts.length > 0 ? ' [' + parts.join(',') + ']' : '';
+      return '[' + pos + '] ' + team.names[p.id] + isCap + ': ' + p.pts + statStr;
     });
+  extras.push('Starting XI: ' + startingXI.join(' | '));
 
-  extras.push('Top players: ' + top.join(' | '));
+  // Bench
+  const bench = d.picks.filter(p => p.position > 11).map(p => {
+    const el = liveData.elements.find(e => e.id === p.element);
+    const pts = el?.stats?.total_points || 0;
+    const pos = posLabels[team.types?.[p.element]] || '?';
+    return '[' + pos + '] ' + (state.bootstrapPlayers[p.element] || p.element) + ': ' + pts;
+  });
+  if (bench.length > 0) extras.push('Bench: ' + bench.join(' | '));
 
   if (team.benchPts > 0 && d.chip !== 'bboost') {
-    extras.push('Bench points: ' + team.benchPts);
+    extras.push('Bench points left on bench: ' + team.benchPts);
   }
 
   if (d.chip) {
     const chipNames = { bboost: 'Bench Boost', wildcard: 'Wildcard', freehit: 'Free Hit', '3xc': 'Triple Captain' };
     extras.push('Chip used: ' + (chipNames[d.chip] || d.chip));
+  }
+
+  // Transfers with point impact
+  if (d.transfersIn && d.transfersIn.length > 0) {
+    const hit = d.picks?.entry_history?.event_transfers_cost || 0;
+    const tLines = d.transfersIn.map((tin, i) => {
+      const tout = d.transfersOut[i];
+      const inPts = tin.stats?.pts || 0;
+      const outPts = tout?.stats?.pts || 0;
+      const delta = inPts - outPts;
+      return (tout ? tout.name + ' → ' : '') + tin.name + ' (' + (delta >= 0 ? '+' : '') + delta + ' pts)';
+    });
+    extras.push('Transfers: ' + tLines.join(', ') + (hit > 0 ? ' [-' + hit + ' hit]' : ''));
   }
 }
       }
