@@ -1281,6 +1281,13 @@ async function init() {
           exportBtn.style.display = 'inline-flex';
           exportBtn.textContent = '💾 Save GW' + state.latestGW;
         }
+        // Try loading static cache for current GW — re-render if loaded
+        loadGWFromCache(state.latestGW).then(loaded => {
+          if (loaded) {
+            updateExportBtn(state.latestGW);
+            renderStandings();
+          }
+        });
       }
       if (activeTab === 'weekly') {
         const gwVal = document.getElementById('gw-select').value;
