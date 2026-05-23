@@ -2903,8 +2903,8 @@ async function init() {
     document.getElementById('weekly-content').innerHTML =
       `<div class="loading-state"><span class="spinner"></span>Loading GW${gw}...</div>`;
 
-    // Try static cache for past GWs (not current GW which may still be live)
-    if (gw < state.latestGW) await loadGWFromCache(gw);
+    // Try static cache for any completed GW (including current latestGW)
+    if (!state.isLive) await loadGWFromCache(gw);
 
     try {
       const ranked = getWeeklyRankings(gw);
