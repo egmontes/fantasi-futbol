@@ -1332,7 +1332,8 @@ async function init() {
           const parsed = JSON.parse(cached);
           // Validate cache has data for our managers
           const managerIds = state.managers.map(m => m.id);
-          const hasData = managerIds.every(id => parsed[id] !== undefined);
+          const hasData = managerIds.every(id => parsed[id] !== undefined) &&
+            managerIds.filter(id => (parsed[id] || []).length > 0).length >= managerIds.length * 0.8;
           if (hasData) {
             state.gwHistory = parsed;
             state.historyLoaded = true;
@@ -1382,6 +1383,21 @@ async function init() {
         }
       }));
 
+    }
+
+    // Retry any managers that came back empty
+    const failed = managers.filter(m => (state.gwHistory[m.id] || []).length === 0);
+    if (failed.length > 0) {
+      console.log('Retrying', failed.length, 'failed managers...');
+      await Promise.all(failed.map(async m => {
+        try {
+          const h = await fetchFPL('entry/' + m.id + '/history/');
+          state.gwHistory[m.id] = h.current;
+          if (!state.chipsHistory) state.chipsHistory = {};
+          state.chipsHistory[m.id] = {};
+          (h.chips || []).forEach(c => { state.chipsHistory[m.id][c.event] = c.name; });
+        } catch(e) { console.warn('Retry failed for', m.id); }
+      }));
     }
 
     // Save to cache
