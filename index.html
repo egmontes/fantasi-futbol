@@ -5235,6 +5235,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         season: '2025/2026',
         exported: new Date().toISOString(),
         players,
+        cupMatches: (window._allCupMatches || []).filter(m => m.event === gw),
         managers: managersData.sort((a, b) => b.history.points - a.history.points),
       };
 
@@ -5270,6 +5271,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         state.bootstrapPlayers[parseInt(id)] = p.name;
         if (p.team) { state.playerTeams = state.playerTeams || {}; state.playerTeams[parseInt(id)] = p.team; }
       });
+
+      // Hydrate cup matches
+      if (cache.cupMatches && cache.cupMatches.length > 0) {
+        if (!window._allCupMatches) window._allCupMatches = [];
+        const existingEvents = new Set(window._allCupMatches.map(m => m.event + '-' + m.entry_1_entry + '-' + m.entry_2_entry));
+        cache.cupMatches.forEach(m => {
+          const key = m.event + '-' + m.entry_1_entry + '-' + m.entry_2_entry;
+          if (!existingEvents.has(key)) window._allCupMatches.push(m);
+        });
+      }
 
       // Hydrate gwHistory, _captainCache, _chipCache, _picksCache for this GW
       cache.managers.forEach(m => {
