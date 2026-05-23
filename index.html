@@ -5312,7 +5312,19 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (!btn) return;
     if (gw && !state.isLive) {
       btn.style.display = 'inline-flex';
-      btn.textContent = '💾 Save GW' + gw;
+      // Reset to theme color by default
+      btn.style.color = 'var(--theme)';
+      btn.style.borderColor = 'var(--theme-border)';
+      btn.style.background = 'var(--theme-dim)';
+      // Show cached indicator if already loaded from static file
+      if (_gwCacheLoaded[gw]) {
+        btn.textContent = '✓ GW' + gw + ' (cached)';
+        btn.style.color = 'var(--green)';
+        btn.style.borderColor = 'var(--green)';
+        btn.style.background = 'rgba(0,200,100,0.1)';
+      } else {
+        btn.textContent = '💾 Save GW' + gw;
+      }
     } else {
       btn.style.display = 'none';
     }
