@@ -723,6 +723,7 @@
   <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:nowrap;overflow:hidden;white-space:nowrap;">
     <span id="gw-callout-label" style="font-size:18px;font-weight:700;color:var(--text);font-family:var(--font-display);flex-shrink:0;"></span>
     <span id="gw-deadline-label" style="font-size:11px;color:var(--theme);font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;"></span>
+    <button id="export-gw-btn" onclick="window._exportGWCache(state.isLive ? state.liveGW : state.latestGW)" style="display:none;margin-left:auto;flex-shrink:0;background:var(--theme-dim);color:var(--theme);border:1px solid var(--theme-border);border-radius:6px;padding:3px 10px;font-size:11px;font-family:var(--font-mono);cursor:pointer;font-weight:600;">💾 Save GW</button>
   </div>
   <div id="fpl-lineup-bar" style="display:none;align-items:center;gap:10px;margin-top:4px;">
     <span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">Set your lineup:</span>
@@ -1273,6 +1274,14 @@ async function init() {
       await loadAllHistory(state.isLive);
       state.historyLoaded = true;
       renderStandings();
+      // Show export button when GW is complete (not live)
+      if (!state.isLive) {
+        const exportBtn = document.getElementById('export-gw-btn');
+        if (exportBtn) {
+          exportBtn.style.display = 'inline-flex';
+          exportBtn.textContent = '💾 Save GW' + state.latestGW;
+        }
+      }
       if (activeTab === 'weekly') {
         const gwVal = document.getElementById('gw-select').value;
         if (gwVal === 'preview') renderPreview();
@@ -2889,6 +2898,9 @@ async function init() {
     gw = parseInt(gw) || state.latestGW;
     document.getElementById('weekly-content').innerHTML =
       `<div class="loading-state"><span class="spinner"></span>Loading GW${gw}...</div>`;
+
+    // Try static cache first
+    await loadGWFromCache(gw);
 
     try {
       const ranked = getWeeklyRankings(gw);
@@ -5132,7 +5144,148 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   init().then(() => initPullToRefresh());
 
   // Season selector — exposed globally for onclick handlers
-  // Global shims for onclick handlers (avoid single-quote-in-double-quote HTML issues)
+  // ── GW CACHE EXPORT ─────────────────────────────────────────────────────
+  async function exportGWCache(gw) {
+    const btn = document.getElementById('export-gw-btn');
+    if (btn) { btn.textContent = 'Exporting...'; btn.disabled = true; }
+
+    try {
+      // Fetch full picks + live data for all managers
+      const liveData = await fetchFPL('event/' + gw + '/live/');
+      const playerPts = {};
+      liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; });
+
+      const chips = await fetchChipsForGW(gw);
+      const captains = _captainCache[gw] || {};
+
+      const managersData = [];
+      const BATCH = 5;
+      for (let i = 0; i < state.managers.length; i += BATCH) {
+        const batch = state.managers.slice(i, i + BATCH);
+        await Promise.all(batch.map(async m => {
+          try {
+            const [picks, transfers] = await Promise.all([
+              fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/'),
+              fetchFPL('entry/' + m.id + '/transfers/')
+            ]);
+            const hist = (state.gwHistory[m.id] || []).find(h => h.event === gw);
+            const gwTransfers = transfers.filter(t => t.event === gw);
+
+            managersData.push({
+              id: m.id,
+              name: m.name,
+              team: m.team,
+              history: {
+                points: hist?.points || 0,
+                total_points: hist?.total_points || 0,
+                event_transfers: hist?.event_transfers || 0,
+                event_transfers_cost: hist?.event_transfers_cost || 0,
+                points_on_bench: hist?.points_on_bench || 0,
+              },
+              captain: captains[m.id] || null,
+              chip: chips[m.id] || null,
+              picks: picks.picks,
+              transfers: gwTransfers.map(t => ({
+                element_in: t.element_in,
+                element_in_name: state.bootstrapPlayers[t.element_in] || '',
+                element_out: t.element_out,
+                element_out_name: state.bootstrapPlayers[t.element_out] || '',
+                element_in_pts: playerPts[t.element_in] || 0,
+                element_out_pts: playerPts[t.element_out] || 0,
+              })),
+            });
+          } catch(e) {
+            console.warn('Failed to export manager', m.name, e.message);
+          }
+        }));
+      }
+
+      // Build player lookup (only players that appear in picks)
+      const usedPlayerIds = new Set();
+      managersData.forEach(m => m.picks.forEach(p => usedPlayerIds.add(p.element)));
+      const players = {};
+      liveData.elements.forEach(e => {
+        if (usedPlayerIds.has(e.id)) {
+          players[e.id] = {
+            name: state.bootstrapPlayers[e.id] || '',
+            team: state.playerTeams?.[e.id] || null,
+            type: state.bootstrap?.elements?.find(el => el.id === e.id)?.element_type || null,
+            pts: e.stats.total_points,
+          };
+        }
+      });
+
+      const cache = {
+        gw,
+        season: '2025/2026',
+        exported: new Date().toISOString(),
+        players,
+        managers: managersData.sort((a, b) => b.history.points - a.history.points),
+      };
+
+      // Download as JSON file
+      const blob = new Blob([JSON.stringify(cache, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'gw' + String(gw).padStart(2, '0') + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+
+      if (btn) { btn.textContent = '✓ Saved GW' + gw; btn.disabled = false; }
+    } catch(e) {
+      console.error('Export failed:', e);
+      if (btn) { btn.textContent = 'Export failed'; btn.disabled = false; }
+    }
+  }
+  window._exportGWCache = exportGWCache;
+  // ── END GW CACHE EXPORT ──────────────────────────────────────────────────
+  // ── GW CACHE LOADER ──────────────────────────────────────────────────────
+  const _gwCacheLoaded = {};
+
+  async function loadGWFromCache(gw) {
+    if (_gwCacheLoaded[gw]) return true;
+    try {
+      const res = await fetch('data/2025-2026/gw' + String(gw).padStart(2, '0') + '.json?nocache=' + Date.now());
+      if (!res.ok) return false;
+      const cache = await res.json();
+
+      // Hydrate player lookup
+      Object.entries(cache.players || {}).forEach(([id, p]) => {
+        state.bootstrapPlayers[parseInt(id)] = p.name;
+        if (p.team) { state.playerTeams = state.playerTeams || {}; state.playerTeams[parseInt(id)] = p.team; }
+      });
+
+      // Hydrate gwHistory, _captainCache, _chipCache, _picksCache for this GW
+      cache.managers.forEach(m => {
+        if (!state.gwHistory[m.id]) state.gwHistory[m.id] = [];
+        const existing = state.gwHistory[m.id].findIndex(h => h.event === gw);
+        const entry = { event: gw, ...m.history };
+        if (existing >= 0) state.gwHistory[m.id][existing] = entry;
+        else state.gwHistory[m.id].push(entry);
+
+        if (m.captain) {
+          if (!_captainCache[gw]) _captainCache[gw] = {};
+          _captainCache[gw][m.id] = m.captain;
+        }
+        if (m.chip !== undefined) {
+          if (!_chipCache[gw]) _chipCache[gw] = {};
+          _chipCache[gw][m.id] = m.chip;
+        }
+        if (m.picks) {
+          window._picksCache = window._picksCache || {};
+          window._picksCache[m.id + '_' + gw] = { picks: m.picks, active_chip: m.chip, transfers: m.transfers };
+        }
+      });
+
+      _gwCacheLoaded[gw] = true;
+      return true;
+    } catch(e) {
+      return false;
+    }
+  }
+  // ── END GW CACHE LOADER ──────────────────────────────────────────────────
+
   window._ss2025 = () => window.selectSeason('2025/2026');
   window._ss2024 = () => window.selectSeason('2024/2025');
   window._ss2023 = () => window.selectSeason('2023/2024');
