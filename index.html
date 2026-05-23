@@ -1073,7 +1073,7 @@ async function init() {
         const cached = localStorage.getItem(BOOTSTRAP_CACHE_KEY);
         const ts = parseInt(localStorage.getItem(BOOTSTRAP_TS_KEY) || '0');
         if (cached && Date.now() - ts < BOOTSTRAP_TTL) {
-          bootstrap = JSON.parse(cached);
+          bootstrap = JSON.parse(saved);
           document.getElementById('page-loader-text').textContent = '⚡ Loading from cache...';
         }
       } catch(e) {}
@@ -1336,7 +1336,7 @@ async function init() {
         const cached = localStorage.getItem(CACHE_KEY);
         const ts = parseInt(localStorage.getItem(CACHE_TS_KEY) || '0');
         if (cached && (Date.now() - ts < CACHE_TTL)) {
-          const parsed = JSON.parse(cached);
+          const parsed = JSON.parse(saved);
           // Validate cache has data for our managers
           const managerIds = state.managers.map(m => m.id);
           const hasData = managerIds.every(id => parsed[id] !== undefined) &&
@@ -5330,7 +5330,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Show indicator in export button
       const btn = document.getElementById('export-gw-btn');
       if (btn) {
-        btn.textContent = '✓ GW' + gw + ' (cached)';
+        btn.textContent = '✓ GW' + gw + ' (saved)';
         btn.style.color = 'var(--green)';
         btn.style.borderColor = 'var(--green)';
         btn.style.background = 'rgba(0,200,100,0.1)';
@@ -5357,7 +5357,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       btn.style.background = 'var(--theme-dim)';
       // Show cached indicator if already loaded from static file
       if (_gwCacheLoaded[gw]) {
-        btn.textContent = '✓ GW' + gw + ' (cached)';
+        btn.textContent = '✓ GW' + gw + ' (saved)';
         btn.style.color = 'var(--green)';
         btn.style.borderColor = 'var(--green)';
         btn.style.background = 'rgba(0,200,100,0.1)';
