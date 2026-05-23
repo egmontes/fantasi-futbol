@@ -4375,6 +4375,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         label.textContent = 'Gameweek ' + currentGW;
         const liveElS = document.getElementById('weekly-tab-live');
         if (liveElS) liveElS.style.display = state.isLive ? 'block' : 'none';
+        updateExportBtn(currentGW);
         document.getElementById('tab-standings').classList.add('active');
         setHashState('standings');
         if (gwBarEl) gwBarEl.classList.add('hidden');
@@ -4402,6 +4403,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         const recapBtn = document.getElementById('weekly-toggle-recap');
         if (tableBtn) tableBtn.textContent = 'GW' + gw + ' League Table';
         if (recapBtn) recapBtn.textContent = 'GW' + gw + ' Recap';
+        updateExportBtn(gw);
         switchWeeklyView('table');
         renderWeekly(gw);
       }
@@ -4485,6 +4487,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         const recapBtn = document.getElementById('weekly-toggle-recap');
         if (tableBtn) tableBtn.textContent = 'GW' + gw + ' League Table';
         if (recapBtn) recapBtn.textContent = 'GW' + gw + ' Recap';
+        updateExportBtn(gw);
         switchWeeklyView('table');
         if (val === 'preview') renderPreview();
         else if (val === 'live') renderLive();
@@ -5290,7 +5293,19 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   }
   // ── END GW CACHE LOADER ──────────────────────────────────────────────────
 
-  window._exportCurrentGW = () => window._exportGWCache(state.isLive ? state.liveGW : state.latestGW);
+  window._exportCurrentGW = () => window._exportGWCache(window._viewingGW || (state.isLive ? state.liveGW : state.latestGW));
+
+  function updateExportBtn(gw) {
+    window._viewingGW = gw;
+    const btn = document.getElementById('export-gw-btn');
+    if (!btn) return;
+    if (gw && !state.isLive) {
+      btn.style.display = 'inline-flex';
+      btn.textContent = '💾 Save GW' + gw;
+    } else {
+      btn.style.display = 'none';
+    }
+  }
   window._ss2025 = () => window.selectSeason('2025/2026');
   window._ss2024 = () => window.selectSeason('2024/2025');
   window._ss2023 = () => window.selectSeason('2023/2024');
