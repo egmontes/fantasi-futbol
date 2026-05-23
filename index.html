@@ -5287,6 +5287,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       });
 
       _gwCacheLoaded[gw] = true;
+      console.log('✓ GW' + gw + ' loaded from static cache (data/2025-2026/gw' + String(gw).padStart(2,'0') + '.json)');
+      // Show indicator in export button
+      const btn = document.getElementById('export-gw-btn');
+      if (btn) {
+        btn.textContent = '✓ GW' + gw + ' (cached)';
+        btn.style.color = 'var(--green)';
+        btn.style.borderColor = 'var(--green)';
+        btn.style.background = 'rgba(0,200,100,0.1)';
+        btn.style.display = 'inline-flex';
+      }
       return true;
     } catch(e) {
       return false;
