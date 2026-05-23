@@ -1,0 +1,6386 @@
+{
+  "gw": 12,
+  "season": "2025/2026",
+  "exported": "2026-05-23T14:43:02.756Z",
+  "players": {
+    "1": {
+      "name": "Raya",
+      "team": 1,
+      "type": 1,
+      "pts": 2
+    },
+    "5": {
+      "name": "Gabriel",
+      "team": 1,
+      "type": 2,
+      "pts": 0
+    },
+    "6": {
+      "name": "Saliba",
+      "team": 1,
+      "type": 2,
+      "pts": 2
+    },
+    "7": {
+      "name": "Calafiori",
+      "team": 1,
+      "type": 2,
+      "pts": 2
+    },
+    "8": {
+      "name": "J.Timber",
+      "team": 1,
+      "type": 2,
+      "pts": 5
+    },
+    "16": {
+      "name": "Saka",
+      "team": 1,
+      "type": 3,
+      "pts": 4
+    },
+    "21": {
+      "name": "Rice",
+      "team": 1,
+      "type": 3,
+      "pts": 6
+    },
+    "37": {
+      "name": "Digne",
+      "team": 2,
+      "type": 2,
+      "pts": 1
+    },
+    "38": {
+      "name": "Konsa",
+      "team": 2,
+      "type": 2,
+      "pts": 2
+    },
+    "43": {
+      "name": "Alex Moreno",
+      "team": 2,
+      "type": 2,
+      "pts": 0
+    },
+    "47": {
+      "name": "Rogers",
+      "team": 2,
+      "type": 3,
+      "pts": 15
+    },
+    "64": {
+      "name": "Watkins",
+      "team": 2,
+      "type": 4,
+      "pts": 2
+    },
+    "67": {
+      "name": "Petrović",
+      "team": 4,
+      "type": 1,
+      "pts": 1
+    },
+    "72": {
+      "name": "Senesi",
+      "team": 4,
+      "type": 2,
+      "pts": 3
+    },
+    "74": {
+      "name": "Truffert",
+      "team": 4,
+      "type": 2,
+      "pts": 0
+    },
+    "78": {
+      "name": "J.Araujo",
+      "team": 4,
+      "type": 2,
+      "pts": 0
+    },
+    "82": {
+      "name": "Semenyo",
+      "team": 13,
+      "type": 3,
+      "pts": 0
+    },
+    "85": {
+      "name": "Adams",
+      "team": 4,
+      "type": 3,
+      "pts": 2
+    },
+    "97": {
+      "name": "Evanilson",
+      "team": 4,
+      "type": 4,
+      "pts": 5
+    },
+    "100": {
+      "name": "Kroupi.Jr",
+      "team": 4,
+      "type": 4,
+      "pts": 2
+    },
+    "101": {
+      "name": "Kelleher",
+      "team": 5,
+      "type": 1,
+      "pts": 2
+    },
+    "119": {
+      "name": "Mbeumo",
+      "team": 14,
+      "type": 3,
+      "pts": 1
+    },
+    "121": {
+      "name": "Damsgaard",
+      "team": 5,
+      "type": 3,
+      "pts": 2
+    },
+    "136": {
+      "name": "Thiago",
+      "team": 5,
+      "type": 4,
+      "pts": 4
+    },
+    "151": {
+      "name": "Van Hecke",
+      "team": 6,
+      "type": 2,
+      "pts": 2
+    },
+    "160": {
+      "name": "Minteh",
+      "team": 6,
+      "type": 3,
+      "pts": 11
+    },
+    "169": {
+      "name": "Gomez",
+      "team": 6,
+      "type": 3,
+      "pts": 1
+    },
+    "178": {
+      "name": "Welbeck",
+      "team": 6,
+      "type": 4,
+      "pts": 8
+    },
+    "191": {
+      "name": "Estève",
+      "team": 3,
+      "type": 2,
+      "pts": 3
+    },
+    "192": {
+      "name": "Hartman",
+      "team": 3,
+      "type": 2,
+      "pts": 1
+    },
+    "205": {
+      "name": "Cullen",
+      "team": 3,
+      "type": 3,
+      "pts": 2
+    },
+    "211": {
+      "name": "A.Ramsey",
+      "team": 3,
+      "type": 3,
+      "pts": 0
+    },
+    "217": {
+      "name": "Foster",
+      "team": 3,
+      "type": 4,
+      "pts": 1
+    },
+    "220": {
+      "name": "Sánchez",
+      "team": 7,
+      "type": 1,
+      "pts": 6
+    },
+    "224": {
+      "name": "Cucurella",
+      "team": 7,
+      "type": 2,
+      "pts": 6
+    },
+    "225": {
+      "name": "James",
+      "team": 7,
+      "type": 2,
+      "pts": 1
+    },
+    "226": {
+      "name": "Chalobah",
+      "team": 7,
+      "type": 2,
+      "pts": 6
+    },
+    "233": {
+      "name": "Acheampong",
+      "team": 7,
+      "type": 2,
+      "pts": 0
+    },
+    "236": {
+      "name": "Neto",
+      "team": 7,
+      "type": 3,
+      "pts": 8
+    },
+    "237": {
+      "name": "Enzo",
+      "team": 7,
+      "type": 3,
+      "pts": 11
+    },
+    "241": {
+      "name": "Caicedo",
+      "team": 7,
+      "type": 3,
+      "pts": 0
+    },
+    "242": {
+      "name": "Dewsbury-Hall",
+      "team": 9,
+      "type": 3,
+      "pts": 13
+    },
+    "249": {
+      "name": "João Pedro",
+      "team": 7,
+      "type": 4,
+      "pts": 1
+    },
+    "252": {
+      "name": "Marc Guiu",
+      "team": 7,
+      "type": 4,
+      "pts": 4
+    },
+    "253": {
+      "name": "Henderson",
+      "team": 8,
+      "type": 1,
+      "pts": 6
+    },
+    "256": {
+      "name": "Muñoz",
+      "team": 8,
+      "type": 2,
+      "pts": 14
+    },
+    "260": {
+      "name": "Guéhi",
+      "team": 13,
+      "type": 2,
+      "pts": 5
+    },
+    "261": {
+      "name": "Richards",
+      "team": 8,
+      "type": 2,
+      "pts": 6
+    },
+    "266": {
+      "name": "Eze",
+      "team": 1,
+      "type": 3,
+      "pts": 20
+    },
+    "267": {
+      "name": "Sarr",
+      "team": 8,
+      "type": 3,
+      "pts": 3
+    },
+    "283": {
+      "name": "Mateta",
+      "team": 8,
+      "type": 4,
+      "pts": 1
+    },
+    "287": {
+      "name": "Pickford",
+      "team": 9,
+      "type": 1,
+      "pts": 10
+    },
+    "291": {
+      "name": "Tarkowski",
+      "team": 9,
+      "type": 2,
+      "pts": 8
+    },
+    "295": {
+      "name": "Keane",
+      "team": 9,
+      "type": 2,
+      "pts": 9
+    },
+    "299": {
+      "name": "Ndiaye",
+      "team": 9,
+      "type": 3,
+      "pts": 3
+    },
+    "311": {
+      "name": "Beto",
+      "team": 9,
+      "type": 4,
+      "pts": 1
+    },
+    "313": {
+      "name": "Sherif",
+      "team": 9,
+      "type": 4,
+      "pts": 0
+    },
+    "317": {
+      "name": "Andersen",
+      "team": 10,
+      "type": 2,
+      "pts": 10
+    },
+    "325": {
+      "name": "Smith Rowe",
+      "team": 10,
+      "type": 3,
+      "pts": 1
+    },
+    "335": {
+      "name": "King",
+      "team": 10,
+      "type": 3,
+      "pts": 3
+    },
+    "339": {
+      "name": "Meslier",
+      "team": 11,
+      "type": 1,
+      "pts": 0
+    },
+    "347": {
+      "name": "Gudmundsson",
+      "team": 11,
+      "type": 2,
+      "pts": 1
+    },
+    "348": {
+      "name": "Rodon",
+      "team": 11,
+      "type": 2,
+      "pts": 3
+    },
+    "373": {
+      "name": "Virgil",
+      "team": 12,
+      "type": 2,
+      "pts": 3
+    },
+    "374": {
+      "name": "Konaté",
+      "team": 12,
+      "type": 2,
+      "pts": 0
+    },
+    "381": {
+      "name": "M.Salah",
+      "team": 12,
+      "type": 3,
+      "pts": 2
+    },
+    "384": {
+      "name": "Gakpo",
+      "team": 12,
+      "type": 3,
+      "pts": 2
+    },
+    "387": {
+      "name": "Szoboszlai",
+      "team": 12,
+      "type": 3,
+      "pts": 2
+    },
+    "403": {
+      "name": "Gvardiol",
+      "team": 13,
+      "type": 2,
+      "pts": 1
+    },
+    "411": {
+      "name": "O'Reilly",
+      "team": 13,
+      "type": 2,
+      "pts": 1
+    },
+    "414": {
+      "name": "Foden",
+      "team": 13,
+      "type": 3,
+      "pts": 2
+    },
+    "419": {
+      "name": "Grealish",
+      "team": 9,
+      "type": 3,
+      "pts": 3
+    },
+    "427": {
+      "name": "Reijnders",
+      "team": 13,
+      "type": 3,
+      "pts": 1
+    },
+    "430": {
+      "name": "Haaland",
+      "team": 13,
+      "type": 4,
+      "pts": 2
+    },
+    "440": {
+      "name": "Dalot",
+      "team": 14,
+      "type": 2,
+      "pts": 1
+    },
+    "441": {
+      "name": "Dorgu",
+      "team": 14,
+      "type": 2,
+      "pts": 1
+    },
+    "448": {
+      "name": "Malacia",
+      "team": 14,
+      "type": 2,
+      "pts": 0
+    },
+    "449": {
+      "name": "B.Fernandes",
+      "team": 14,
+      "type": 3,
+      "pts": 2
+    },
+    "450": {
+      "name": "Cunha",
+      "team": 14,
+      "type": 3,
+      "pts": 0
+    },
+    "469": {
+      "name": "Pope",
+      "team": 15,
+      "type": 1,
+      "pts": 3
+    },
+    "470": {
+      "name": "Dúbravka",
+      "team": 3,
+      "type": 1,
+      "pts": 2
+    },
+    "475": {
+      "name": "Botman",
+      "team": 15,
+      "type": 2,
+      "pts": 1
+    },
+    "476": {
+      "name": "Burn",
+      "team": 15,
+      "type": 2,
+      "pts": 0
+    },
+    "478": {
+      "name": "Trippier",
+      "team": 15,
+      "type": 2,
+      "pts": 0
+    },
+    "491": {
+      "name": "Tonali",
+      "team": 15,
+      "type": 3,
+      "pts": 4
+    },
+    "493": {
+      "name": "Longstaff",
+      "team": 11,
+      "type": 3,
+      "pts": 2
+    },
+    "502": {
+      "name": "Sels",
+      "team": 16,
+      "type": 1,
+      "pts": 7
+    },
+    "508": {
+      "name": "N.Williams",
+      "team": 16,
+      "type": 2,
+      "pts": 13
+    },
+    "515": {
+      "name": "Gibbs-White",
+      "team": 16,
+      "type": 3,
+      "pts": 8
+    },
+    "517": {
+      "name": "Anderson",
+      "team": 16,
+      "type": 3,
+      "pts": 9
+    },
+    "554": {
+      "name": "Ba",
+      "team": 17,
+      "type": 3,
+      "pts": 0
+    },
+    "560": {
+      "name": "Isidor",
+      "team": 17,
+      "type": 4,
+      "pts": 2
+    },
+    "565": {
+      "name": "Vicario",
+      "team": 18,
+      "type": 1,
+      "pts": 1
+    },
+    "567": {
+      "name": "Kinsky",
+      "team": 18,
+      "type": 1,
+      "pts": 0
+    },
+    "568": {
+      "name": "Pedro Porro",
+      "team": 18,
+      "type": 2,
+      "pts": 0
+    },
+    "569": {
+      "name": "Romero",
+      "team": 18,
+      "type": 2,
+      "pts": 1
+    },
+    "575": {
+      "name": "Van de Ven",
+      "team": 18,
+      "type": 2,
+      "pts": 0
+    },
+    "582": {
+      "name": "Kudus",
+      "team": 18,
+      "type": 3,
+      "pts": 2
+    },
+    "593": {
+      "name": "P.M.Sarr",
+      "team": 18,
+      "type": 3,
+      "pts": 1
+    },
+    "597": {
+      "name": "Richarlison",
+      "team": 18,
+      "type": 4,
+      "pts": 6
+    },
+    "600": {
+      "name": "Areola",
+      "team": 19,
+      "type": 1,
+      "pts": 9
+    },
+    "603": {
+      "name": "Diouf",
+      "team": 19,
+      "type": 2,
+      "pts": 3
+    },
+    "610": {
+      "name": "Wan-Bissaka",
+      "team": 19,
+      "type": 2,
+      "pts": 2
+    },
+    "624": {
+      "name": "Bowen",
+      "team": 19,
+      "type": 4,
+      "pts": 4
+    },
+    "628": {
+      "name": "José Sá",
+      "team": 20,
+      "type": 1,
+      "pts": 0
+    },
+    "638": {
+      "name": "Hoever",
+      "team": 20,
+      "type": 2,
+      "pts": 0
+    },
+    "661": {
+      "name": "Ekitiké",
+      "team": 12,
+      "type": 4,
+      "pts": 1
+    },
+    "664": {
+      "name": "Lecomte",
+      "team": 10,
+      "type": 1,
+      "pts": 0
+    },
+    "668": {
+      "name": "Xhaka",
+      "team": 17,
+      "type": 3,
+      "pts": 2
+    },
+    "670": {
+      "name": "Roefs",
+      "team": 17,
+      "type": 1,
+      "pts": 3
+    },
+    "683": {
+      "name": "Alderete",
+      "team": 17,
+      "type": 2,
+      "pts": 0
+    },
+    "694": {
+      "name": "Mukiele",
+      "team": 17,
+      "type": 2,
+      "pts": 4
+    },
+    "700": {
+      "name": "Dowman",
+      "team": 1,
+      "type": 3,
+      "pts": 0
+    },
+    "710": {
+      "name": "Patterson",
+      "team": 2,
+      "type": 2,
+      "pts": 0
+    },
+    "714": {
+      "name": "Woltemade",
+      "team": 15,
+      "type": 4,
+      "pts": 2
+    },
+    "736": {
+      "name": "Donnarumma",
+      "team": 13,
+      "type": 1,
+      "pts": 1
+    }
+  },
+  "managers": [
+    {
+      "id": 3031902,
+      "name": "J. Carr Gamble",
+      "team": "Death. Taxes. Salah.",
+      "history": {
+        "points": 62,
+        "total_points": 684,
+        "event_transfers": 4,
+        "event_transfers_cost": 0,
+        "points_on_bench": 7
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 470,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 373,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 256,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 8,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 260,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 267,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 266,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 714,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 10,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 661,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 4
+        },
+        {
+          "element": 565,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 241,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 299,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 335,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 256,
+          "element_in_name": "Muñoz",
+          "element_out": 261,
+          "element_out_name": "Richards",
+          "element_in_pts": 14,
+          "element_out_pts": 6
+        },
+        {
+          "element_in": 241,
+          "element_in_name": "Caicedo",
+          "element_out": 82,
+          "element_out_name": "Semenyo",
+          "element_in_pts": 0,
+          "element_out_pts": 0
+        },
+        {
+          "element_in": 266,
+          "element_in_name": "Eze",
+          "element_out": 582,
+          "element_out_name": "Kudus",
+          "element_in_pts": 20,
+          "element_out_pts": 2
+        },
+        {
+          "element_in": 373,
+          "element_in_name": "Virgil",
+          "element_out": 5,
+          "element_out_name": "Gabriel",
+          "element_in_pts": 3,
+          "element_out_pts": 0
+        }
+      ]
+    },
+    {
+      "id": 858035,
+      "name": "Zachary Duguid",
+      "team": "Charli xGx",
+      "history": {
+        "points": 59,
+        "total_points": 669,
+        "event_transfers": 2,
+        "event_transfers_cost": 0,
+        "points_on_bench": 2
+      },
+      "captain": {
+        "name": "Saka",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 469,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 256,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 8,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 260,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 242,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 593,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 16,
+          "position": 8,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 430,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 4
+        },
+        {
+          "element": 136,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 283,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 241,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 5,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 136,
+          "element_in_name": "Thiago",
+          "element_out": 714,
+          "element_out_name": "Woltemade",
+          "element_in_pts": 4,
+          "element_out_pts": 2
+        },
+        {
+          "element_in": 256,
+          "element_in_name": "Muñoz",
+          "element_out": 476,
+          "element_out_name": "Burn",
+          "element_in_pts": 14,
+          "element_out_pts": 0
+        }
+      ]
+    },
+    {
+      "id": 3872974,
+      "name": "Collin Johnston",
+      "team": "Fully Ars'd",
+      "history": {
+        "points": 58,
+        "total_points": 654,
+        "event_transfers": 1,
+        "event_transfers_cost": 0,
+        "points_on_bench": 0
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 287,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 575,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 226,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 260,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 373,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 21,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 266,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 668,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 311,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 10,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 628,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 450,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 82,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 5,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 450,
+          "element_in_name": "Cunha",
+          "element_out": 582,
+          "element_out_name": "Kudus",
+          "element_in_pts": 0,
+          "element_out_pts": 2
+        }
+      ]
+    },
+    {
+      "id": 3839385,
+      "name": "Graham Derfner",
+      "team": "Sarry to Bother You",
+      "history": {
+        "points": 56,
+        "total_points": 696,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 2
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 1,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 72,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 7,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 256,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 160,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 237,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 267,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 299,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 714,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 10,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 283,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 5,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 683,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 3909309,
+      "name": "Richard Katz",
+      "team": "Mitch Maisel",
+      "history": {
+        "points": 55,
+        "total_points": 607,
+        "event_transfers": 2,
+        "event_transfers_cost": 0,
+        "points_on_bench": 16
+      },
+      "captain": {
+        "name": "Mbeumo",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 469,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 6,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 8,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 256,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 266,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 668,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 8,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 430,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 283,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 567,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 242,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 603,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 668,
+          "element_in_name": "Xhaka",
+          "element_out": 593,
+          "element_out_name": "P.M.Sarr",
+          "element_in_pts": 2,
+          "element_out_pts": 1
+        },
+        {
+          "element_in": 8,
+          "element_in_name": "J.Timber",
+          "element_out": 5,
+          "element_out_name": "Gabriel",
+          "element_in_pts": 5,
+          "element_out_pts": 0
+        }
+      ]
+    },
+    {
+      "id": 4275329,
+      "name": "Liam Kelly",
+      "team": "Hot Chicken Albion",
+      "history": {
+        "points": 54,
+        "total_points": 683,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 4
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 220,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 568,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 256,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 8,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 242,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 16,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 419,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 249,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 339,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 252,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 78,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 5320536,
+      "name": "Logan Kluis",
+      "team": "Pizza By The Kluis",
+      "history": {
+        "points": 50,
+        "total_points": 622,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 24
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 220,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 568,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 224,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 317,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 191,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 160,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 449,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 430,
+          "position": 9,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 597,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 517,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 508,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 3870210,
+      "name": "Mark Wright",
+      "team": "Football Not Saka",
+      "history": {
+        "points": 49,
+        "total_points": 604,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 3
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": true
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 1,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 295,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 7,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 347,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 160,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 237,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 449,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 299,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 430,
+          "position": 10,
+          "multiplier": 2,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 5,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 82,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 217,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 2660987,
+      "name": "Liam Cashman",
+      "team": "Cashmoney",
+      "history": {
+        "points": 47,
+        "total_points": 710,
+        "event_transfers": 1,
+        "event_transfers_cost": 0,
+        "points_on_bench": 2
+      },
+      "captain": {
+        "name": "Thiago",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 469,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 568,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 8,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 256,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 260,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 21,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 582,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 249,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 4
+        },
+        {
+          "element": 136,
+          "position": 10,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 241,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 82,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 74,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 256,
+          "element_in_name": "Muñoz",
+          "element_out": 476,
+          "element_out_name": "Burn",
+          "element_in_pts": 14,
+          "element_out_pts": 0
+        }
+      ]
+    },
+    {
+      "id": 8376884,
+      "name": "Robert Shellow",
+      "team": "The Ahsenal",
+      "history": {
+        "points": 47,
+        "total_points": 708,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 4
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 1,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 256,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 8,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 267,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 419,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 384,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 582,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 430,
+          "position": 9,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 178,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 283,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 5,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 82,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 610,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 4924236,
+      "name": "Thomas Mayer",
+      "team": "Maximus FC",
+      "history": {
+        "points": 47,
+        "total_points": 680,
+        "event_transfers": 1,
+        "event_transfers_cost": 0,
+        "points_on_bench": 2
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 1,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 72,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 191,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 260,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 610,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 449,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 266,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 252,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 10,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 5,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 82,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 241,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 241,
+          "element_in_name": "Caicedo",
+          "element_out": 582,
+          "element_out_name": "Kudus",
+          "element_in_pts": 0,
+          "element_out_pts": 2
+        }
+      ]
+    },
+    {
+      "id": 1896840,
+      "name": "Jack Bernatchez",
+      "team": "Feed Your Horses",
+      "history": {
+        "points": 47,
+        "total_points": 563,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 17
+      },
+      "captain": {
+        "name": "Mateta",
+        "isVC": false
+      },
+      "chip": "wildcard",
+      "picks": [
+        {
+          "element": 1,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 72,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 256,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 260,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 8,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 299,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 21,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 430,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 4
+        },
+        {
+          "element": 136,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 283,
+          "position": 11,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 600,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 241,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 226,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 205,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 136,
+          "element_in_name": "Thiago",
+          "element_out": 661,
+          "element_out_name": "Ekitiké",
+          "element_in_pts": 4,
+          "element_out_pts": 1
+        },
+        {
+          "element_in": 430,
+          "element_in_name": "Haaland",
+          "element_out": 624,
+          "element_out_name": "Bowen",
+          "element_in_pts": 2,
+          "element_out_pts": 4
+        },
+        {
+          "element_in": 299,
+          "element_in_name": "Ndiaye",
+          "element_out": 82,
+          "element_out_name": "Semenyo",
+          "element_in_pts": 3,
+          "element_out_pts": 0
+        },
+        {
+          "element_in": 21,
+          "element_in_name": "Rice",
+          "element_out": 450,
+          "element_out_name": "Cunha",
+          "element_in_pts": 6,
+          "element_out_pts": 0
+        },
+        {
+          "element_in": 205,
+          "element_in_name": "Cullen",
+          "element_out": 418,
+          "element_out_name": "Doku",
+          "element_in_pts": 2,
+          "element_out_pts": 2
+        },
+        {
+          "element_in": 226,
+          "element_in_name": "Chalobah",
+          "element_out": 292,
+          "element_out_name": "Mykolenko",
+          "element_in_pts": 6,
+          "element_out_pts": 9
+        },
+        {
+          "element_in": 72,
+          "element_in_name": "Senesi",
+          "element_out": 225,
+          "element_out_name": "James",
+          "element_in_pts": 3,
+          "element_out_pts": 1
+        },
+        {
+          "element_in": 256,
+          "element_in_name": "Muñoz",
+          "element_out": 568,
+          "element_out_name": "Pedro Porro",
+          "element_in_pts": 14,
+          "element_out_pts": 0
+        },
+        {
+          "element_in": 260,
+          "element_in_name": "Guéhi",
+          "element_out": 7,
+          "element_out_name": "Calafiori",
+          "element_in_pts": 5,
+          "element_out_pts": 2
+        },
+        {
+          "element_in": 8,
+          "element_in_name": "J.Timber",
+          "element_out": 5,
+          "element_out_name": "Gabriel",
+          "element_in_pts": 5,
+          "element_out_pts": 0
+        }
+      ]
+    },
+    {
+      "id": 1886122,
+      "name": "Aidan White",
+      "team": "Ha’Cunha Mateta",
+      "history": {
+        "points": 45,
+        "total_points": 715,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 2
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 736,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 373,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 261,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 8,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 237,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 16,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 267,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 252,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 283,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 241,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 82,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 5,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 2141779,
+      "name": "Matt Nicolai",
+      "team": "Reece Lightning",
+      "history": {
+        "points": 44,
+        "total_points": 675,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 2
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 1,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 575,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 317,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 582,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 449,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 517,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 299,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 97,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 10,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 136,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 5,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 2
+        },
+        {
+          "element": 82,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 476,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 4514837,
+      "name": "Tyler Wasser",
+      "team": "Two Lads One Schlupp",
+      "history": {
+        "points": 43,
+        "total_points": 649,
+        "event_transfers": 1,
+        "event_transfers_cost": 0,
+        "points_on_bench": 4
+      },
+      "captain": {
+        "name": "Mukiele",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 469,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 8,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 694,
+          "position": 3,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 348,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 291,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 299,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 493,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 16,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 624,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 101,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 683,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 82,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 714,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 8,
+          "element_in_name": "J.Timber",
+          "element_out": 5,
+          "element_out_name": "Gabriel",
+          "element_in_pts": 5,
+          "element_out_pts": 0
+        }
+      ]
+    },
+    {
+      "id": 4966851,
+      "name": "James McMullen",
+      "team": "Crankin Hoons",
+      "history": {
+        "points": 43,
+        "total_points": 642,
+        "event_transfers": 1,
+        "event_transfers_cost": 0,
+        "points_on_bench": 3
+      },
+      "captain": {
+        "name": "Mbeumo",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 67,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 568,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 8,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 6,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 21,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 6,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 160,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 515,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 430,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 4
+        },
+        {
+          "element": 714,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 136,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 469,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 683,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 638,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 8,
+          "element_in_name": "J.Timber",
+          "element_out": 5,
+          "element_out_name": "Gabriel",
+          "element_in_pts": 5,
+          "element_out_pts": 0
+        }
+      ]
+    },
+    {
+      "id": 4244968,
+      "name": "John Morcos",
+      "team": "North Gyökeres 4Ever",
+      "history": {
+        "points": 42,
+        "total_points": 671,
+        "event_transfers": 5,
+        "event_transfers_cost": 0,
+        "points_on_bench": 16
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 670,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 224,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 373,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 299,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 449,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 160,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 387,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 136,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 283,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 256,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 683,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 136,
+          "element_in_name": "Thiago",
+          "element_out": 249,
+          "element_out_name": "João Pedro",
+          "element_in_pts": 4,
+          "element_out_pts": 1
+        },
+        {
+          "element_in": 449,
+          "element_in_name": "B.Fernandes",
+          "element_out": 267,
+          "element_out_name": "Sarr",
+          "element_in_pts": 2,
+          "element_out_pts": 3
+        },
+        {
+          "element_in": 387,
+          "element_in_name": "Szoboszlai",
+          "element_out": 237,
+          "element_out_name": "Enzo",
+          "element_in_pts": 2,
+          "element_out_pts": 11
+        },
+        {
+          "element_in": 373,
+          "element_in_name": "Virgil",
+          "element_out": 8,
+          "element_out_name": "J.Timber",
+          "element_in_pts": 3,
+          "element_out_pts": 5
+        },
+        {
+          "element_in": 72,
+          "element_in_name": "Senesi",
+          "element_out": 5,
+          "element_out_name": "Gabriel",
+          "element_in_pts": 3,
+          "element_out_pts": 0
+        }
+      ]
+    },
+    {
+      "id": 2625490,
+      "name": "John King",
+      "team": "Mainooooo",
+      "history": {
+        "points": 42,
+        "total_points": 630,
+        "event_transfers": 1,
+        "event_transfers_cost": 0,
+        "points_on_bench": 5
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 220,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 260,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 38,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 575,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 441,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 449,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 47,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 16,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 714,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 191,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 211,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 249,
+          "element_in_name": "João Pedro",
+          "element_out": 666,
+          "element_out_name": "Gyökeres",
+          "element_in_pts": 1,
+          "element_out_pts": 0
+        }
+      ]
+    },
+    {
+      "id": 439406,
+      "name": "Andrew DeNucci",
+      "team": "Ekitike-tembo",
+      "history": {
+        "points": 41,
+        "total_points": 616,
+        "event_transfers": 1,
+        "event_transfers_cost": 0,
+        "points_on_bench": 4
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 470,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 256,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 225,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 348,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 16,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 384,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 449,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 252,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 714,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 670,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 241,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 192,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 256,
+          "element_in_name": "Muñoz",
+          "element_out": 5,
+          "element_out_name": "Gabriel",
+          "element_in_pts": 14,
+          "element_out_pts": 0
+        }
+      ]
+    },
+    {
+      "id": 2846890,
+      "name": "Rob DiSanto",
+      "team": "Bangers and Cash",
+      "history": {
+        "points": 41,
+        "total_points": 579,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 3
+      },
+      "captain": {
+        "name": "Rice",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 220,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 6,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 260,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 225,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 21,
+          "position": 5,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 169,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 236,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 100,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 283,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 5,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 82,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 37,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 3875998,
+      "name": "John Heyer",
+      "team": "SakaMDABIworkforNASA",
+      "history": {
+        "points": 41,
+        "total_points": 583,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 4
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 220,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 575,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 260,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 568,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 508,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 119,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 16,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 267,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 430,
+          "position": 9,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 136,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 610,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 211,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 6919587,
+      "name": "Harrison Wang",
+      "team": "Flying Tacos",
+      "history": {
+        "points": 41,
+        "total_points": 571,
+        "event_transfers": 1,
+        "event_transfers_cost": 0,
+        "points_on_bench": 21
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 736,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 1
+        },
+        {
+          "element": 374,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 260,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 224,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 373,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 256,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 267,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 560,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 714,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 502,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 427,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 242,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 373,
+          "element_in_name": "Virgil",
+          "element_out": 371,
+          "element_out_name": "Kerkez",
+          "element_in_pts": 3,
+          "element_out_pts": 1
+        }
+      ]
+    },
+    {
+      "id": 1872543,
+      "name": "Michael DeLaus",
+      "team": "Sarr-y 4 prty rockin",
+      "history": {
+        "points": 40,
+        "total_points": 622,
+        "event_transfers": 2,
+        "event_transfers_cost": 0,
+        "points_on_bench": 14
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 67,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 260,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 374,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 8,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 16,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 267,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 160,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 136,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 10,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 714,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 295,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 191,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 374,
+          "element_in_name": "Konaté",
+          "element_out": 476,
+          "element_out_name": "Burn",
+          "element_in_pts": 0,
+          "element_out_pts": 0
+        },
+        {
+          "element_in": 67,
+          "element_in_name": "Petrović",
+          "element_out": 502,
+          "element_out_name": "Sels",
+          "element_in_pts": 1,
+          "element_out_pts": 7
+        }
+      ]
+    },
+    {
+      "id": 5700398,
+      "name": "David Bambrick",
+      "team": "Eze Come, Eze Go...",
+      "history": {
+        "points": 40,
+        "total_points": 574,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 5
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 67,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 575,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 224,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 260,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 119,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 160,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 21,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 64,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 670,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 582,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 43,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 4108994,
+      "name": "Eric Wallerstein",
+      "team": "ICE",
+      "history": {
+        "points": 39,
+        "total_points": 668,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 8
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 67,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 260,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 6,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 403,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 568,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 119,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 266,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 668,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 714,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 661,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 101,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 335,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 191,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 3369911,
+      "name": "Alex Mack",
+      "team": "YNWA",
+      "history": {
+        "points": 39,
+        "total_points": 628,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 5
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 469,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 260,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 575,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 261,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 237,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 427,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 381,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 491,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 100,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 101,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 476,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 191,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 1309733,
+      "name": "Jimmy Romanelli",
+      "team": "Los Porro Hermanos",
+      "history": {
+        "points": 38,
+        "total_points": 654,
+        "event_transfers": 1,
+        "event_transfers_cost": 0,
+        "points_on_bench": 6
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 469,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 373,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 8,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 261,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 16,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 582,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 299,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 283,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 136,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 427,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 191,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 136,
+          "element_in_name": "Thiago",
+          "element_out": 714,
+          "element_out_name": "Woltemade",
+          "element_in_pts": 4,
+          "element_out_pts": 2
+        }
+      ]
+    },
+    {
+      "id": 4915333,
+      "name": "Mitchel Pattullo",
+      "team": "Goal Diggers",
+      "history": {
+        "points": 38,
+        "total_points": 656,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 20
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 470,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 72,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 260,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 317,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 191,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 16,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 267,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 449,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 430,
+          "position": 9,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 283,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 502,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 241,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 82,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 508,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 3016118,
+      "name": "Tucker Cina",
+      "team": "Ekitike ekitikE",
+      "history": {
+        "points": 37,
+        "total_points": 629,
+        "event_transfers": 2,
+        "event_transfers_cost": 0,
+        "points_on_bench": 6
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": true
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 565,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 256,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 8,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 575,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 384,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 449,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 136,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 10,
+          "multiplier": 2,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 427,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 191,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 119,
+          "element_in_name": "Mbeumo",
+          "element_out": 237,
+          "element_out_name": "Enzo",
+          "element_in_pts": 1,
+          "element_out_pts": 11
+        },
+        {
+          "element_in": 136,
+          "element_in_name": "Thiago",
+          "element_out": 714,
+          "element_out_name": "Woltemade",
+          "element_in_pts": 4,
+          "element_out_pts": 2
+        }
+      ]
+    },
+    {
+      "id": 4512625,
+      "name": "Michael Legaz",
+      "team": "Legačić",
+      "history": {
+        "points": 36,
+        "total_points": 638,
+        "event_transfers": 3,
+        "event_transfers_cost": 0,
+        "points_on_bench": 5
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 101,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 224,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 6,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 7,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 191,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 21,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 597,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 10,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 283,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 241,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 82,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 419,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 419,
+          "element_in_name": "Grealish",
+          "element_out": 612,
+          "element_out_name": "L.Paquetá",
+          "element_in_pts": 3,
+          "element_out_pts": 0
+        },
+        {
+          "element_in": 21,
+          "element_in_name": "Rice",
+          "element_out": 157,
+          "element_out_name": "Mitoma",
+          "element_in_pts": 6,
+          "element_out_pts": 0
+        },
+        {
+          "element_in": 119,
+          "element_in_name": "Mbeumo",
+          "element_out": 235,
+          "element_out_name": "Palmer",
+          "element_in_pts": 1,
+          "element_out_pts": 0
+        }
+      ]
+    },
+    {
+      "id": 3953356,
+      "name": "Luke Civantos",
+      "team": "Isak at fantasy",
+      "history": {
+        "points": 33,
+        "total_points": 659,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 2
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 220,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 373,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 568,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 348,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 16,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 21,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 414,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 82,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 252,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 283,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 5,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 211,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 478,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 1365008,
+      "name": "Eddy Garcia-Montes",
+      "team": "Schäring is Cäring",
+      "history": {
+        "points": 33,
+        "total_points": 675,
+        "event_transfers": 1,
+        "event_transfers_cost": 0,
+        "points_on_bench": 6
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 67,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 256,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 225,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 191,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 575,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 449,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 427,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 16,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 249,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 714,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 101,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 335,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 347,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 256,
+          "element_in_name": "Muñoz",
+          "element_out": 5,
+          "element_out_name": "Gabriel",
+          "element_in_pts": 14,
+          "element_out_pts": 0
+        }
+      ]
+    },
+    {
+      "id": 1845913,
+      "name": "Mitch Maisel",
+      "team": "Strand Larson",
+      "history": {
+        "points": 32,
+        "total_points": 687,
+        "event_transfers": 1,
+        "event_transfers_cost": 0,
+        "points_on_bench": 6
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 470,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 72,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 291,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 8,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 151,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 449,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 267,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 217,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 11,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 469,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 241,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 191,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 119,
+          "element_in_name": "Mbeumo",
+          "element_out": 16,
+          "element_out_name": "Saka",
+          "element_in_pts": 1,
+          "element_out_pts": 4
+        }
+      ]
+    },
+    {
+      "id": 5369492,
+      "name": "Lucas Rodriguez",
+      "team": "Blu's Team",
+      "history": {
+        "points": 32,
+        "total_points": 733,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 2
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": "freehit",
+      "picks": [
+        {
+          "element": 67,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 373,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 72,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 261,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 119,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 16,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 449,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 21,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 430,
+          "position": 9,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 283,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 700,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 233,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 710,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 119,
+          "element_in_name": "Mbeumo",
+          "element_out": 381,
+          "element_out_name": "M.Salah",
+          "element_in_pts": 1,
+          "element_out_pts": 2
+        },
+        {
+          "element_in": 249,
+          "element_in_name": "João Pedro",
+          "element_out": 311,
+          "element_out_name": "Beto",
+          "element_in_pts": 1,
+          "element_out_pts": 1
+        },
+        {
+          "element_in": 700,
+          "element_in_name": "Dowman",
+          "element_out": 668,
+          "element_out_name": "Xhaka",
+          "element_in_pts": 0,
+          "element_out_pts": 2
+        },
+        {
+          "element_in": 449,
+          "element_in_name": "B.Fernandes",
+          "element_out": 241,
+          "element_out_name": "Caicedo",
+          "element_in_pts": 2,
+          "element_out_pts": 0
+        },
+        {
+          "element_in": 16,
+          "element_in_name": "Saka",
+          "element_out": 82,
+          "element_out_name": "Semenyo",
+          "element_in_pts": 4,
+          "element_out_pts": 0
+        },
+        {
+          "element_in": 710,
+          "element_in_name": "Patterson",
+          "element_out": 191,
+          "element_out_name": "Estève",
+          "element_in_pts": 0,
+          "element_out_pts": 3
+        },
+        {
+          "element_in": 233,
+          "element_in_name": "Acheampong",
+          "element_out": 5,
+          "element_out_name": "Gabriel",
+          "element_in_pts": 0,
+          "element_out_pts": 0
+        },
+        {
+          "element_in": 373,
+          "element_in_name": "Virgil",
+          "element_out": 575,
+          "element_out_name": "Van de Ven",
+          "element_in_pts": 3,
+          "element_out_pts": 0
+        }
+      ]
+    },
+    {
+      "id": 5672753,
+      "name": "Ryan Kelly",
+      "team": "Delinquent Crew",
+      "history": {
+        "points": 31,
+        "total_points": 601,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 12
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 1,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 1
+        },
+        {
+          "element": 6,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 260,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 411,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 224,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 325,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 121,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 299,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 430,
+          "position": 10,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 624,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 287,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 311,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 440,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        }
+      ],
+      "transfers": []
+    },
+    {
+      "id": 4133987,
+      "name": "Gabriel Costa",
+      "team": "Los Miracúlos",
+      "history": {
+        "points": 30,
+        "total_points": 643,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 0
+      },
+      "captain": {
+        "name": "Mateta",
+        "isVC": false
+      },
+      "chip": "freehit",
+      "picks": [
+        {
+          "element": 67,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 72,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 256,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 374,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 347,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 267,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 381,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 283,
+          "position": 9,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 430,
+          "position": 10,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 664,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 554,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 448,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 700,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        }
+      ],
+      "transfers": [
+        {
+          "element_in": 554,
+          "element_in_name": "Ba",
+          "element_out": 241,
+          "element_out_name": "Caicedo",
+          "element_in_pts": 0,
+          "element_out_pts": 0
+        },
+        {
+          "element_in": 381,
+          "element_in_name": "M.Salah",
+          "element_out": 82,
+          "element_out_name": "Semenyo",
+          "element_in_pts": 2,
+          "element_out_pts": 0
+        },
+        {
+          "element_in": 700,
+          "element_in_name": "Dowman",
+          "element_out": 299,
+          "element_out_name": "Ndiaye",
+          "element_in_pts": 0,
+          "element_out_pts": 3
+        },
+        {
+          "element_in": 664,
+          "element_in_name": "Lecomte",
+          "element_out": 367,
+          "element_out_name": "Mamardashvili",
+          "element_in_pts": 0,
+          "element_out_pts": 0
+        },
+        {
+          "element_in": 347,
+          "element_in_name": "Gudmundsson",
+          "element_out": 191,
+          "element_out_name": "Estève",
+          "element_in_pts": 1,
+          "element_out_pts": 3
+        },
+        {
+          "element_in": 249,
+          "element_in_name": "João Pedro",
+          "element_out": 714,
+          "element_out_name": "Woltemade",
+          "element_in_pts": 1,
+          "element_out_pts": 2
+        },
+        {
+          "element_in": 119,
+          "element_in_name": "Mbeumo",
+          "element_out": 488,
+          "element_out_name": "Bruno G.",
+          "element_in_pts": 1,
+          "element_out_pts": 10
+        },
+        {
+          "element_in": 267,
+          "element_in_name": "Sarr",
+          "element_out": 16,
+          "element_out_name": "Saka",
+          "element_in_pts": 3,
+          "element_out_pts": 4
+        },
+        {
+          "element_in": 448,
+          "element_in_name": "Malacia",
+          "element_out": 38,
+          "element_out_name": "Konsa",
+          "element_in_pts": 0,
+          "element_out_pts": 2
+        },
+        {
+          "element_in": 374,
+          "element_in_name": "Konaté",
+          "element_out": 8,
+          "element_out_name": "J.Timber",
+          "element_in_pts": 0,
+          "element_out_pts": 5
+        },
+        {
+          "element_in": 256,
+          "element_in_name": "Muñoz",
+          "element_out": 260,
+          "element_out_name": "Guéhi",
+          "element_in_pts": 14,
+          "element_out_pts": 5
+        }
+      ]
+    },
+    {
+      "id": 5020903,
+      "name": "Tommy Harris",
+      "team": "Slot’s Sloots",
+      "history": {
+        "points": 28,
+        "total_points": 648,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 4
+      },
+      "captain": {
+        "name": "Haaland",
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [
+        {
+          "element": 253,
+          "position": 1,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 260,
+          "position": 2,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 475,
+          "position": 3,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 569,
+          "position": 4,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 575,
+          "position": 5,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 261,
+          "position": 6,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 2
+        },
+        {
+          "element": 381,
+          "position": 7,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": true,
+          "element_type": 3
+        },
+        {
+          "element": 427,
+          "position": 8,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 119,
+          "position": 9,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 430,
+          "position": 10,
+          "multiplier": 2,
+          "is_captain": true,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 249,
+          "position": 11,
+          "multiplier": 1,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        },
+        {
+          "element": 470,
+          "position": 12,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 1
+        },
+        {
+          "element": 82,
+          "position": 13,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 85,
+          "position": 14,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 3
+        },
+        {
+          "element": 313,
+          "position": 15,
+          "multiplier": 0,
+          "is_captain": false,
+          "is_vice_captain": false,
+          "element_type": 4
+        }
+      ],
+      "transfers": []
+    }
+  ]
+}
