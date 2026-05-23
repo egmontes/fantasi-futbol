@@ -1970,7 +1970,13 @@ async function init() {
       tickerEl.style.transform = `translateX(${savedTickerOffset}px)`;
       makeTickerInteractive(tickerEl, savedTickerOffset);
     }
-    requestAnimationFrame(fitStatCards);
+    // Only re-fit stat cards if ticker content changed (prevents compounding shrink)
+    const tickerEl2 = document.querySelector('.stat-ticker');
+    const newHash = tickerEl2 ? tickerEl2.innerHTML.length : 0;
+    if (newHash !== window.__tickerContentHash) {
+      window.__tickerContentHash = newHash;
+      requestAnimationFrame(fitStatCards);
+    }
     requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('standings-table'); });
 
     // Scroll hint — update gradient visibility and column peek on scroll
@@ -2338,7 +2344,7 @@ async function init() {
   }
 
   function fitStatCards() {
-    // Reset all inline sizes first so measurements start fresh
+    // Reset all inline sizes first
     document.querySelectorAll('.stat-card .s-label').forEach(l => {
       l.style.fontSize = '9px';
       l.style.whiteSpace = 'nowrap';
@@ -2347,8 +2353,13 @@ async function init() {
       v.style.fontSize = '42px';
       v.style.whiteSpace = 'nowrap';
     });
-    // Shrink to fit
-    document.querySelectorAll('.stat-card').forEach(card => {
+
+    // Only process unique cards (ticker is doubled — skip duplicates by index)
+    const allCards = Array.from(document.querySelectorAll('.stat-card'));
+    const half = Math.ceil(allCards.length / 2);
+    const cards = allCards.slice(0, half); // only first copy
+
+    cards.forEach(card => {
       const label = card.querySelector('.s-label');
       const value = card.querySelector('.s-value');
       if (!value) return;
@@ -2357,10 +2368,20 @@ async function init() {
       const labelH = label ? label.offsetHeight + 5 : 0;
       const availH = cardH - labelH;
       let vSize = 42;
-      while (vSize > 12 && (value.scrollWidth > cardW || value.scrollHeight > availH)) {
+      // Use clientWidth not scrollWidth to avoid doubled content measuring
+      value.style.overflow = 'hidden';
+      while (vSize > 12 && (value.clientWidth > cardW || value.scrollHeight > availH)) {
         vSize -= 1;
         value.style.fontSize = vSize + 'px';
       }
+      value.style.overflow = '';
+    });
+
+    // Apply same sizes to second copy
+    allCards.slice(half).forEach((card, i) => {
+      const srcValue = cards[i]?.querySelector('.s-value');
+      const dstValue = card.querySelector('.s-value');
+      if (srcValue && dstValue) dstValue.style.fontSize = srcValue.style.fontSize;
     });
   }
 
