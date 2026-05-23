@@ -4431,6 +4431,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           const weeklyToggleEl = document.getElementById('weekly-toggle-bar');
           if (weeklyToggleEl) weeklyToggleEl.style.display = 'none';
           document.getElementById('floating-header').classList.remove('visible');
+          updateExportBtn(state.isLive ? state.liveGW : state.latestGW);
           updateStickyOffsets();
           requestAnimationFrame(() => {
             initFloatingHeader('standings-table');
