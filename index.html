@@ -5219,6 +5219,57 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         if (res.ok) seasonData[s.label] = await res.json();
       }));
       const labels = SEASON_FILES.map(s => s.label);
+
+      // Build current season data from live state
+      const currentLabel = '2025/26';
+      const currentStats = computeSeasonStats(state.latestGW);
+
+      // Get season standings (by total points)
+      const seasonRanked = state.managers.map(m => {
+        const hist = state.gwHistory[m.id] || [];
+        const latest = [...hist].sort((a,b) => b.event - a.event)[0];
+        return { name: m.name, total: latest?.total_points || 0 };
+      }).sort((a,b) => b.total - a.total);
+
+      const guinnessData = state.guinnessDebts || {};
+
+      const currentManagers = state.managers.map(m => {
+        const s = currentStats[m.id] || {};
+        const pos = seasonRanked.findIndex(r => r.name === m.name);
+        return {
+          name: m.name,
+          earned: s.moneyWon || 0,
+          guinness: getTotalGuinnesses(m.name, s.bottom2 || 0),
+          top1: 0, top2: 0, top3: 0, top4: 0, last: 0,
+          _seasonPos: pos, // 0-indexed season position
+        };
+      });
+
+      // Get current season awards (just league standings — cup may not be done)
+      const cupMatches = window._allCupMatches || [];
+      const finalMatch = cupMatches.filter(m => m.winner).sort((a,b) => b.event - a.event)[0];
+      const cupWinner = finalMatch ? state.managers.find(m => m.id === finalMatch.winner)?.name : null;
+      const cupRunnerUp = finalMatch ? state.managers.find(m => m.id === (finalMatch.entry_1_entry === finalMatch.winner ? finalMatch.entry_2_entry : finalMatch.entry_1_entry))?.name : null;
+
+      seasonData[currentLabel] = {
+        season: '2025/2026',
+        managers: currentManagers,
+        awards: {
+          League: {
+            winner: seasonRanked[0]?.name,
+            runner_up: seasonRanked[1]?.name,
+            third: seasonRanked[2]?.name,
+            fourth: seasonRanked[3]?.name,
+            fifth: seasonRanked[4]?.name,
+          },
+          Cup: {
+            winner: cupWinner,
+            runner_up: cupRunnerUp,
+          }
+        }
+      };
+
+      labels.push(currentLabel);
       window._historyData = { seasonData, labels };
       window._historySort = { col: 'earned', dir: -1 };
       el.innerHTML = renderLeagueHistory(seasonData, labels);
@@ -5310,8 +5361,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     html += '<div class="table-scroll-wrap scroll-at-start"><div class="table-outer"><div class="table-wrap"><table id="history-table" style="width:100%;border-collapse:separate;border-spacing:0;font-size:13px;">';
     html += '<thead><tr style="border-bottom:1px solid var(--border);">';
-    html += '<th style="width:40px;padding:8px 6px;text-align:center;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;">#</th>';
-    html += '<th style="padding:8px 10px;text-align:left;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;position:sticky;left:0;background:var(--bg);z-index:2;max-width:140px;">Manager</th>';
+    html += '<th style="width:40px;padding:8px 6px;text-align:center;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;z-index:2;">#</th>';
+    html += '<th style="padding:8px 10px;text-align:left;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;min-width:130px;max-width:160px;">Manager</th>';
     html += th('seasons', '⌛', '45px');
     html += th('earned', '💰 Total', '75px');
     html += th('s1st', '🥇 1st', '55px');
@@ -5330,7 +5381,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const bg = i % 2 === 0 ? '' : 'background:var(--bg2);';
       html += `<tr style="${bg}border-bottom:1px solid var(--border);">`;
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:700;color:var(--theme);">${i+1}</td>`;
-      html += `<td style="padding:8px 10px;position:sticky;left:0;background:var(--bg${i%2===1?'2':''});z-index:1;max-width:140px;overflow:hidden;">`;
+      html += `<td style="padding:8px 10px;min-width:130px;max-width:160px;overflow:hidden;">`;
       html += `<div style="font-weight:600;color:var(--text);">${esc(m.name)}</div>`;
       if (m.leagueTitles > 0 || m.cupTitles > 0) {
         html += '<div style="font-size:10px;color:var(--text3);">';
@@ -5701,8 +5752,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     // Table
     html += '<div class="table-scroll-wrap scroll-at-start"><div class="table-outer"><div class="table-wrap"><table id="historical-table" style="width:100%;border-collapse:separate;border-spacing:0;font-size:13px;">';
     html += '<thead><tr style="border-bottom:1px solid var(--border);">';
-    html += '<th style="width:40px;padding:8px 6px;text-align:center;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;position:sticky;left:0;background:var(--bg);z-index:2;">#</th>';
-    html += '<th style="padding:8px 10px;text-align:left;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;position:sticky;left:40px;background:var(--bg);z-index:2;">Manager</th>';
+    html += '<th style="width:40px;padding:8px 6px;text-align:center;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;z-index:2;">#</th>';
+    html += '<th style="padding:8px 10px;text-align:left;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;">Manager</th>';
     html += th('earned', '💰 Earned', '70px');
     if (has4) {
       html += th('top1', '🥇 1st', '55px');
@@ -5737,8 +5788,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const lBadge = lPos !== undefined ? ' ' + leagueEmoji[lPos] : '';
       const bg = i % 2 === 0 ? '' : 'background:var(--bg2);';
       html += '<tr style="' + bg + 'border-bottom:1px solid var(--border);">';
-      html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:700;color:var(--theme);position:sticky;left:0;background:var(--bg' + (i%2===1?'2':'') + ');z-index:1;">' + (i+1) + '</td>';
-      html += '<td style="padding:8px 10px;position:sticky;left:40px;background:var(--bg' + (i%2===1?'2':'') + ');z-index:1;"><div style="font-weight:600;color:var(--text);">' + esc(m.name) + lBadge + '</div></td>';
+      html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:700;color:var(--theme);">' + (i+1) + '</td>';
+      html += '<td style="padding:8px 10px;"><div style="font-weight:600;color:var(--text);">' + esc(m.name) + lBadge + '</div></td>';
       html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:600;color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(0) + '</td>';
       if (has4) {
         html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top1 || '—') + '</td>';
