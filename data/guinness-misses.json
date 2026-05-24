@@ -27,7 +27,7 @@
   "Michael Legaz":      { "missed_gws": [], "made_up_gws": [] },
   "Mitch Maisel":       { "missed_gws": [], "made_up_gws": [] },
   "Mitchel Pattullo":   { "missed_gws": [], "made_up_gws": [] },
-  "Richard Katz":       { "missed_gws": [20,37], "made_up_gws": [21, 21] },
+  "Richard Katz":       { "missed_gws": [20,37,38], "made_up_gws": [21, 21] },
   "Rob DiSanto":        { "missed_gws": [], "made_up_gws": [] },
   "Robert Shellow":     { "missed_gws": [19], "made_up_gws": [20, 20] },
   "Ryan Kelly":         { "missed_gws": [5, 6], "made_up_gws": [7, 7, 7] },

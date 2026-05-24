@@ -732,6 +732,7 @@
     <a id="fpl-btn" href="https://fantasy.premierleague.com" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:var(--theme-dim);color:var(--theme);border:1px solid var(--theme-border);border-radius:6px;padding:3px 10px;font-size:11px;font-family:var(--font-mono);text-decoration:none;font-weight:600;white-space:nowrap;">Open FPL ↗</a>
   </div>
 </div>
+</div>
 <div class="tabs" id="main-tabs" style="visibility:hidden;">
     <button class="tab-btn active" id="weekly-tab-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;">
       <span style="display:flex;align-items:center;gap:4px;">
@@ -1197,12 +1198,12 @@ async function init() {
       const callout = document.getElementById('gw-callout');
       const calloutLabel = document.getElementById('gw-callout-label');
       const deadlineLabel = document.getElementById('gw-deadline-label');
-      if (callout && calloutLabel && deadlineLabel) {
-        // Current/live GW label
+      if (callout && calloutLabel) {
         const currentEvent = bootstrap.events.find(e => e.is_current) ||
                              bootstrap.events.find(e => e.id === state.latestGW);
         const nextEvent = bootstrap.events.find(e => e.is_next) ||
                           bootstrap.events.find(e => e.id === state.latestGW + 1);
+        const isSeasonOver = state.liveGW >= 38 || state.latestGW >= 38;
 
         if (currentEvent) {
           const gwLabel = state.isLive
@@ -1213,44 +1214,31 @@ async function init() {
           calloutLabel.textContent = gwLabel;
         }
 
-        // Next GW deadline
-        if (nextEvent && nextEvent.deadline_time) {
+        // Next GW deadline — hide after final GW
+        if (!isSeasonOver && nextEvent && nextEvent.deadline_time && deadlineLabel) {
           const deadline = new Date(nextEvent.deadline_time);
           const etStr = deadline.toLocaleString('en-US', {
             timeZone: 'America/New_York',
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
+            weekday: 'short', month: 'short', day: 'numeric',
+            hour: 'numeric', minute: '2-digit', hour12: true
           });
           deadlineLabel.textContent = 'GW' + nextEvent.id + ' deadline: ' + etStr + ' ET';
           const isPast = now > new Date(nextEvent.deadline_time).getTime();
           deadlineLabel.style.color = isPast ? 'var(--red)' : 'var(--theme)';
           const fplBtn = document.getElementById('fpl-btn');
           if (fplBtn) {
-            if (isPast) {
-              fplBtn.style.background = 'var(--red-dim)';
-              fplBtn.style.color = 'var(--red)';
-              fplBtn.style.borderColor = 'rgba(248,113,113,0.3)';
-            } else {
-              fplBtn.style.background = 'var(--theme-dim)';
-              fplBtn.style.color = 'var(--theme)';
-              fplBtn.style.borderColor = 'var(--theme-border)';
-            }
+            fplBtn.style.background = isPast ? 'var(--red-dim)' : 'var(--theme-dim)';
+            fplBtn.style.color = isPast ? 'var(--red)' : 'var(--theme)';
+            fplBtn.style.borderColor = isPast ? 'rgba(248,113,113,0.3)' : 'var(--theme-border)';
           }
+          const lineupBar = document.getElementById('fpl-lineup-bar');
+          if (lineupBar) lineupBar.style.display = 'flex';
         }
+
         callout.style.display = 'block';
-        // Always show the lineup bar
-        const lineupBar = document.getElementById('fpl-lineup-bar');
-        if (lineupBar) lineupBar.style.display = 'flex';
-        // Set CSS vars for sticky offsets so all sticky elements measure correctly
         requestAnimationFrame(() => {
           const headerH = document.querySelector('.site-header')?.offsetHeight || 64;
-          const calloutH = callout.offsetHeight || 52;
           const gwbarH = document.querySelector('.gw-bar')?.offsetHeight || 48;
-          const tabsH = document.querySelector('.tabs')?.offsetHeight || 45;
           document.documentElement.style.setProperty('--header-h', headerH + 'px');
           document.documentElement.style.setProperty('--gwbar-h', gwbarH + 'px');
         });
