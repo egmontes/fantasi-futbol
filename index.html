@@ -1075,16 +1075,22 @@ async function init() {
       const BOOTSTRAP_TS_KEY = 'ff_bootstrap_ts';
       const BOOTSTRAP_TTL = 10 * 60 * 1000; // 10 minutes
       let bootstrap = null;
+
+      // Always try cache first — use if fresh, or if API fails
+      let cachedBootstrap = null;
       try {
         const cached = localStorage.getItem(BOOTSTRAP_CACHE_KEY);
-        const ts = parseInt(localStorage.getItem(BOOTSTRAP_TS_KEY) || '0');
-        if (cached && Date.now() - ts < BOOTSTRAP_TTL) {
-          bootstrap = JSON.parse(cached);
-          document.getElementById('page-loader-text').textContent = '⚡ Loading from cache...';
-        }
+        if (cached) cachedBootstrap = JSON.parse(cached);
       } catch(e) {}
 
-      if (!bootstrap) {
+      const cacheAge = parseInt(localStorage.getItem(BOOTSTRAP_TS_KEY) || '0');
+      const cacheIsFresh = cachedBootstrap && (Date.now() - cacheAge < BOOTSTRAP_TTL);
+
+      if (cacheIsFresh) {
+        bootstrap = cachedBootstrap;
+        document.getElementById('page-loader-text').textContent = '⚡ Loading from cache...';
+      } else {
+        // Cache stale or missing — fetch fresh, fall back to stale on failure
         try {
           bootstrap = await fetchFPL('bootstrap-static/');
           try {
@@ -1092,17 +1098,14 @@ async function init() {
             localStorage.setItem(BOOTSTRAP_TS_KEY, Date.now().toString());
           } catch(e) {}
         } catch(e) {
-          // API failed — try stale cache as fallback (any age)
-          console.warn('Bootstrap fetch failed, trying stale cache:', e.message);
-          try {
-            const cached = localStorage.getItem(BOOTSTRAP_CACHE_KEY);
-            if (cached) {
-              bootstrap = JSON.parse(cached);
-              document.getElementById('page-loader-text').textContent = '⚡ Loading from cache...';
-              console.log('Using stale bootstrap cache');
-            }
-          } catch(e2) {}
-          if (!bootstrap) throw e;
+          // API failed — use stale cache if available
+          if (cachedBootstrap) {
+            bootstrap = cachedBootstrap;
+            document.getElementById('page-loader-text').textContent = '⚡ Using cached data...';
+            console.warn('Bootstrap API failed, using stale cache');
+          } else {
+            throw e;
+          }
         }
       }
 
@@ -1329,37 +1332,60 @@ async function init() {
   async function loadLeague() {
     const CACHE_KEY = 'ff_managers';
     const CACHE_TS_KEY = 'ff_managers_ts';
-    const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours — managers rarely change
+    const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+    // Try localStorage cache first (long TTL — managers rarely change mid-season)
     try {
-      let page = 1, entries = [];
+      const cached = localStorage.getItem(CACHE_KEY);
+      const ts = parseInt(localStorage.getItem(CACHE_TS_KEY) || '0');
+      if (cached && Date.now() - ts < CACHE_TTL) {
+        const managers = JSON.parse(cached);
+        if (managers.length > 0) {
+          state.managers = managers;
+          console.log('Loaded', managers.length, 'managers from cache — fetching fresh in background');
+          // Refresh in background so cache stays fresh
+          fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=1`).then(async data => {
+            let entries = [...data.standings.results];
+            let page = 2;
+            while (data.standings.has_next) {
+              data = await fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=${page++}`);
+              entries = entries.concat(data.standings.results);
+            }
+            state.managers = entries.map(e => ({ id: e.entry, name: e.player_name, team: e.entry_name, total: e.total, rank: e.rank }));
+            localStorage.setItem(CACHE_KEY, JSON.stringify(state.managers));
+            localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
+          }).catch(() => {});
+          return;
+        }
+      }
+    } catch(e) {}
+
+    // Cache miss or expired — fetch fresh
+    try {
+      let page = 1, entries = [], data;
       while (true) {
-        const data = await fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=${page}`);
+        data = await fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=${page}`);
         entries = entries.concat(data.standings.results);
         if (!data.standings.has_next) break;
         page++;
       }
-      state.managers = entries.map(e => ({
-        id: e.entry, name: e.player_name, team: e.entry_name, total: e.total, rank: e.rank,
-      }));
-      // Cache manager list
+      state.managers = entries.map(e => ({ id: e.entry, name: e.player_name, team: e.entry_name, total: e.total, rank: e.rank }));
       try {
         localStorage.setItem(CACHE_KEY, JSON.stringify(state.managers));
         localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
       } catch(e) {}
     } catch(e) {
-      // API failed — try cached managers
-      console.warn('loadLeague failed, trying cache:', e.message);
+      // Try stale cache as last resort (any age)
+      console.warn('loadLeague failed, trying stale cache:', e.message);
       try {
         const cached = localStorage.getItem(CACHE_KEY);
-        const ts = parseInt(localStorage.getItem(CACHE_TS_KEY) || '0');
-        if (cached && Date.now() - ts < CACHE_TTL) {
+        if (cached) {
           state.managers = JSON.parse(cached);
-          console.log('Loaded', state.managers.length, 'managers from cache');
+          console.log('Using stale manager cache:', state.managers.length, 'managers');
           return;
         }
       } catch(e2) {}
-      throw e; // Re-throw if no cache available
+      throw e;
     }
   }
 
@@ -1376,7 +1402,7 @@ async function init() {
         const cached = localStorage.getItem(CACHE_KEY);
         const ts = parseInt(localStorage.getItem(CACHE_TS_KEY) || '0');
         if (cached && (Date.now() - ts < CACHE_TTL)) {
-          const parsed = JSON.parse(saved);
+          const parsed = JSON.parse(cached);
           // Validate cache has data for our managers
           const managerIds = state.managers.map(m => m.id);
           const hasData = managerIds.every(id => parsed[id] !== undefined) &&
@@ -1447,14 +1473,19 @@ async function init() {
       }));
     }
 
-    // Save to cache
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(state.gwHistory));
-      localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
-      localStorage.setItem(CHIPS_CACHE_KEY, JSON.stringify(state.chipsHistory || {}));
-      console.log('History cached for GW' + state.latestGW);
-    } catch(e) {
-      console.warn('Cache write failed:', e.message);
+    // Save to cache only if we have data for most managers
+    const managersWithData = state.managers.filter(m => (state.gwHistory[m.id] || []).length > 0).length;
+    if (managersWithData >= state.managers.length * 0.9) {
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(state.gwHistory));
+        localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
+        localStorage.setItem(CHIPS_CACHE_KEY, JSON.stringify(state.chipsHistory || {}));
+        console.log('History cached for GW' + state.latestGW + ' (' + managersWithData + '/' + state.managers.length + ' managers)');
+      } catch(e) {
+        console.warn('Cache write failed:', e.message);
+      }
+    } else {
+      console.warn('History incomplete (' + managersWithData + '/' + state.managers.length + '), not caching');
     }
   }
 
@@ -1737,7 +1768,10 @@ async function init() {
       const prevRows = state.managers.map(m => {
         const hist = state.gwHistory[m.id] || [];
         const entry = [...hist].filter(h => h.event <= currentGW - 1).sort((a, b) => b.event - a.event)[0];
-        return { id: m.id, total: entry ? entry.total_points : 0 };
+        if (entry) return { id: m.id, total: entry.total_points };
+        // Derive prev total from current GW entry if available
+        const currEntry = hist.find(h => h.event === currentGW);
+        return { id: m.id, total: currEntry ? currEntry.total_points - currEntry.points : 0 };
       }).sort((a, b) => b.total - a.total);
       const prevRankMap = {};
       let pr = 1;
@@ -2602,8 +2636,14 @@ async function init() {
             const getSeasonRank = (upToGW, managerId) => {
               const sorted = state.managers.map(m2 => {
                 const hist = state.gwHistory[m2.id] || [];
+                // Try to find a direct entry for upToGW or earlier
                 const entry = [...hist].filter(h => h.event <= upToGW).sort((a, b) => b.event - a.event)[0];
-                return { id: m2.id, total: entry ? entry.total_points : 0 };
+                if (entry) return { id: m2.id, total: entry.total_points };
+                // If no entry for upToGW but we have the next GW (e.g. only GW34 cached),
+                // derive total at upToGW = total_points - points of the next entry
+                const nextEntry = hist.find(h => h.event === upToGW + 1);
+                if (nextEntry) return { id: m2.id, total: nextEntry.total_points - nextEntry.points };
+                return { id: m2.id, total: 0 };
               }).sort((a, b) => b.total - a.total);
               let rank = 1;
               for (let i = 0; i < sorted.length; i++) {
@@ -3094,8 +3134,14 @@ async function init() {
             const getSeasonRank = (upToGW, managerId) => {
               const sorted = state.managers.map(m2 => {
                 const hist = state.gwHistory[m2.id] || [];
+                // Try to find a direct entry for upToGW or earlier
                 const entry = [...hist].filter(h => h.event <= upToGW).sort((a, b) => b.event - a.event)[0];
-                return { id: m2.id, total: entry ? entry.total_points : 0 };
+                if (entry) return { id: m2.id, total: entry.total_points };
+                // If no entry for upToGW but we have the next GW (e.g. only GW34 cached),
+                // derive total at upToGW = total_points - points of the next entry
+                const nextEntry = hist.find(h => h.event === upToGW + 1);
+                if (nextEntry) return { id: m2.id, total: nextEntry.total_points - nextEntry.points };
+                return { id: m2.id, total: 0 };
               }).sort((a, b) => b.total - a.total);
               let rank = 1;
               for (let i = 0; i < sorted.length; i++) {
