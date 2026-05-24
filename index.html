@@ -1079,17 +1079,31 @@ async function init() {
         const cached = localStorage.getItem(BOOTSTRAP_CACHE_KEY);
         const ts = parseInt(localStorage.getItem(BOOTSTRAP_TS_KEY) || '0');
         if (cached && Date.now() - ts < BOOTSTRAP_TTL) {
-          bootstrap = JSON.parse(saved);
+          bootstrap = JSON.parse(cached);
           document.getElementById('page-loader-text').textContent = '⚡ Loading from cache...';
         }
       } catch(e) {}
 
       if (!bootstrap) {
-        bootstrap = await fetchFPL('bootstrap-static/');
         try {
-          localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(bootstrap));
-          localStorage.setItem(BOOTSTRAP_TS_KEY, Date.now().toString());
-        } catch(e) {} // ignore storage errors (quota etc)
+          bootstrap = await fetchFPL('bootstrap-static/');
+          try {
+            localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(bootstrap));
+            localStorage.setItem(BOOTSTRAP_TS_KEY, Date.now().toString());
+          } catch(e) {}
+        } catch(e) {
+          // API failed — try stale cache as fallback (any age)
+          console.warn('Bootstrap fetch failed, trying stale cache:', e.message);
+          try {
+            const cached = localStorage.getItem(BOOTSTRAP_CACHE_KEY);
+            if (cached) {
+              bootstrap = JSON.parse(cached);
+              document.getElementById('page-loader-text').textContent = '⚡ Loading from cache...';
+              console.log('Using stale bootstrap cache');
+            }
+          } catch(e2) {}
+          if (!bootstrap) throw e;
+        }
       }
 
       // Store full bootstrap data for later use (e.g., computeTeam in buildPrompt)
@@ -1313,20 +1327,40 @@ async function init() {
   }
 
   async function loadLeague() {
-    let page = 1, entries = [];
-    while (true) {
-      const data = await fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=${page}`);
-      entries = entries.concat(data.standings.results);
-      if (!data.standings.has_next) break;
-      page++;
+    const CACHE_KEY = 'ff_managers';
+    const CACHE_TS_KEY = 'ff_managers_ts';
+    const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours — managers rarely change
+
+    try {
+      let page = 1, entries = [];
+      while (true) {
+        const data = await fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=${page}`);
+        entries = entries.concat(data.standings.results);
+        if (!data.standings.has_next) break;
+        page++;
+      }
+      state.managers = entries.map(e => ({
+        id: e.entry, name: e.player_name, team: e.entry_name, total: e.total, rank: e.rank,
+      }));
+      // Cache manager list
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(state.managers));
+        localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
+      } catch(e) {}
+    } catch(e) {
+      // API failed — try cached managers
+      console.warn('loadLeague failed, trying cache:', e.message);
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        const ts = parseInt(localStorage.getItem(CACHE_TS_KEY) || '0');
+        if (cached && Date.now() - ts < CACHE_TTL) {
+          state.managers = JSON.parse(cached);
+          console.log('Loaded', state.managers.length, 'managers from cache');
+          return;
+        }
+      } catch(e2) {}
+      throw e; // Re-throw if no cache available
     }
-    state.managers = entries.map(e => ({
-      id: e.entry,
-      name: e.player_name,
-      team: e.entry_name,
-      total: e.total,
-      rank: e.rank,
-    }));
   }
 
   async function loadAllHistory(forceRefresh = false) {
@@ -5370,7 +5404,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     html += th('s3rd', '🥉 3rd', '55px');
     html += th('s4th', '4️⃣ 4th', '55px');
     html += th('s5th', '5️⃣ 5th', '55px');
-    html += th('leagueTitles', '🥇', '45px');
     html += th('cupTitles', '🏆', '45px');
     html += th('cupRunnerUp', '🥈 Cup', '55px');
     html += th('last', '💀', '50px');
@@ -5397,7 +5430,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.s3rd > 0 ? 'var(--theme)' : 'var(--text3)'};">${m.s3rd || '—'}</td>`;
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.s4th > 0 ? 'var(--theme)' : 'var(--text3)'};">${m.s4th || '—'}</td>`;
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.s5th > 0 ? 'var(--theme)' : 'var(--text3)'};">${m.s5th || '—'}</td>`;
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.leagueTitles > 0 ? 'var(--theme)' : 'var(--text3)'};">${m.leagueTitles || '—'}</td>`;
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.cupTitles > 0 ? '#FFD700' : 'var(--text3)'};">${m.cupTitles || '—'}</td>`;
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.cupRunnerUp > 0 ? 'var(--text2)' : 'var(--text3)'};">${m.cupRunnerUp || '—'}</td>`;
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.last > 0 ? 'var(--red)' : 'var(--text3)'};">${m.last ? m.last.toFixed(1) : '—'}</td>`;
