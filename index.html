@@ -1206,11 +1206,14 @@ async function init() {
         const isSeasonOver = state.liveGW >= 38 || state.latestGW >= 38;
 
         if (currentEvent) {
-          const gwLabel = state.isLive
-            ? 'GW' + currentEvent.id + ' Live'
-            : state.isTransition
-              ? 'GW' + state.transitionGW + ' Loading...'
-              : 'GW' + currentEvent.id + ' Complete';
+          const isSeasonOver = !state.isLive && state.latestGW >= 38;
+          const gwLabel = isSeasonOver
+            ? '2025 / 2026'
+            : state.isLive
+              ? 'GW' + currentEvent.id + ' Live'
+              : state.isTransition
+                ? 'GW' + state.transitionGW + ' Loading...'
+                : 'GW' + currentEvent.id + ' Complete';
           calloutLabel.textContent = gwLabel;
         }
 
@@ -1282,23 +1285,42 @@ async function init() {
 
       // Load history + guinness in background, then render everything at once
       loadGuinnessDebts();
-      await loadAllHistory(state.isLive);
-      state.historyLoaded = true;
-      renderStandings();
-      // Show export button when GW is complete (not live)
-      if (!state.isLive) {
-        const exportBtn = document.getElementById('export-gw-btn');
-        if (exportBtn) {
-          exportBtn.style.display = 'inline-flex';
-          exportBtn.textContent = '💾 Save GW' + state.latestGW;
+
+      // When season is over, try loading full history from static GW files
+      const isSeasonOver = !state.isLive && state.latestGW >= 38;
+      if (isSeasonOver) {
+        const gwFilesLoaded = await loadHistoryFromGWFiles('2025-2026');
+        if (gwFilesLoaded >= 38) {
+          state.historyLoaded = true;
+          renderStandings();
+          updateExportBtn(state.latestGW);
+          loadGWFromCache(38).then(() => renderStandings());
+        } else {
+          // Partial — fall back to API for missing GWs
+          await loadAllHistory(false);
+          state.historyLoaded = true;
+          renderStandings();
+          updateExportBtn(state.latestGW);
         }
-        // Try loading static cache for current GW — re-render if loaded
-        loadGWFromCache(state.latestGW).then(loaded => {
-          if (loaded) {
-            updateExportBtn(state.latestGW);
-            renderStandings();
+      } else {
+        await loadAllHistory(state.isLive);
+        state.historyLoaded = true;
+        renderStandings();
+        // Show export button when GW is complete (not live)
+        if (!state.isLive) {
+          const exportBtn = document.getElementById('export-gw-btn');
+          if (exportBtn) {
+            exportBtn.style.display = 'inline-flex';
+            exportBtn.textContent = '💾 Save GW' + state.latestGW;
           }
-        });
+          // Try loading static cache for current GW — re-render if loaded
+          loadGWFromCache(state.latestGW).then(loaded => {
+            if (loaded) {
+              updateExportBtn(state.latestGW);
+              renderStandings();
+            }
+          });
+        }
       }
       if (activeTab === 'weekly') {
         const gwVal = document.getElementById('gw-select').value;
@@ -1627,8 +1649,7 @@ async function init() {
     const totalShotguns = state.latestGW * 2;
 
     const currentGW = state.isLive ? state.liveGW : state.latestGW;
-
-    // If chips not cached yet, fetch in background and re-render when done
+    const isSeasonOver = !state.isLive && state.latestGW >= 38;
     if (!_chipCache[currentGW]) {
       fetchChipsForGW(currentGW).then(() => {
         renderStandings();
@@ -1670,6 +1691,7 @@ async function init() {
     let liveScoreMap = window._liveScoreCacheGW[currentGW] || {};
     // Fetch live scores if: live GW, OR GW just ended (latestGW matches and history may be stale)
     const shouldFetchLive = !window._liveScoreCacheGW[currentGW] && !window._liveScoreFetchInProgress &&
+      !isSeasonOver &&
       (state.isLive || currentGW === state.latestGW);
     if (shouldFetchLive) {
       window._liveScoreFetchInProgress = true;
@@ -1925,13 +1947,22 @@ async function init() {
           ? '<br>Games Completed: ' + (state.fixturesTotal - state.fixturesOngoing - state.fixturesRemaining) + ' · Ongoing: ' + state.fixturesOngoing + ' · Remaining: ' + state.fixturesRemaining
           : '') +
         '</div>' +
+      // Season prizes section
+      '<div class="prize-key" style="margin-bottom:8px;">' +
+      '<span class="prize-key-label">Season Prizes:</span>' +
+      '<span class="badge badge-1">1st $550</span>' +
+      '<span class="badge badge-2">2nd $275</span>' +
+      '<span class="badge badge-3">3rd $175</span>' +
+      '<span class="badge badge-4">4th $100</span>' +
+      '<span class="badge" style="background:rgba(255,182,193,0.2);color:#ffb6c1;border:1px solid rgba(255,182,193,0.4);">5th $20</span>' +
+      '</div>' +
       '<div class="table-scroll-wrap scroll-at-start"><div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
       '<thead><tr>' +
       '<th style="width:52px">Rank</th>' +
       '<th ' + thClass('name') + ' data-col="name">Manager</th>' +
-      '<th style="width:70px" ' + thClass('gwpts') + ' data-col="gwpts">GW' + (state.isLive ? state.liveGW : state.latestGW) + ' Pts</th>' +
-      (( state.isLive || (window._playedCache || {})[currentGW]) ? '<th style="width:60px" ' + thClass('played') + ' data-col="played" title="Players played / total">Played</th>' : '') +
-      '<th style="width:90px" ' + thClass('captain') + ' data-col="captain">Captain</th>' +
+      (!isSeasonOver ? '<th style="width:70px" ' + thClass('gwpts') + ' data-col="gwpts">GW' + (state.isLive ? state.liveGW : state.latestGW) + ' Pts</th>' : '') +
+      (!isSeasonOver && (state.isLive || (window._playedCache || {})[currentGW]) ? '<th style="width:60px" ' + thClass('played') + ' data-col="played" title="Players played / total">Played</th>' : '') +
+      (!isSeasonOver ? '<th style="width:90px" ' + thClass('captain') + ' data-col="captain">Captain</th>' : '') +
       '<th style="width:70px" ' + thClass('pts') + ' data-col="pts">Total PTS</th>' +
       '<th style="width:60px;text-align:center" ' + thClass('top4') + ' data-col="top4" title="Top-4 finishes">Top 4</th>' +
       '<th style="width:60px;text-align:center" ' + thClass('bot2') + ' data-col="bot2" title="Bottom-2 finishes">Bot 2</th>' +
@@ -1991,8 +2022,17 @@ async function init() {
           }
           return '<div style="display:flex;align-items:center;"><span class="rank-num">' + rank + '</span>' + indicator + '</div>';
         })() + '</td>' +
-        '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div><div class="m-team">' + esc(m.team) + '</div>' + '<div style="display:flex;gap:2px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + buildChipBadges(m.id, m.chip, currentGW) + '</div></td>' +
-        '<td>' + (() => {
+        '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + (() => {
+          if (!isSeasonOver) return '';
+          const sRank = seasonRankMap[m.id];
+          if (sRank === 1) return ' <span class="badge badge-1">🥇 $550</span>';
+          if (sRank === 2) return ' <span class="badge badge-2">🥈 $275</span>';
+          if (sRank === 3) return ' <span class="badge badge-3">🥉 $175</span>';
+          if (sRank === 4) return ' <span class="badge badge-4">4️⃣ $100</span>';
+          if (sRank === 5) return ' <span class="badge" style="background:rgba(255,182,193,0.2);color:#ffb6c1;border:1px solid rgba(255,182,193,0.4);">5️⃣ $20</span>';
+          return '';
+        })() + '</div><div class="m-team">' + esc(m.team) + '</div>' + '<div style="display:flex;gap:2px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + buildChipBadges(m.id, m.chip, currentGW) + '</div></td>' +
+        (!isSeasonOver ? '<td>' + (() => {
           if (m.gwLatestPts === null) return '<span class="pts-val">—</span>';
           const rank = gwRankMap[m.id];
           const medals = { 1: '🥇', 2: '🥈', 3: '🥉', 4: '4️⃣' };
@@ -2004,18 +2044,27 @@ async function init() {
           const beerTip = !allGWZero && gwBottomMap[m.id] ? ' <span class="tip" style="font-size:13px;">🍺<span class="tip-text">Bottom 2 · Shotgun duty!</span></span>' : '';
           const hitBadge = m.gwHit > 0 ? '<span class="hit-cost">(-' + m.gwHit + ')</span>' : '';
           return '<span class="pts-val">' + m.gwRawPts + '</span>' + hitBadge + tip + beerTip;
-        })() + '</td>' +
-        (( state.isLive || (window._playedCache || {})[currentGW]) ? '<td style="font-family:var(--font-mono);font-size:12px;color:var(--text2);">' + (() => {
+        })() + '</td>' : '') +
+        (!isSeasonOver && (state.isLive || (window._playedCache || {})[currentGW]) ? '<td style="font-family:var(--font-mono);font-size:12px;color:var(--text2);">' + (() => {
           const p = (window._playedCache || {})[currentGW]?.[m.id];
           if (!p) return '<span style="color:var(--text3);">—</span>';
           const color = p.played >= p.total ? 'var(--green)' : p.played > 0 ? 'var(--amber)' : 'var(--text3)';
           return '<span style="color:' + color + ';">' + p.played + '</span><span style="color:var(--text3);">/' + p.total + '</span>';
         })() + '</td>' : '') +
-        '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = m.captain; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' +
+        (!isSeasonOver ? '<td style="font-size:12px;color:var(--text2);">' + (() => { const c = m.captain; if (!c || !c.name) return '<span class="badge-zero">—</span>'; return c.isVC ? '<span title="Vice captain (captain DNP)">' + esc(c.name) + ' <span style="font-size:10px;color:var(--text3);">(vc)</span></span>' : esc(c.name); })() + '</td>' : '') +
         '<td><span class="pts-val">' + m.total + '</span></td>' +
         '<td style="text-align:center">' + (!state.historyLoaded ? '<span class="badge-zero">—</span>' : m.top4 > 0 ? '<span class="badge badge-top">' + m.top4 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
         '<td style="text-align:center">' + (!state.historyLoaded ? '<span class="badge-zero">—</span>' : m.bottom2 > 0 ? '<span class="badge badge-bot">' + m.bottom2 + '</span>' : '<span class="badge-zero">0</span>') + '</td>' +
-        '<td><span class="' + (m.earned > 0 ? 'money-pos' : 'money-zero') + '">$' + (!state.historyLoaded ? '—' : m.earned.toFixed(2).replace('.00','')) + '</span></td>' +
+        '<td><span class="' + (m.earned > 0 ? 'money-pos' : 'money-zero') + '">' + (() => {
+          if (!state.historyLoaded) return '$—';
+          const SEASON_PRIZES = { 1: 550, 2: 275, 3: 175, 4: 100, 5: 20 };
+          const seasonPrize = isSeasonOver ? (SEASON_PRIZES[seasonRankMap[m.id]] || 0) : 0;
+          const total = m.earned + seasonPrize;
+          if (seasonPrize > 0) {
+            return '<span title="Weekly: $' + m.earned.toFixed(2).replace('.00','') + ' + Season: $' + seasonPrize + '">$' + total.toFixed(2).replace('.00','') + '</span>';
+          }
+          return '$' + m.earned.toFixed(2).replace('.00','');
+        })() + '</span></td>' +
         '<td style="text-align:center">' + (!state.historyLoaded ? '—' : gmissCell) + '</td>' +
         '<td style="text-align:center;font-family:var(--font-mono);font-size:13px;font-weight:500;color:' + (m.missedG > 0 ? 'var(--red)' : 'var(--text3)') + '">' + (!state.historyLoaded ? '—' : m.missedG > 0 ? m.missedG : '—') + '</td>' +
         '<td style="text-align:center;font-family:var(--font-mono);font-size:13px;font-weight:500;color:' + (m.totalG > 0 ? 'var(--amber)' : 'var(--text3)') + '">' + (!state.historyLoaded ? '—' : m.totalG > 0 ? m.totalG : '—') + '</td>' +
@@ -2125,15 +2174,30 @@ async function init() {
 
   async function prefetchPicks(gw) {
     if (!gw) return;
-    // Fetch fixtures once for played calculation
+    // Fetch fixtures and live data for played calculation
     let startedTeams = new Set();
+    let playerMinutes = null;
     try {
-      const fixtures = await fetchFPL('fixtures/?event=' + gw);
-      fixtures.filter(f => f.started).forEach(f => {
+      const [fixtures, liveData] = await Promise.all([
+        fetchFPL('fixtures/?event=' + gw),
+        fetchFPL('event/' + gw + '/live/'),
+      ]);
+      fixtures.filter(f => f.started || f.finished || f.finished_provisional).forEach(f => {
         startedTeams.add(f.team_h);
         startedTeams.add(f.team_a);
       });
-    } catch(e) {}
+      playerMinutes = {};
+      liveData.elements.forEach(e => { playerMinutes[e.id] = e.stats.minutes; });
+    } catch(e) {
+      // Fall back to fixtures only
+      try {
+        const fixtures = await fetchFPL('fixtures/?event=' + gw);
+        fixtures.filter(f => f.started || f.finished || f.finished_provisional).forEach(f => {
+          startedTeams.add(f.team_h);
+          startedTeams.add(f.team_a);
+        });
+      } catch(e2) {}
+    }
 
     const BATCH = 5;
     for (let i = 0; i < state.managers.length; i += BATCH) {
@@ -2143,14 +2207,14 @@ async function init() {
         if (window._picksCache[key]) {
           // Already have picks — still compute played if not cached
           if (!(window._playedCache || {})[gw]?.[m.id]) {
-            computePlayedFromPicks(window._picksCache[key], m.id, gw, startedTeams);
+            computePlayedFromPicks(window._picksCache[key], m.id, gw, startedTeams, playerMinutes);
           }
           return;
         }
         try {
           const picks = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/');
           window._picksCache[key] = picks;
-          computePlayedFromPicks(picks, m.id, gw, startedTeams);
+          computePlayedFromPicks(picks, m.id, gw, startedTeams, playerMinutes);
         } catch(e) {}
       }));
     }
@@ -2158,24 +2222,39 @@ async function init() {
     renderStandings();
   }
 
-  function computePlayedFromPicks(picks, managerId, gw, startedTeams) {
+  function computePlayedFromPicks(picks, managerId, gw, startedTeams, playerMinutes) {
     if (!picks) return;
     const chip = picks.active_chip || null;
     const isBB = chip === 'bboost';
     const isTC = chip === '3xc';
     const activePicks = isBB ? picks.picks : picks.picks.filter(p => p.position <= 11);
     const captainMultiplier = isTC ? 3 : 2;
-    const totalPlayers = activePicks.length + (captainMultiplier - 1);
+
     let playedCount = 0;
+    let totalCount = 0;
+
     activePicks.forEach(p => {
       const teamId = state.playerTeams?.[p.element];
-      if (teamId && startedTeams.has(teamId)) {
-        playedCount += p.is_captain ? captainMultiplier : 1;
+      const teamStarted = teamId && startedTeams.has(teamId);
+      const mins = playerMinutes ? (playerMinutes[p.element] ?? null) : null;
+      const multiplier = p.multiplier > 1 ? p.multiplier : 1;
+
+      // Only count toward total if team hasn't played yet OR player got minutes
+      // (exclude starters whose team played but they got 0 mins — DNP)
+      if (!teamStarted) {
+        // Team hasn't played yet — count as pending
+        totalCount += multiplier;
+      } else if (mins === null || mins > 0) {
+        // Team played and player got minutes (or no minute data available)
+        totalCount += multiplier;
+        playedCount += multiplier;
       }
+      // else: team played, player got 0 mins — don't count toward total or played
     });
+
     if (!window._playedCache) window._playedCache = {};
     if (!window._playedCache[gw]) window._playedCache[gw] = {};
-    window._playedCache[gw][managerId] = { played: playedCount, total: totalPlayers };
+    window._playedCache[gw][managerId] = { played: playedCount, total: totalCount };
   }
 
   function initDrawer(tableId, gw) {
@@ -4437,16 +4516,22 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (!menu) return;
     menu.innerHTML = '';
     const currentGW = state.isLive ? state.liveGW : state.latestGW;
+    const isSeasonOver = !state.isLive && state.latestGW >= 38;
 
-    // Live/current GW option at top (replaces "Season Standings")
+    // Top item: season label when over, otherwise live/current GW
     const standingsItem = document.createElement('button');
     standingsItem.className = 'tab-dropdown-item active';
     standingsItem.dataset.view = 'standings';
-    standingsItem.innerHTML = 'GW ' + currentGW + (state.isLive ? ' <span style="font-size:10px;color:var(--red);">● Live</span>' : ' <span style="font-size:10px;color:var(--text3);">Current</span>');
+    if (isSeasonOver) {
+      standingsItem.innerHTML = '2025 / 2026 <span style="font-size:10px;color:var(--text3);">Season</span>';
+    } else {
+      standingsItem.innerHTML = 'GW ' + currentGW + (state.isLive ? ' <span style="font-size:10px;color:var(--red);">● Live</span>' : ' <span style="font-size:10px;color:var(--text3);">Current</span>');
+    }
     menu.appendChild(standingsItem);
 
-    // Past GWs
-    for (let i = currentGW - 1; i >= 1; i--) {
+    // Past GWs — when season over, include GW38 as a past GW too
+    const pastGWStart = isSeasonOver ? 38 : currentGW - 1;
+    for (let i = pastGWStart; i >= 1; i--) {
       const item = document.createElement('button');
       item.className = 'tab-dropdown-item';
       item.dataset.view = 'weekly';
@@ -4455,7 +4540,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       menu.appendChild(item);
     }
 
-    label.textContent = 'Gameweek ' + currentGW;
+    label.textContent = isSeasonOver ? '2025 / 2026' : 'Gameweek ' + currentGW;
     const liveEl = document.getElementById('weekly-tab-live');
     if (liveEl) liveEl.style.display = state.isLive ? 'block' : 'none';
 
@@ -4474,7 +4559,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const weeklyToggleEl = document.getElementById('weekly-toggle-bar');
 
       if (item.dataset.view === 'standings') {
-        label.textContent = 'Gameweek ' + currentGW;
+        const isSeasonOver = !state.isLive && state.latestGW >= 38;
+        label.textContent = isSeasonOver ? '2025 / 2026' : 'Gameweek ' + currentGW;
         const liveElS = document.getElementById('weekly-tab-live');
         if (liveElS) liveElS.style.display = state.isLive ? 'block' : 'none';
         updateExportBtn(currentGW);
@@ -5251,7 +5337,72 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     }, { passive: true });
   }
 
-  // ── LEAGUE HISTORY ───────────────────────────────────────────────────────
+  // ── LOAD HISTORY FROM GW CACHE FILES ────────────────────────────────────
+  async function loadHistoryFromGWFiles(season) {
+    const TOTAL_GWS = 38;
+    let loaded = 0;
+    const BATCH = 5;
+
+    for (let i = 1; i <= TOTAL_GWS; i += BATCH) {
+      const batch = [];
+      for (let gw = i; gw < i + BATCH && gw <= TOTAL_GWS; gw++) batch.push(gw);
+      await Promise.all(batch.map(async gw => {
+        try {
+          const pad = String(gw).padStart(2, '0');
+          const res = await fetch('data/' + season + '/gw' + pad + '.json');
+          if (!res.ok) return;
+          const cache = await res.json();
+
+          // Hydrate players
+          Object.entries(cache.players || {}).forEach(([id, p]) => {
+            state.bootstrapPlayers[parseInt(id)] = p.name;
+            if (p.team) { state.playerTeams = state.playerTeams || {}; state.playerTeams[parseInt(id)] = p.team; }
+          });
+
+          // Hydrate gwHistory, chips, captains, picks for each manager
+          cache.managers.forEach(m => {
+            if (!state.gwHistory[m.id]) state.gwHistory[m.id] = [];
+            const existing = state.gwHistory[m.id].findIndex(h => h.event === gw);
+            const entry = { event: gw, ...m.history };
+            if (existing >= 0) state.gwHistory[m.id][existing] = entry;
+            else state.gwHistory[m.id].push(entry);
+
+            if (m.chip !== undefined) {
+              if (!_chipCache[gw]) _chipCache[gw] = {};
+              _chipCache[gw][m.id] = m.chip;
+              if (!state.chipsHistory) state.chipsHistory = {};
+              if (!state.chipsHistory[m.id]) state.chipsHistory[m.id] = {};
+              if (m.chip) state.chipsHistory[m.id][gw] = m.chip;
+            }
+            if (m.captain) {
+              if (!_captainCache[gw]) _captainCache[gw] = {};
+              _captainCache[gw][m.id] = m.captain;
+            }
+            if (m.picks) {
+              window._picksCache = window._picksCache || {};
+              window._picksCache[m.id + '_' + gw] = { picks: m.picks, active_chip: m.chip, transfers: m.transfers };
+            }
+          });
+
+          // Cup matches
+          if (cache.cupMatches?.length > 0) {
+            if (!window._allCupMatches) window._allCupMatches = [];
+            const existing = new Set(window._allCupMatches.map(m => m.event + '-' + m.entry_1_entry + '-' + m.entry_2_entry));
+            cache.cupMatches.forEach(m => {
+              const key = m.event + '-' + m.entry_1_entry + '-' + m.entry_2_entry;
+              if (!existing.has(key)) window._allCupMatches.push(m);
+            });
+          }
+
+          loaded++;
+        } catch(e) {}
+      }));
+    }
+
+    console.log('Loaded ' + loaded + '/' + TOTAL_GWS + ' GW files from data/' + season);
+    return loaded;
+  }
+  // ── END LOAD HISTORY FROM GW CACHE FILES ────────────────────────────────
   async function showLeagueHistory() {
     document.getElementById('season-label').textContent = 'All Time';
     document.getElementById('season-menu').style.display = 'none';
