@@ -5518,23 +5518,31 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
       const guinnessData = state.guinnessDebts || {};
 
-      const currentManagers = state.managers.map(m => {
-        const s = currentStats[m.id] || {};
-        const pos = seasonRanked.findIndex(r => r.name === m.name);
-        return {
-          name: m.name,
-          earned: s.moneyWon || 0,
-          guinness: getTotalGuinnesses(m.name, s.bottom2 || 0),
-          top1: 0, top2: 0, top3: 0, top4: 0, last: 0,
-          _seasonPos: pos, // 0-indexed season position
-        };
-      });
+      const SEASON_PRIZES = { 1: 550, 2: 275, 3: 175, 4: 100, 5: 20 };
+      const CUP_PRIZES_AT = { winner: 225, runnerUp: 125 };
+      const isSeasonOverForHistory = !state.isLive && state.latestGW >= 38;
 
-      // Get current season awards (just league standings — cup may not be done)
+      // Cup winner/runner-up for prize calculation
       const cupMatches = window._allCupMatches || [];
       const finalMatch = cupMatches.filter(m => m.winner).sort((a,b) => b.event - a.event)[0];
       const cupWinner = finalMatch ? state.managers.find(m => m.id === finalMatch.winner)?.name : null;
       const cupRunnerUp = finalMatch ? state.managers.find(m => m.id === (finalMatch.entry_1_entry === finalMatch.winner ? finalMatch.entry_2_entry : finalMatch.entry_1_entry))?.name : null;
+
+      const currentManagers = state.managers.map(m => {
+        const s = currentStats[m.id] || {};
+        const pos = seasonRanked.findIndex(r => r.name === m.name) + 1; // 1-indexed
+        const seasonPrize = isSeasonOverForHistory ? (SEASON_PRIZES[pos] || 0) : 0;
+        const cupPrize = isSeasonOverForHistory
+          ? (m.name === cupWinner ? CUP_PRIZES_AT.winner : m.name === cupRunnerUp ? CUP_PRIZES_AT.runnerUp : 0)
+          : 0;
+        return {
+          name: m.name,
+          earned: (s.moneyWon || 0) + seasonPrize + cupPrize,
+          guinness: getTotalGuinnesses(m.name, s.bottom2 || 0),
+          top1: 0, top2: 0, top3: 0, top4: 0, last: 0,
+          _seasonPos: pos - 1,
+        };
+      });
 
       seasonData[currentLabel] = {
         season: '2025/2026',
@@ -5779,12 +5787,36 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         }
       });
 
+      // Fetch cup matches for this GW directly (don't rely on _allCupMatches being populated)
+      let gwCupMatches = (window._allCupMatches || []).filter(m => m.event === gw);
+      if (gwCupMatches.length === 0) {
+        try {
+          let cupLeagueId = null;
+          const leagueData = await fetchFPL('leagues-classic/' + LEAGUE_ID + '/standings/');
+          cupLeagueId = leagueData.league?.cup_league;
+          if (!cupLeagueId) {
+            const leagueInfo = await fetchFPL('leagues-classic/' + LEAGUE_ID + '/');
+            cupLeagueId = leagueInfo.league?.cup_league;
+          }
+          if (cupLeagueId) {
+            let page = 1;
+            while (true) {
+              const data = await fetchFPL('leagues-h2h-matches/league/' + cupLeagueId + '/?page=' + page);
+              const matches = (data.results || []).filter(m => m.event === gw);
+              gwCupMatches = gwCupMatches.concat(matches);
+              if (!data.has_next || (data.results || []).length === 0) break;
+              page++;
+            }
+          }
+        } catch(e) { console.warn('Could not fetch cup matches for GW' + gw, e.message); }
+      }
+
       const cache = {
         gw,
         season: '2025/2026',
         exported: new Date().toISOString(),
         players,
-        cupMatches: (window._allCupMatches || []).filter(m => m.event === gw),
+        cupMatches: gwCupMatches,
         managers: managersData.sort((a, b) => b.history.points - a.history.points),
       };
 
