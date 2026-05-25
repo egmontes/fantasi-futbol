@@ -1936,7 +1936,16 @@ async function init() {
       '<div class="stat-card"><div class="s-label">👑 Biggest Win Margin</div><div class="s-value">' + esc(tickerInsights.biggestMargin.manager) + '<br>GW' + tickerInsights.biggestMargin.gw + ' · ' + tickerInsights.biggestMargin.margin + ' pts' + '</div></div>' +
       '<div class="stat-card"><div class="s-label">💰 Top Money Earned</div><div class="s-value">' + (topMoney ? esc(topMoney.name) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') : '—') + '</div></div>';
     let html = (state.historyLoaded ? '<div class="stat-ticker-wrap"><div class="stat-ticker">' + cards + cards + '</div></div>' : '') +
-      '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:right;">' +
+      // Season prizes section
+      '<div class="prize-key" style="margin-bottom:8px;justify-content:flex-start;">' +
+      '<span class="prize-key-label">Season Prizes:</span>' +
+      '<span class="badge badge-1">🥇 $550</span>' +
+      '<span class="badge badge-2">🥈 $275</span>' +
+      '<span class="badge badge-3">🥉 $175</span>' +
+      '<span class="badge badge-4">4️⃣ $100</span>' +
+      '<span class="badge" style="background:rgba(255,182,193,0.2);color:#ffb6c1;border:1px solid rgba(255,182,193,0.4);">5️⃣ $20</span>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:left;">' +
         (state.isLive
           ? '<span style="color:var(--red);margin-right:8px;">● Live scores</span>'
           : state.isTransition
@@ -1947,15 +1956,6 @@ async function init() {
           ? '<br>Games Completed: ' + (state.fixturesTotal - state.fixturesOngoing - state.fixturesRemaining) + ' · Ongoing: ' + state.fixturesOngoing + ' · Remaining: ' + state.fixturesRemaining
           : '') +
         '</div>' +
-      // Season prizes section
-      '<div class="prize-key" style="margin-bottom:8px;">' +
-      '<span class="prize-key-label">Season Prizes:</span>' +
-      '<span class="badge badge-1">1st $550</span>' +
-      '<span class="badge badge-2">2nd $275</span>' +
-      '<span class="badge badge-3">3rd $175</span>' +
-      '<span class="badge badge-4">4th $100</span>' +
-      '<span class="badge" style="background:rgba(255,182,193,0.2);color:#ffb6c1;border:1px solid rgba(255,182,193,0.4);">5th $20</span>' +
-      '</div>' +
       '<div class="table-scroll-wrap scroll-at-start"><div class="table-outer"><div class="table-wrap"><table id="standings-table">' +
       '<thead><tr>' +
       '<th style="width:52px">Rank</th>' +
