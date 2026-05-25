@@ -1238,7 +1238,12 @@ async function init() {
           if (lineupBar) lineupBar.style.display = 'flex';
         }
 
-        callout.style.display = 'block';
+        // Hide callout entirely when season is over on standings view
+        if (isSeasonOver) {
+          callout.style.display = 'none';
+        } else {
+          callout.style.display = 'block';
+        }
         requestAnimationFrame(() => {
           const headerH = document.querySelector('.site-header')?.offsetHeight || 64;
           const gwbarH = document.querySelector('.gw-bar')?.offsetHeight || 48;
@@ -1938,7 +1943,7 @@ async function init() {
     let html = (state.historyLoaded ? '<div class="stat-ticker-wrap"><div class="stat-ticker">' + cards + cards + '</div></div>' : '') +
       // Season prizes section
       '<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:8px;">' +
-      '<span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Prize Pool:</span>' +
+      '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Prize Pool:</span>' +
       '<span class="badge badge-1" style="display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🥇</span><span style="font-size:10px;">$550</span></span>' +
       '<span class="badge badge-2" style="display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🥈</span><span style="font-size:10px;">$275</span></span>' +
       '<span class="badge badge-3" style="display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🥉</span><span style="font-size:10px;">$175</span></span>' +
@@ -1950,7 +1955,7 @@ async function init() {
           ? '<span style="color:var(--red);margin-right:8px;">● Live scores</span>'
           : state.isTransition
             ? '<span style="color:var(--amber);margin-right:8px;">⏳ GW' + state.transitionGW + ' Loading</span>'
-            : '<span style="color:var(--green);margin-right:8px;">✓ GW Scores Final</span>') +
+            : isSeasonOver ? '' : '<span style="color:var(--green);margin-right:8px;">✓ GW Scores Final</span>') +
         'Updated: ' + new Date().toLocaleString('en-US', {timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) + ' ET' +
         (state.isLive && state.fixturesTotal !== undefined
           ? '<br>Games Completed: ' + (state.fixturesTotal - state.fixturesOngoing - state.fixturesRemaining) + ' · Ongoing: ' + state.fixturesOngoing + ' · Remaining: ' + state.fixturesRemaining
@@ -2058,12 +2063,34 @@ async function init() {
         '<td><span class="' + (m.earned > 0 ? 'money-pos' : 'money-zero') + '">' + (() => {
           if (!state.historyLoaded) return '$—';
           const SEASON_PRIZES = { 1: 550, 2: 275, 3: 175, 4: 100, 5: 20 };
+          const CUP_PRIZES = { winner: 225, runnerUp: 125 };
           const seasonPrize = isSeasonOver ? (SEASON_PRIZES[seasonRankMap[m.id]] || 0) : 0;
-          const total = m.earned + seasonPrize;
-          if (seasonPrize > 0) {
-            return '<span title="Weekly: $' + m.earned.toFixed(2).replace('.00','') + ' + Season: $' + seasonPrize + '">$' + total.toFixed(2).replace('.00','') + '</span>';
+
+          // Cup prize — find final match (last played cup match)
+          let cupPrize = 0;
+          if (isSeasonOver && window._allCupMatches?.length) {
+            const finalMatch = [...window._allCupMatches]
+              .filter(c => c.winner)
+              .sort((a, b) => b.event - a.event)[0];
+            if (finalMatch) {
+              if (finalMatch.winner === m.id) cupPrize = CUP_PRIZES.winner;
+              else {
+                const loserId = finalMatch.entry_1_entry === finalMatch.winner
+                  ? finalMatch.entry_2_entry : finalMatch.entry_1_entry;
+                if (loserId === m.id) cupPrize = CUP_PRIZES.runnerUp;
+              }
+            }
           }
-          return '$' + m.earned.toFixed(2).replace('.00','');
+
+          const total = m.earned + seasonPrize + cupPrize;
+          const parts = [];
+          if (m.earned > 0) parts.push('Weekly: $' + m.earned.toFixed(2).replace('.00',''));
+          if (seasonPrize > 0) parts.push('Season: $' + seasonPrize);
+          if (cupPrize > 0) parts.push('Cup: $' + cupPrize);
+          if (parts.length > 1) {
+            return '<span title="' + parts.join(' + ') + '">$' + total.toFixed(2).replace('.00','') + '</span>';
+          }
+          return '$' + total.toFixed(2).replace('.00','');
         })() + '</span></td>' +
         '<td style="text-align:center">' + (!state.historyLoaded ? '—' : gmissCell) + '</td>' +
         '<td style="text-align:center;font-family:var(--font-mono);font-size:13px;font-weight:500;color:' + (m.missedG > 0 ? 'var(--red)' : 'var(--text3)') + '">' + (!state.historyLoaded ? '—' : m.missedG > 0 ? m.missedG : '—') + '</td>' +
@@ -2086,7 +2113,13 @@ async function init() {
     const newHash = tickerEl2 ? tickerEl2.innerHTML.length : 0;
     if (newHash !== window.__tickerContentHash) {
       window.__tickerContentHash = newHash;
+      window.__tickerFontSizes = null; // invalidate stored sizes
       requestAnimationFrame(fitStatCards);
+    } else {
+      // Same content — restore stored sizes without recomputing
+      requestAnimationFrame(() => {
+        if (!applyStoredTickerSizes()) fitStatCards();
+      });
     }
     requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('standings-table'); });
 
@@ -2485,45 +2518,60 @@ async function init() {
   }
 
   function fitStatCards() {
-    // Reset all inline sizes first
-    document.querySelectorAll('.stat-card .s-label').forEach(l => {
-      l.style.fontSize = '9px';
-      l.style.whiteSpace = 'nowrap';
-    });
-    document.querySelectorAll('.stat-card .s-value').forEach(v => {
-      v.style.fontSize = '42px';
-      v.style.whiteSpace = 'nowrap';
-    });
-
-    // Only process unique cards (ticker is doubled — skip duplicates by index)
     const allCards = Array.from(document.querySelectorAll('.stat-card'));
     const half = Math.ceil(allCards.length / 2);
-    const cards = allCards.slice(0, half); // only first copy
+    const cards = allCards.slice(0, half);
 
+    // Reset first copy to 42px
     cards.forEach(card => {
-      const label = card.querySelector('.s-label');
+      const v = card.querySelector('.s-value');
+      if (v) { v.style.fontSize = '42px'; v.style.whiteSpace = 'nowrap'; }
+      const l = card.querySelector('.s-label');
+      if (l) { l.style.fontSize = '9px'; l.style.whiteSpace = 'nowrap'; }
+    });
+
+    // Measure and shrink first copy
+    const computedSizes = [];
+    cards.forEach(card => {
       const value = card.querySelector('.s-value');
-      if (!value) return;
+      if (!value) { computedSizes.push(null); return; }
       const cardW = card.offsetWidth - 22;
       const cardH = card.offsetHeight - 22;
+      const label = card.querySelector('.s-label');
       const labelH = label ? label.offsetHeight + 5 : 0;
       const availH = cardH - labelH;
       let vSize = 42;
-      // Use clientWidth not scrollWidth to avoid doubled content measuring
       value.style.overflow = 'hidden';
       while (vSize > 12 && (value.clientWidth > cardW || value.scrollHeight > availH)) {
         vSize -= 1;
         value.style.fontSize = vSize + 'px';
       }
       value.style.overflow = '';
+      computedSizes.push(vSize + 'px');
     });
 
-    // Apply same sizes to second copy
+    // Store sizes for reuse
+    window.__tickerFontSizes = computedSizes;
+
+    // Apply to second copy
     allCards.slice(half).forEach((card, i) => {
-      const srcValue = cards[i]?.querySelector('.s-value');
-      const dstValue = card.querySelector('.s-value');
-      if (srcValue && dstValue) dstValue.style.fontSize = srcValue.style.fontSize;
+      const v = card.querySelector('.s-value');
+      if (v && computedSizes[i]) v.style.fontSize = computedSizes[i];
     });
+  }
+
+  function applyStoredTickerSizes() {
+    if (!window.__tickerFontSizes) return false;
+    const allCards = Array.from(document.querySelectorAll('.stat-card'));
+    const half = Math.ceil(allCards.length / 2);
+    // Check count matches
+    if (window.__tickerFontSizes.length !== half) return false;
+    allCards.forEach((card, i) => {
+      const idx = i < half ? i : i - half;
+      const v = card.querySelector('.s-value');
+      if (v && window.__tickerFontSizes[idx]) v.style.fontSize = window.__tickerFontSizes[idx];
+    });
+    return true;
   }
 
   function makeTickerInteractive(ticker, initialOffset = 0) {
@@ -3127,11 +3175,11 @@ async function init() {
       let html =
         '<div class="prize-key" style="flex-wrap:nowrap;white-space:nowrap;overflow:hidden;">' +
         '<span class="prize-key-label">Prizes:</span>' +
-        '<span class="badge badge-1">1st $30</span>' +
-        '<span class="badge badge-2">2nd $15</span>' +
-        '<span class="badge badge-3">3rd $10</span>' +
-        '<span class="badge badge-4">4th $5</span>' +
-        '<span class="badge badge-shot" style="margin-left:8px">Shotgun</span>' +
+        '<span class="badge badge-1" style="display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🥇</span><span style="font-size:10px;">$30</span></span>' +
+        '<span class="badge badge-2" style="display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🥈</span><span style="font-size:10px;">$15</span></span>' +
+        '<span class="badge badge-3" style="display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🥉</span><span style="font-size:10px;">$10</span></span>' +
+        '<span class="badge badge-4" style="display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">4️⃣</span><span style="font-size:10px;">$5</span></span>' +
+        '<span class="badge badge-shot" style="margin-left:8px;display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🍺</span><span style="font-size:10px;">Shotgun</span></span>' +
         '</div>' +
         '<div class="table-outer"><div class="table-wrap"><table id="weekly-table">' +
         '<thead><tr>' +
@@ -3156,12 +3204,13 @@ async function init() {
         let resultBadge = '';
         if (hasPrize) {
           const bc = rank===1?'badge-1':rank===2?'badge-2':rank===3?'badge-3':'badge-4';
-          resultBadge = '<span class="badge ' + bc + '">$' + m._prize.toFixed(2).replace('.00','') + '</span>';
+          const emoji = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'4️⃣';
+          resultBadge = '<span class="badge ' + bc + '" style="display:inline-flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">' + emoji + '</span><span style="font-size:10px;">$' + m._prize.toFixed(2).replace('.00','') + '</span></span>';
           if (m._ineligible && getGuinnessOwed(m.name) >= 2) {
             resultBadge += ' <span class="badge" style="background:#2a1a00;color:#f59e0b;border:1px solid rgba(245,158,11,0.2);" title="Cannot collect until shotguns are completed">⚠️ Owes shotguns</span>';
           }
         }
-        if (isBottom) resultBadge += (resultBadge ? ' ' : '') + '<span class="badge badge-shot">Shotgun</span>';
+        if (isBottom) resultBadge += (resultBadge ? ' ' : '') + '<span class="badge badge-shot" style="display:inline-flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🍺</span><span style="font-size:10px;">Shotgun</span></span>';
 
         const hitStr = m.transferCost > 0
           ? '<span style="color:var(--red);font-family:var(--font-mono);font-size:12px;">-' + m.transferCost + '</span>'
@@ -4406,6 +4455,12 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         '</div>';
     }
 
+    html += '<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:1rem;">' +
+      '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Prize Pool:</span>' +
+      '<span class="badge" style="background:rgba(255,215,0,0.12);color:#FFD700;border:1px solid rgba(255,215,0,0.3);display:inline-flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🏆</span><span style="font-size:10px;">$225</span></span>' +
+      '<span class="badge" style="background:rgba(255,215,0,0.06);color:#c0c0c0;border:1px solid rgba(192,192,192,0.3);display:inline-flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🏆🥈</span><span style="font-size:10px;">$125</span></span>' +
+      '</div>';
+
     html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem;">';
     displayRounds.forEach((event, idx) => {
       const roundNum = totalRounds - idx;
@@ -4564,6 +4619,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         const liveElS = document.getElementById('weekly-tab-live');
         if (liveElS) liveElS.style.display = state.isLive ? 'block' : 'none';
         updateExportBtn(currentGW);
+        document.getElementById('gw-callout').style.display = isSeasonOver ? 'none' : 'block';
         document.getElementById('tab-standings').classList.add('active');
         setHashState('standings');
         if (gwBarEl) gwBarEl.classList.add('hidden');
@@ -4574,6 +4630,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           initFloatingHeader('standings-table');
           const tickerEl = document.querySelector('.stat-ticker');
           if (tickerEl) makeTickerInteractive(tickerEl, window.__fantasiTickerOffset || 0);
+          applyStoredTickerSizes();
         });
       } else {
         const gw = parseInt(item.dataset.gw);
@@ -4592,6 +4649,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         if (tableBtn) tableBtn.textContent = 'GW' + gw + ' League Table';
         if (recapBtn) recapBtn.textContent = 'GW' + gw + ' Recap';
         updateExportBtn(gw);
+        // Show callout for past GW views even when season is over
+        document.getElementById('gw-callout').style.display = 'block';
         switchWeeklyView('table');
         renderWeekly(gw);
       }
