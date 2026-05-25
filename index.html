@@ -5566,7 +5566,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._historyData = { seasonData, labels };
       window._historySort = { col: 'earned', dir: -1 };
       el.innerHTML = renderLeagueHistory(seasonData, labels);
-      requestAnimationFrame(() => initFloatingHeader('history-table'));
+      requestAnimationFrame(() => {
+        initFloatingHeader('history-table');
+        const tickerEl = document.getElementById('history-ticker');
+        if (tickerEl) { makeTickerInteractive(tickerEl); fitStatCards(); }
+      });
     } catch(e) {
       el.innerHTML = '<div class="loading-state" style="color:var(--red);">Failed to load history: ' + e.message + '</div>';
     }
@@ -5646,26 +5650,25 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const byBeers  = [...ranked].sort((a,b) => b.guinness - a.guinness)[0];
     const byLast   = [...ranked].sort((a,b) => b.last - a.last)[0];
 
-    const widget = (icon, label, name, val, color) =>
-      `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:120px;">
-        <div style="font-size:10px;color:${color};font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">${icon} ${label}</div>
-        <div style="font-weight:700;color:var(--theme);font-size:14px;">${esc(name)}</div>
-        <div style="font-size:11px;color:var(--text3);">${val}</div>
-      </div>`;
+    const statCard = (label, value, cls='') =>
+      `<div class="stat-card${cls ? ' ' + cls : ''}"><div class="s-label">${label}</div><div class="s-value">${value}</div></div>`;
+
+    let cards = '';
+    if (byEarned) cards += statCard('💰 All-Time Earner', esc(byEarned.name) + '<br>$' + byEarned.earned.toFixed(0), 'stat-card-green');
+    if (byTitles?.leagueTitles > 0) cards += statCard('🥇 Most Titles', esc(byTitles.name) + '<br>' + byTitles.leagueTitles + 'x');
+    if (byCups?.cupTitles > 0) cards += statCard('🏆 Most Cups', esc(byCups.name) + '<br>' + byCups.cupTitles + 'x', 'stat-card-gold');
+    if (byBeers?.guinness > 0) cards += statCard('🍺 Most Beers', esc(byBeers.name) + '<br>' + byBeers.guinness);
+    if (byLast?.last > 0) cards += statCard('💀 Most Last Place', esc(byLast.name) + '<br>' + byLast.last.toFixed(1) + 'x', 'stat-card-red');
+    cards += statCard('⌛ Seasons', seasonLabels.length + '');
+    cards += statCard('👥 All-Time Managers', Object.keys(managers).length + '');
 
     let html = '<div style="padding-top:1.5rem;padding-bottom:4rem;">';
-    html += '<div style="margin-bottom:1.5rem;">';
-    html += '<div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px;">League History</div>';
-    html += '<div style="font-size:12px;color:var(--text3);font-family:var(--font-mono);">Aggregate stats · ' + seasonLabels.join(' · ') + '</div>';
+    html += '<div style="margin-bottom:1rem;">';
+    html += '<div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--text);">League History</div>';
     html += '</div>';
 
-    html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.5rem;">';
-    if (byEarned) html += widget('💰', 'All-Time Earner', byEarned.name, '$' + byEarned.earned.toFixed(0), 'var(--green)');
-    if (byTitles?.leagueTitles > 0) html += widget('🥇', 'Most Titles', byTitles.name, byTitles.leagueTitles + ' title' + (byTitles.leagueTitles > 1 ? 's' : ''), 'var(--theme)');
-    if (byCups?.cupTitles > 0) html += widget('🏆', 'Most Cups', byCups.name, byCups.cupTitles + ' cup' + (byCups.cupTitles > 1 ? 's' : ''), '#FFD700');
-    if (byBeers?.guinness > 0) html += widget('🍺', 'Most Beers', byBeers.name, byBeers.guinness + ' beers', 'var(--amber)');
-    if (byLast?.last > 0) html += widget('💀', 'Most Last Place', byLast.name, byLast.last.toFixed(1) + ' times', 'var(--red)');
-    html += '</div>';
+    // Ticker
+    html += '<div class="stat-ticker-wrap" style="margin-bottom:1.5rem;"><div class="stat-ticker" id="history-ticker">' + cards + cards + '</div></div>';
 
     html += '<div class="table-scroll-wrap scroll-at-start"><div class="table-outer"><div class="table-wrap"><table id="history-table" style="width:100%;border-collapse:separate;border-spacing:0;font-size:13px;">';
     html += '<thead><tr style="border-bottom:1px solid var(--border);">';
@@ -5723,7 +5726,12 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const el = document.getElementById('history-content');
       const savedScrollY = window.scrollY;
       el.innerHTML = renderLeagueHistory(window._historyData.seasonData, window._historyData.labels);
-      requestAnimationFrame(() => { window.scrollTo(0, savedScrollY); initFloatingHeader('history-table'); });
+      requestAnimationFrame(() => {
+        window.scrollTo(0, savedScrollY);
+        initFloatingHeader('history-table');
+        const tickerEl = document.getElementById('history-ticker');
+        if (tickerEl) { makeTickerInteractive(tickerEl); fitStatCards(); }
+      });
     }
   };
   // ── END LEAGUE HISTORY ───────────────────────────────────────────────────
