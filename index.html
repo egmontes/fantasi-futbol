@@ -5576,6 +5576,20 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const toArr = v => !v ? [] : Array.isArray(v) ? v : [v];
 
+    // Normalize historical name variants to current names
+    const NAME_MAP = {
+      'Eddy GM':       'Eddy Garcia-Montes',
+      'Mike Delaus':   'Michael DeLaus',
+      'Dave Bambrick': 'David Bambrick',
+      'Rob Disanto':   'Rob DiSanto',
+      'Zach Duguid':   'Zachary Duguid',
+      'Harry Wang':    'Harrison Wang',
+      'Mitch Pattullo':'Mitchel Pattullo',
+      'JCarr Gamble':  'J. Carr Gamble',
+      'Tommy Mayer':   'Thomas Mayer',
+    };
+    const normName = n => NAME_MAP[n] || n;
+
     // Aggregate per manager
     const managers = {};
     seasonLabels.forEach(label => {
@@ -5584,25 +5598,26 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const league = data.awards?.League || {};
       const cup = data.awards?.Cup || {};
       data.managers.forEach(m => {
-        if (!managers[m.name]) managers[m.name] = {
-          name: m.name, seasons: 0, earned: 0, guinness: 0,
+        const name = normName(m.name);
+        if (!managers[name]) managers[name] = {
+          name, seasons: 0, earned: 0, guinness: 0,
           top1: 0, top2: 0, top3: 0, top4: 0, last: 0,
           leagueTitles: 0, leagueRunnerUp: 0, cupTitles: 0, cupRunnerUp: 0,
           s1st: 0, s2nd: 0, s3rd: 0, s4th: 0, s5th: 0,
           seasonResults: {}
         };
-        const s = managers[m.name];
+        const s = managers[name];
         s.seasons++; s.earned += m.earned||0; s.guinness += m.guinness||0;
         s.top1 += m.top1||0; s.top2 += m.top2||0; s.top3 += m.top3||0;
         s.top4 += m.top4||0; s.last += m.last||0;
         let badge = '';
-        if (league.winner === m.name) { badge += '🥇'; s.leagueTitles++; s.s1st++; }
-        else if (toArr(league.runner_up).includes(m.name)) { badge += '🥈'; s.leagueRunnerUp++; s.s2nd++; }
-        else if (toArr(league.third).includes(m.name)) { s.s3rd++; }
-        else if (toArr(league.fourth).includes(m.name)) { s.s4th++; }
-        else if (toArr(league.fifth).includes(m.name)) { s.s5th++; }
-        if (cup.winner === m.name) { badge += '🏆'; s.cupTitles++; }
-        else if (toArr(cup.runner_up).includes(m.name)) { badge += '🥈'; s.cupRunnerUp++; }
+        if (normName(league.winner) === name) { badge += '🥇'; s.leagueTitles++; s.s1st++; }
+        else if (toArr(league.runner_up).map(normName).includes(name)) { badge += '🥈'; s.leagueRunnerUp++; s.s2nd++; }
+        else if (toArr(league.third).map(normName).includes(name)) { s.s3rd++; }
+        else if (toArr(league.fourth).map(normName).includes(name)) { s.s4th++; }
+        else if (toArr(league.fifth).map(normName).includes(name)) { s.s5th++; }
+        if (normName(cup.winner) === name) { badge += '🏆'; s.cupTitles++; }
+        else if (toArr(cup.runner_up).map(normName).includes(name)) { badge += '🥈'; s.cupRunnerUp++; }
         s.seasonResults[label] = { earned: m.earned||0, badge };
       });
     });
