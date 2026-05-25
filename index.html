@@ -1333,7 +1333,6 @@ async function init() {
         else renderWeekly(parseInt(gwVal));
       }
 
-      // Prefetch picks for current GW in background so drawer opens instantly
       prefetchPicks(state.isLive ? state.liveGW : state.latestGW);
 
     } catch (e) {
@@ -4349,9 +4348,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     4: 'Quarter-finals', 5: 'Semi-finals', 6: 'Final'
   };
 
-  async function loadCupData() {
-    document.getElementById('cup-content').innerHTML =
-      '<div class="loading-state"><span class="spinner"></span>Loading cup data...</div>';
+  async function loadCupData(silent = false) {
+    if (!silent) {
+      document.getElementById('cup-content').innerHTML =
+        '<div class="loading-state"><span class="spinner"></span>Loading cup data...</div>';
+    }
     try {
       let allMatches = [];
       const seen = new Set();
@@ -4388,10 +4389,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       console.log('Total cup matches found:', allMatches.length);
       if (allMatches.length > 0) console.log('Sample:', JSON.stringify(allMatches[0]));
       window._allCupMatches = allMatches;
-      renderCup(allMatches);
+      if (silent) {
+        renderStandings(); // re-render standings with cup prize data
+      } else {
+        renderCup(allMatches);
+      }
     } catch(e) {
-      document.getElementById('cup-content').innerHTML =
-        '<div class="error-state">Failed to load cup data.<small>' + e.message + '</small></div>';
+      if (!silent) {
+        document.getElementById('cup-content').innerHTML =
+          '<div class="error-state">Failed to load cup data.<small>' + e.message + '</small></div>';
+      }
     }
   }
 
