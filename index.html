@@ -763,12 +763,18 @@
     <button id="weekly-toggle-recap" onclick="window._swwRecap()" style="flex:1;width:50%;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">GW Recap</button>
   </div>
 </div>
+<div id="season-toggle-bar" style="display:none;position:fixed;left:0;right:0;background:var(--bg);z-index:13;padding:6px 1.5rem;border-bottom:1px solid var(--border);top:var(--sticky-gw-bar-bottom,170px);justify-content:center;">
+  <div style="display:flex;width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:3px;">
+    <button id="season-toggle-table" onclick="window._swSeason('table')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;text-align:center;">Season Standings</button>
+    <button id="season-toggle-recap" onclick="window._swSeason('recap')" style="flex:1;padding:6px 16px;border-radius:6px;border:none;font-size:13px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);text-align:center;">Season Recap</button>
+  </div>
+</div>
 <div class="container">
 
 
   <div id="tab-standings" class="section active">
     <div id="standings-content"></div>
-    <div id="standings-recap-content" style="display:none;"></div>
+    <div id="season-recap-content" style="display:none;"></div>
   </div>
 
   <div id="tab-weekly" class="section">
@@ -2108,19 +2114,25 @@ async function init() {
       makeTickerInteractive(tickerEl, savedTickerOffset);
     }
     // Only re-fit stat cards if ticker content changed (prevents compounding shrink)
-    const tickerEl2 = document.querySelector('.stat-ticker');
-    const newHash = tickerEl2 ? tickerEl2.innerHTML.length : 0;
+    const tickerEl2 = document.querySelector('.stat-ticker:not(#history-ticker)');
+    if (!tickerEl2) return;
+    const newHash = tickerEl2.innerHTML.length;
     if (newHash !== window.__tickerContentHash) {
       window.__tickerContentHash = newHash;
-      window.__tickerFontSizes = null; // invalidate stored sizes
-      requestAnimationFrame(fitStatCards);
+      tickerEl2._tickerFontSizes = null;
+      requestAnimationFrame(() => fitStatCards(tickerEl2));
     } else {
-      // Same content — restore stored sizes without recomputing
       requestAnimationFrame(() => {
-        if (!applyStoredTickerSizes()) fitStatCards();
+        if (!applyStoredTickerSizes(tickerEl2)) fitStatCards(tickerEl2);
       });
     }
-    requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('standings-table'); });
+    requestAnimationFrame(() => {
+      // Show season toggle bar when season is over
+      const seasonToggleBar = document.getElementById('season-toggle-bar');
+      if (isSeasonOver && seasonToggleBar) seasonToggleBar.style.display = 'flex';
+      updateStickyOffsets();
+      initFloatingHeader('standings-table');
+    });
 
     // Scroll hint — update gradient visibility and column peek on scroll
     const tableOuter = document.querySelector('#standings-table')?.closest('.table-outer');
@@ -2516,8 +2528,10 @@ async function init() {
     });
   }
 
-  function fitStatCards() {
-    const allCards = Array.from(document.querySelectorAll('.stat-card'));
+  function fitStatCards(container) {
+    const root = container || document;
+    const allCards = Array.from(root.querySelectorAll('.stat-card'));
+    if (!allCards.length) return;
     const half = Math.ceil(allCards.length / 2);
     const cards = allCards.slice(0, half);
 
@@ -2549,8 +2563,9 @@ async function init() {
       computedSizes.push(vSize + 'px');
     });
 
-    // Store sizes for reuse
-    window.__tickerFontSizes = computedSizes;
+    // Store sizes — on container if provided, else globally
+    if (container) container._tickerFontSizes = computedSizes;
+    else window.__tickerFontSizes = computedSizes;
 
     // Apply to second copy
     allCards.slice(half).forEach((card, i) => {
@@ -2559,16 +2574,17 @@ async function init() {
     });
   }
 
-  function applyStoredTickerSizes() {
-    if (!window.__tickerFontSizes) return false;
-    const allCards = Array.from(document.querySelectorAll('.stat-card'));
+  function applyStoredTickerSizes(container) {
+    const sizes = container ? container._tickerFontSizes : window.__tickerFontSizes;
+    if (!sizes) return false;
+    const root = container || document;
+    const allCards = Array.from(root.querySelectorAll('.stat-card'));
     const half = Math.ceil(allCards.length / 2);
-    // Check count matches
-    if (window.__tickerFontSizes.length !== half) return false;
+    if (sizes.length !== half) return false;
     allCards.forEach((card, i) => {
       const idx = i < half ? i : i - half;
       const v = card.querySelector('.s-value');
-      if (v && window.__tickerFontSizes[idx]) v.style.fontSize = window.__tickerFontSizes[idx];
+      if (v && sizes[idx]) v.style.fontSize = sizes[idx];
     });
     return true;
   }
@@ -4000,7 +4016,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     return localStorage.getItem('recap-gw-' + gw) || '';
   }
 
-  function renderRecapDisplay(gw, text) {
+  function renderRecapDisplay(gw, text, container) {
+    const displayId = container ? 'season-recap-display' : 'recap-display';
     // Normalize: if text has **markdown**, use it; otherwise detect headers by pattern
     const hasMarkdown = /\*\*.+?\*\*/.test(text);
 
@@ -4044,12 +4061,12 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           .trim();
     const waUrl = 'https://wa.me/?text=' + encodeURIComponent(plain);
 
-    document.getElementById('recap-display').innerHTML =
+    document.getElementById(displayId).innerHTML =
       '<div class="recap-card">' +
         '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:0.75rem;">' +
           '<div>' +
-            '<div class="recap-gw-label">GW' + gw + ' RECAP</div>' +
-            '<div class="recap-sub">Fantasi Futbol · GW' + gw + '</div>' +
+            '<div class="recap-gw-label">' + (container ? '2025/2026 SEASON RECAP' : 'GW' + gw + ' RECAP') + '</div>' +
+            '<div class="recap-sub">Fantasi Futbol' + (container ? '' : ' · GW' + gw) + '</div>' +
           '</div>' +
           '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
             '<button id="copy-recap-btn" class="btn" style="font-size:12px;padding:5px 12px;">Copy text</button>' +
@@ -4635,9 +4652,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         updateStickyOffsets();
         requestAnimationFrame(() => {
           initFloatingHeader('standings-table');
-          const tickerEl = document.querySelector('.stat-ticker');
-          if (tickerEl) makeTickerInteractive(tickerEl, window.__fantasiTickerOffset || 0);
-          applyStoredTickerSizes();
+          const tickerEl = document.querySelector('.stat-ticker:not(#history-ticker)');
+          if (tickerEl) {
+            makeTickerInteractive(tickerEl, window.__fantasiTickerOffset || 0);
+            if (!applyStoredTickerSizes(tickerEl)) fitStatCards(tickerEl);
+          }
         });
       } else {
         const gw = parseInt(item.dataset.gw);
@@ -5569,7 +5588,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       requestAnimationFrame(() => {
         initFloatingHeader('history-table');
         const tickerEl = document.getElementById('history-ticker');
-        if (tickerEl) { makeTickerInteractive(tickerEl); fitStatCards(); }
+        if (tickerEl) { makeTickerInteractive(tickerEl); requestAnimationFrame(() => fitStatCards(tickerEl)); }
       });
     } catch(e) {
       el.innerHTML = '<div class="loading-state" style="color:var(--red);">Failed to load history: ' + e.message + '</div>';
@@ -5730,11 +5749,263 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         window.scrollTo(0, savedScrollY);
         initFloatingHeader('history-table');
         const tickerEl = document.getElementById('history-ticker');
-        if (tickerEl) { makeTickerInteractive(tickerEl); fitStatCards(); }
+        if (tickerEl) { makeTickerInteractive(tickerEl); requestAnimationFrame(() => fitStatCards(tickerEl)); }
       });
     }
   };
   // ── END LEAGUE HISTORY ───────────────────────────────────────────────────
+
+
+  // ── SEASON RECAP ─────────────────────────────────────────────────────────
+  async function setupSeasonRecapTab() {
+    const el = document.getElementById('season-recap-content');
+    if (!el) return;
+
+    const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const RECAP_KEY = 'recap-season-2025';
+    let saved = localStorage.getItem(RECAP_KEY) || '';
+    if (!saved) {
+      try {
+        const res = await fetch('recaps/2025-season.txt?nocache=' + Date.now());
+        if (res.ok) { const t = await res.text(); if (t.trim()) saved = t.trim(); }
+      } catch(e) {}
+    }
+
+    let html = '';
+    if (saved) html += '<div id="season-recap-display" style="margin-bottom:2rem;"></div>';
+
+    const generateLabel = saved ? 'Need a new recap?' : 'Generate 2025/2026 season recap';
+    html += `
+      <div style="margin-bottom:1rem;">
+        <button id="season-toggle-generate-btn" style="
+          background:none;border:none;cursor:pointer;padding:0;
+          font-size:${saved ? '13px' : '14px'};
+          color:${saved ? 'var(--text3)' : 'var(--text)'};
+          font-weight:${saved ? '400' : '600'};
+          display:flex;align-items:center;gap:6px;
+        ">${saved ? '↩ ' + generateLabel : generateLabel}</button>
+      </div>
+      <div id="season-generate-section" style="display:${saved ? 'none' : 'block'};">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="season-prepare-prompt-btn" style="background:var(--theme-dim);color:var(--theme);border-color:var(--theme-border);">Prepare season prompt →</button>
+          <span id="season-prepare-confirm" style="font-size:13px;color:var(--text3);display:none;"></span>
+        </div>
+        <div id="season-prompt-preview-area" style="display:none;margin-bottom:1.5rem;">
+          <label style="font-size:12px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:8px;">Prompt ready — select all and copy</label>
+          <textarea id="season-prompt-preview" readonly style="
+            width:100%;min-height:120px;background:var(--bg2);color:var(--text2);
+            border:1px solid var(--border2);border-radius:8px;padding:12px;
+            font-family:var(--font-mono);font-size:12px;line-height:1.5;resize:vertical;
+          "></textarea>
+          <div style="display:flex;gap:10px;margin-top:8px;">
+            <button class="btn btn-primary" id="season-copy-prompt-btn">Copy to clipboard</button>
+            <span id="season-copy-confirm" style="font-size:13px;color:var(--green);display:none;">✓ Copied!</span>
+          </div>
+        </div>
+        <div style="margin-bottom:1.5rem;">
+          <label style="font-size:12px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:8px;">Paste recap here</label>
+          <textarea id="season-recap-paste" placeholder="Paste the recap from Claude here..." style="
+            width:100%;min-height:220px;background:var(--bg2);color:var(--text);
+            border:1px solid var(--border2);border-radius:8px;padding:12px;
+            font-family:var(--font-body);font-size:14px;line-height:1.6;resize:vertical;
+          ">${esc(saved || '')}</textarea>
+          <div style="display:flex;gap:10px;margin-top:10px;">
+            <button class="btn btn-primary" id="season-save-recap-btn" style="background:var(--theme-dim);color:var(--theme);border-color:var(--theme-border);">Save recap</button>
+            <button class="btn" id="season-clear-recap-btn" style="${saved ? '' : 'display:none'}">Clear</button>
+          </div>
+        </div>
+      </div>`;
+
+    el.innerHTML = '<div style="padding:1.5rem;">' + html + '</div>';
+
+    if (saved) renderRecapDisplay('season-2025', saved, el);
+
+    document.getElementById('season-toggle-generate-btn').addEventListener('click', () => {
+      const sec = document.getElementById('season-generate-section');
+      const open = sec.style.display !== 'none';
+      sec.style.display = open ? 'none' : 'block';
+      document.getElementById('season-toggle-generate-btn').textContent = (open ? '↩ ' : '↪ ') + generateLabel;
+    });
+
+    document.getElementById('season-prepare-prompt-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('season-prepare-prompt-btn');
+      const status = document.getElementById('season-prepare-confirm');
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = 'Building prompt...';
+      status.textContent = 'Computing season stats...'; status.style.display = 'inline';
+      try {
+        const prompt = await buildSeasonPrompt();
+        document.getElementById('season-prompt-preview').value = prompt;
+        document.getElementById('season-prompt-preview-area').style.display = 'block';
+        status.textContent = '✓ Ready to copy!';
+        btn.textContent = 'Refresh prompt →';
+        const ta = document.getElementById('season-prompt-preview');
+        ta.focus(); ta.select();
+      } catch(e) { status.textContent = '✗ Failed: ' + e.message; }
+      btn.disabled = false;
+    });
+
+    el.addEventListener('click', (e) => {
+      if (e.target.id !== 'season-copy-prompt-btn') return;
+      const ta = document.getElementById('season-prompt-preview');
+      if (!ta || !ta.value) return;
+      navigator.clipboard.writeText(ta.value).then(() => {
+        document.getElementById('season-copy-confirm').style.display = 'inline';
+        setTimeout(() => document.getElementById('season-copy-confirm').style.display = 'none', 2500);
+      });
+    });
+
+    document.getElementById('season-save-recap-btn').addEventListener('click', () => {
+      const text = document.getElementById('season-recap-paste').value.trim();
+      if (!text) return;
+      localStorage.setItem(RECAP_KEY, text);
+      if (!document.getElementById('season-recap-display')) {
+        const d = document.createElement('div');
+        d.id = 'season-recap-display'; d.style.marginBottom = '2rem';
+        el.querySelector('div').prepend(d);
+      }
+      renderRecapDisplay('season-2025', text, el);
+      document.getElementById('season-clear-recap-btn').style.display = 'inline-block';
+      // Download as txt file
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = '2025-season.txt'; a.click();
+      URL.revokeObjectURL(url);
+      const btn = document.getElementById('season-save-recap-btn');
+      btn.textContent = '✓ Saved & downloaded 2025-season.txt';
+      setTimeout(() => btn.textContent = 'Save recap', 3000);
+    });
+
+    document.getElementById('season-clear-recap-btn')?.addEventListener('click', () => {
+      localStorage.removeItem(RECAP_KEY);
+      document.getElementById('season-recap-paste').value = '';
+      const d = document.getElementById('season-recap-display');
+      if (d) d.innerHTML = '';
+      document.getElementById('season-clear-recap-btn').style.display = 'none';
+    });
+  }
+
+  // Build season prompt from state data
+  async function buildSeasonPrompt() {
+    const TOTAL_GWS = state.latestGW;
+    const SEASON_PRIZES = { 1:550, 2:275, 3:175, 4:100, 5:20 };
+    const CUP_PRIZES = { winner:225, runnerUp:125 };
+    const chipNames = { bboost:'Bench Boost', wildcard:'Wildcard', freehit:'Free Hit', '3xc':'Triple Captain' };
+
+    const stats = computeSeasonStats(TOTAL_GWS);
+    const seasonRanked = state.managers.map(m => {
+      const hist = state.gwHistory[m.id] || [];
+      const last = [...hist].sort((a,b) => b.event - a.event)[0];
+      return { id: m.id, name: m.name, team: m.team, total: last?.total_points || 0 };
+    }).sort((a,b) => b.total - a.total);
+
+    const cupMatches = window._allCupMatches || [];
+    const cupFinal = cupMatches.filter(m => m.winner).sort((a,b) => b.event - a.event)[0];
+    const cupWinnerId = cupFinal?.winner;
+    const cupRunnerUpId = cupFinal ? (cupFinal.entry_1_entry === cupFinal.winner ? cupFinal.entry_2_entry : cupFinal.entry_1_entry) : null;
+
+    // Per-manager stats
+    const gwWins = {};
+    for (let gw = 1; gw <= TOTAL_GWS; gw++) {
+      const ranked = getWeeklyRankings(gw);
+      if (ranked.length && ranked[0].gwPoints > 0) gwWins[ranked[0].id] = (gwWins[ranked[0].id]||0) + 1;
+    }
+    const perManager = {};
+    state.managers.forEach(m => {
+      const hist = state.gwHistory[m.id] || [];
+      let high = 0, low = 999, sum = 0;
+      hist.forEach(h => { if (h.points > high) high = h.points; if (h.points < low) low = h.points; sum += h.points; });
+      perManager[m.id] = { high, low, avg: hist.length ? (sum/hist.length).toFixed(1) : 0, wins: gwWins[m.id]||0 };
+    });
+
+    // Most captained
+    const captainCounts = {};
+    state.managers.forEach(m => {
+      for (let gw = 1; gw <= TOTAL_GWS; gw++) {
+        const cap = _captainCache[gw]?.[m.id];
+        if (cap?.name) captainCounts[cap.name] = (captainCounts[cap.name]||0) + 1;
+      }
+    });
+    const topCaps = Object.entries(captainCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+    // High/low scores
+    let highScore = { pts:0, managerId:null, gw:0 };
+    let lowScore = { pts:999, managerId:null, gw:0 };
+    state.managers.forEach(m => {
+      (state.gwHistory[m.id]||[]).forEach(h => {
+        if (h.points > highScore.pts) highScore = { pts:h.points, managerId:m.id, gw:h.event };
+        if (h.points < lowScore.pts) lowScore = { pts:h.points, managerId:m.id, gw:h.event };
+      });
+    });
+
+    const chip = (id) => Object.entries(state.chipsHistory?.[id]||{}).map(([gw,c]) => chipNames[c]+' GW'+gw).join(', ') || 'None';
+
+    let p = `=== FANTASI FUTBOL 2025/2026 SEASON RECAP ===\n\n`;
+    p += `You are writing the end-of-season newsletter for Fantasi Futbol, a ${seasonRanked.length}-manager FPL private league. Write an entertaining, emoji-rich, WhatsApp-formatted recap. Use **bold** for names and key moments. Be specific — call out GW numbers, scores, and moments from the data. Cover the champion's journey, the full top 5 with prize payouts, the cup final, the worst performers, interesting storylines, chip highlights, and shotgun callouts.\n\n`;
+
+    p += `--- FINAL STANDINGS ---\n`;
+    seasonRanked.forEach((m, i) => {
+      const s = stats[m.id]||{};
+      const sp = SEASON_PRIZES[i+1]||0;
+      const cp = m.id===cupWinnerId ? CUP_PRIZES.winner : m.id===cupRunnerUpId ? CUP_PRIZES.runnerUp : 0;
+      const pm = perManager[m.id]||{};
+      p += `${i+1}. ${m.name} (${m.team}) — ${m.total} pts | Avg: ${pm.avg}/GW | High: ${pm.high} | Low: ${pm.low} | GW wins: ${pm.wins} | Top4: ${s.top4||0} | Bot2: ${s.bottom2||0} | Earned: $${((s.moneyWon||0)+sp+cp).toFixed(0)} | Chips: ${chip(m.id)}\n`;
+    });
+
+    p += `\n--- TOP 5 PAYOUTS ---\n`;
+    seasonRanked.slice(0,5).forEach((m, i) => {
+      const s = stats[m.id]||{};
+      const sp = SEASON_PRIZES[i+1];
+      const cp = m.id===cupWinnerId ? CUP_PRIZES.winner : m.id===cupRunnerUpId ? CUP_PRIZES.runnerUp : 0;
+      p += `${i+1}. ${m.name} — Season: $${sp} | Cup: $${cp} | Weekly: $${(s.moneyWon||0).toFixed(0)} | TOTAL: $${((s.moneyWon||0)+sp+cp).toFixed(0)}\n`;
+    });
+
+    if (cupFinal) {
+      const cw = state.managers.find(m=>m.id===cupWinnerId);
+      const cr = state.managers.find(m=>m.id===cupRunnerUpId);
+      const e1 = state.managers.find(m=>m.id===cupFinal.entry_1_entry);
+      const e2 = state.managers.find(m=>m.id===cupFinal.entry_2_entry);
+      p += `\n--- CUP FINAL (GW${cupFinal.event}) ---\n`;
+      p += `🏆 Champion: ${cw?.name} ($${CUP_PRIZES.winner})\n`;
+      p += `🥈 Runner-Up: ${cr?.name} ($${CUP_PRIZES.runnerUp})\n`;
+      p += `Score: ${e1?.name} ${cupFinal.entry_1_points} pts - ${cupFinal.entry_2_points} pts ${e2?.name}\n`;
+    }
+
+    p += `\n--- BOTTOM 3 ---\n`;
+    seasonRanked.slice(-3).reverse().forEach((m, i) => {
+      const s = stats[m.id]||{};
+      const pm = perManager[m.id]||{};
+      const beers = getTotalGuinnesses(m.name, s.bottom2||0);
+      p += `${m.name} — ${m.total} pts | Avg: ${pm.avg}/GW | Low: ${pm.low} | Bot2: ${s.bottom2||0} | Beers: ${beers}\n`;
+    });
+
+    p += `\n--- RECORDS ---\n`;
+    const hm = state.managers.find(m=>m.id===highScore.managerId);
+    const lm = state.managers.find(m=>m.id===lowScore.managerId);
+    p += `Highest GW: ${hm?.name} — ${highScore.pts} pts (GW${highScore.gw})\n`;
+    p += `Lowest GW: ${lm?.name} — ${lowScore.pts} pts (GW${lowScore.gw})\n`;
+    const gwWinLeader = Object.entries(gwWins).sort((a,b)=>b[1]-a[1])[0];
+    if (gwWinLeader) p += `Most GW wins: ${state.managers.find(m=>m.id==gwWinLeader[0])?.name} (${gwWinLeader[1]} wins)\n`;
+    p += `Top 5 captained: ${topCaps.map(([n,c])=>n+' x'+c).join(', ')}\n`;
+
+    const chipSummary = {};
+    state.managers.forEach(m => Object.entries(state.chipsHistory?.[m.id]||{}).forEach(([gw,c]) => {
+      if (!chipSummary[c]) chipSummary[c] = [];
+      chipSummary[c].push(m.name+' GW'+gw);
+    }));
+    p += `\n--- CHIP USAGE ---\n`;
+    Object.entries(chipSummary).forEach(([c,uses]) => { p += `${chipNames[c]||c}: ${uses.join(', ')}\n`; });
+
+    p += `\n--- SHOTGUN DUTY ---\n`;
+    seasonRanked.forEach(m => {
+      const s = stats[m.id]||{};
+      const beers = getTotalGuinnesses(m.name, s.bottom2||0);
+      if ((s.bottom2||0) > 0 || beers > 0) p += `${m.name}: ${s.bottom2||0} bottom-2, ${beers} beers\n`;
+    });
+
+    return p;
+  }
+  // ── END SEASON RECAP ─────────────────────────────────────────────────────
 
   init().then(() => initPullToRefresh());
 
@@ -5951,6 +6222,30 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       btn.style.display = 'none';
     }
   }
+  window._swSeason = function(view) {
+    const tableBtn = document.getElementById('season-toggle-table');
+    const recapBtn = document.getElementById('season-toggle-recap');
+    const standingsEl = document.getElementById('standings-content');
+    const recapEl = document.getElementById('season-recap-content');
+    if (view === 'table') {
+      if (tableBtn) { tableBtn.style.background = 'var(--theme-dim)'; tableBtn.style.color = 'var(--theme)'; tableBtn.style.fontWeight = '600'; }
+      if (recapBtn) { recapBtn.style.background = 'transparent'; recapBtn.style.color = 'var(--text3)'; recapBtn.style.fontWeight = 'normal'; }
+      if (standingsEl) standingsEl.style.display = '';
+      if (recapEl) recapEl.style.display = 'none';
+    } else {
+      if (recapBtn) { recapBtn.style.background = 'var(--theme-dim)'; recapBtn.style.color = 'var(--theme)'; recapBtn.style.fontWeight = '600'; }
+      if (tableBtn) { tableBtn.style.background = 'transparent'; tableBtn.style.color = 'var(--text3)'; tableBtn.style.fontWeight = 'normal'; }
+      if (standingsEl) standingsEl.style.display = 'none';
+      if (recapEl) {
+        recapEl.style.display = '';
+        if (!recapEl.dataset.built) {
+          recapEl.dataset.built = '1';
+          setupSeasonRecapTab();
+        }
+      }
+    }
+  };
+
   window._ssHistory = () => showLeagueHistory();
   window._ss2025 = () => window.selectSeason('2025/2026');
   window._ss2024 = () => window.selectSeason('2024/2025');
@@ -5989,6 +6284,13 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       document.getElementById('tab-historical').classList.remove('active');
       document.getElementById('tab-history').classList.remove('active');
       document.getElementById('gw-callout').style.display = '';
+      const seasonToggleBarS = document.getElementById('season-toggle-bar');
+      if (seasonToggleBarS) seasonToggleBarS.style.display = 'none';
+      // Reset season recap to table view
+      const recapEl = document.getElementById('season-recap-content');
+      if (recapEl) recapEl.style.display = 'none';
+      const standingsEl = document.getElementById('standings-content');
+      if (standingsEl) standingsEl.style.display = '';
       document.getElementById('main-tabs').style.visibility = 'visible';
       document.getElementById('main-tabs').style.height = '';
       document.getElementById('main-tabs').style.padding = '';
