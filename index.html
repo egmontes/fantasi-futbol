@@ -1110,7 +1110,7 @@ async function init() {
           }).catch(() => {});
         }
       } else {
-        // Cache stale or missing — fetch fresh, fall back to stale on failure
+        // No cache — try API, fall back to static file
         try {
           bootstrap = await fetchFPL('bootstrap-static/');
           try {
@@ -1118,14 +1118,20 @@ async function init() {
             localStorage.setItem(BOOTSTRAP_TS_KEY, Date.now().toString());
           } catch(e) {}
         } catch(e) {
-          // API failed — use stale cache if available
-          if (cachedBootstrap) {
-            bootstrap = cachedBootstrap;
-            document.getElementById('page-loader-text').textContent = '⚡ Using cached data...';
-            console.warn('Bootstrap API failed, using stale cache');
-          } else {
-            throw e;
-          }
+          // API failed — try static bootstrap file
+          console.warn('Bootstrap API failed, trying static file:', e.message);
+          try {
+            const res = await fetch('data/bootstrap-static.json');
+            if (res.ok) {
+              bootstrap = await res.json();
+              document.getElementById('page-loader-text').textContent = '⚡ Using cached data...';
+              try {
+                localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(bootstrap));
+                localStorage.setItem(BOOTSTRAP_TS_KEY, Date.now().toString());
+              } catch(e2) {}
+            }
+          } catch(e2) {}
+          if (!bootstrap) throw e;
         }
       }
 
@@ -1418,6 +1424,11 @@ async function init() {
           return;
         }
       } catch(e2) {}
+      // Last resort — static managers file
+      try {
+        const res = await fetch('data/managers.json');
+        if (res.ok) { state.managers = await res.json(); return; }
+      } catch(e3) {}
       throw e;
     }
   }
