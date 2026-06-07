@@ -1091,11 +1091,24 @@ async function init() {
       } catch(e) {}
 
       const cacheAge = parseInt(localStorage.getItem(BOOTSTRAP_TS_KEY) || '0');
-      const cacheIsFresh = cachedBootstrap && (Date.now() - cacheAge < BOOTSTRAP_TTL);
+      // Use 7-day TTL — bootstrap rarely changes, avoid hammering API on mobile
+      const BOOTSTRAP_STALE_TTL = 7 * 24 * 60 * 60 * 1000;
+      const cacheIsFresh = cachedBootstrap && (Date.now() - cacheAge < BOOTSTRAP_STALE_TTL);
+      // If cache is really old (>7 days) but we have it, still use it and refresh silently
+      const cacheExists = !!cachedBootstrap;
 
-      if (cacheIsFresh) {
+      if (cacheIsFresh || cacheExists) {
         bootstrap = cachedBootstrap;
         document.getElementById('page-loader-text').textContent = '⚡ Loading from cache...';
+        // Refresh in background if older than 1 hour
+        if (Date.now() - cacheAge > 60 * 60 * 1000) {
+          fetchFPL('bootstrap-static/').then(fresh => {
+            try {
+              localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(fresh));
+              localStorage.setItem(BOOTSTRAP_TS_KEY, Date.now().toString());
+            } catch(e) {}
+          }).catch(() => {});
+        }
       } else {
         // Cache stale or missing — fetch fresh, fall back to stale on failure
         try {
