@@ -1077,6 +1077,13 @@ async function init() {
     try {
       document.getElementById('page-loader-text').textContent = '🔌 Connecting to FPL...';
 
+      // When season is over, check if GW38 static file exists — if so skip bootstrap entirely
+      let skipBootstrap = false;
+      try {
+        const gw38Check = await fetch('data/2025-2026/gw38.json', { method: 'HEAD' });
+        if (gw38Check.ok) skipBootstrap = true;
+      } catch(e) {}
+
       // Try cached bootstrap first (10-min TTL)
       const BOOTSTRAP_CACHE_KEY = 'ff_bootstrap';
       const BOOTSTRAP_TS_KEY = 'ff_bootstrap_ts';
@@ -1097,108 +1104,115 @@ async function init() {
       // If cache is really old (>7 days) but we have it, still use it and refresh silently
       const cacheExists = !!cachedBootstrap;
 
-      if (cacheIsFresh || cacheExists) {
-        bootstrap = cachedBootstrap;
-        document.getElementById('page-loader-text').textContent = '⚡ Loading from cache...';
-        // Refresh in background if older than 1 hour
-        if (Date.now() - cacheAge > 60 * 60 * 1000) {
-          fetchFPL('bootstrap-static/').then(fresh => {
-            try {
-              localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(fresh));
-              localStorage.setItem(BOOTSTRAP_TS_KEY, Date.now().toString());
-            } catch(e) {}
-          }).catch(() => {});
-        }
-      } else {
-        // No cache — try API, fall back to static file
-        try {
-          bootstrap = await fetchFPL('bootstrap-static/');
+      if (skipBootstrap) {
+        // Season is over — skip bootstrap entirely, set state from known values
+        document.getElementById('page-loader-text').textContent = '⚡ Loading...';
+        state.latestGW = 38;
+        state.currentGW = 38;
+        state.isLive = false;
+        state.isTransition = false;
+        state.nextGW = 39;
+        state.showPreview = false;
+        state.bootstrap = null;
+        state.bootstrapElements = [];
+        // Player names will be populated from GW JSON files
+        // Refresh bootstrap in background for when it's needed (e.g. drawer)
+        fetchFPL('bootstrap-static/').then(fresh => {
+          state.bootstrap = fresh;
+          state.bootstrapElements = fresh.elements;
+          fresh.elements.forEach(p => {
+            state.bootstrapPlayers[p.id] = p.web_name;
+            state.playerTeams = state.playerTeams || {};
+            state.playerTeams[p.id] = p.team;
+          });
           try {
-            localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(bootstrap));
+            localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(fresh));
             localStorage.setItem(BOOTSTRAP_TS_KEY, Date.now().toString());
           } catch(e) {}
-        } catch(e) {
-          // API failed — try static bootstrap file
-          console.warn('Bootstrap API failed, trying static file:', e.message);
+        }).catch(() => {});
+      } else {
+      let staticBootstrap = null;
+      try {
+        const res = await fetch('data/bootstrap-static.json');
+        if (res.ok) staticBootstrap = await res.json();
+      } catch(e) {}
+
+      if (staticBootstrap) {
+        bootstrap = staticBootstrap;
+        document.getElementById('page-loader-text').textContent = '⚡ Loading...';
+        // Silently try to refresh cache from API
+        fetchFPL('bootstrap-static/').then(fresh => {
           try {
-            const res = await fetch('data/bootstrap-static.json');
-            if (res.ok) {
-              bootstrap = await res.json();
-              document.getElementById('page-loader-text').textContent = '⚡ Using cached data...';
-              try {
-                localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(bootstrap));
-                localStorage.setItem(BOOTSTRAP_TS_KEY, Date.now().toString());
-              } catch(e2) {}
-            }
-          } catch(e2) {}
-          if (!bootstrap) throw e;
-        }
-      }
-
-      // Store full bootstrap data for later use (e.g., computeTeam in buildPrompt)
-      state.bootstrap = bootstrap;
-
-      // Index player names by id for captain lookup
-      bootstrap.elements.forEach(p => {
-        state.bootstrapPlayers[p.id] = p.web_name;
-        state.playerTeams = state.playerTeams || {};
-        state.playerTeams[p.id] = p.team;
-      });
-      // Cache full elements for transfer stats
-      state.bootstrapElements = bootstrap.elements;
-      // Second half of season starts at GW20 — chips reset each half
-      state.secondHalfStart = 20;
-
-      const finished = bootstrap.events.filter(e => e.finished || e.data_checked);
-      state.latestGW = finished.length > 0 ? finished[finished.length - 1].id : 1;
-      state.currentGW = state.latestGW;
-
-      // Detect next GW state
-      const nextGWEvent = bootstrap.events.find(e => e.id === state.latestGW + 1);
-      const now = Date.now();
-      const nextDeadline = nextGWEvent ? new Date(nextGWEvent.deadline_time).getTime() : null;
-      // Show preview if next GW exists and deadline hasn't passed yet (no matches started)
-      state.showPreview = nextGWEvent && nextDeadline && now < nextDeadline;
-      state.nextGW = state.latestGW + 1;
-      // Show live if current GW has started (deadline passed) but isn't finished yet
-      const currentGWEvent = bootstrap.events.find(e => e.is_current);
-      const currentDeadline = currentGWEvent ? new Date(currentGWEvent.deadline_time).getTime() : null;
-      state.isLive = currentGWEvent && !currentGWEvent.finished && !currentGWEvent.data_checked && currentDeadline && now >= currentDeadline;
-      if (state.isLive) {
-        state.liveGW = currentGWEvent.id;
-        // Double-check: fetch fixtures to see if all games are actually done
-        // FPL sometimes delays setting finished/data_checked by hours after final whistle
+            localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(fresh));
+            localStorage.setItem(BOOTSTRAP_TS_KEY, Date.now().toString());
+          } catch(e) {}
+        }).catch(() => {});
+      } else if (cacheIsFresh || cacheExists) {
+        bootstrap = cachedBootstrap;
+        document.getElementById('page-loader-text').textContent = '⚡ Loading from cache...';
+        fetchFPL('bootstrap-static/').then(fresh => {
+          try {
+            localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(fresh));
+            localStorage.setItem(BOOTSTRAP_TS_KEY, Date.now().toString());
+          } catch(e) {}
+        }).catch(() => {});
+      } else {
+        // No static file, no cache — must hit API with hard timeout
+        bootstrap = await Promise.race([
+          fetchFPL('bootstrap-static/'),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+        ]);
         try {
-          const fixtures = await fetchFPL('fixtures/?event=' + currentGWEvent.id);
-          if (fixtures.length > 0 && fixtures.every(f => f.finished_provisional)) {
-            state.isLive = false;
-            // Treat this GW as complete — update latestGW so data shows correctly
-            state.latestGW = currentGWEvent.id;
-            state.currentGW = state.latestGW;
-            // Rebuild GW selector now that latestGW has changed
-            const gwSel = document.getElementById('gw-select');
-            if (gwSel) {
-              gwSel.innerHTML = '';
-              for (let i = state.latestGW; i >= 1; i--) {
-                const opt = document.createElement('option');
-                opt.value = i;
-                opt.textContent = 'GW ' + i;
-                if (i === state.latestGW) opt.selected = true;
-                gwSel.appendChild(opt);
-              }
-            }
-          }
-        } catch(e) {} // fail silently — stay live if fixtures can't be fetched
+          localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(bootstrap));
+          localStorage.setItem(BOOTSTRAP_TS_KEY, Date.now().toString());
+        } catch(e) {}
       }
 
-      // Detect transition state: next GW deadline passed but it's not live yet
-      // Must run AFTER fixture check may have updated state.latestGW
-      const nextGWEventCurrent = bootstrap.events.find(e => e.id === state.latestGW + 1);
-      const nextDeadlineCurrent = nextGWEventCurrent ? new Date(nextGWEventCurrent.deadline_time).getTime() : null;
-      const nextGWDeadlinePassed = nextDeadlineCurrent && now >= nextDeadlineCurrent;
-      const nextGWIsLive = nextGWEventCurrent && nextGWEventCurrent.is_current;
-      state.isTransition = !state.isLive && nextGWDeadlinePassed && !nextGWIsLive;
-      if (state.isTransition) state.transitionGW = state.latestGW + 1;
+      if (!skipBootstrap) {
+        // Store full bootstrap data for later use (e.g., computeTeam in buildPrompt)
+        state.bootstrap = bootstrap;
+
+        // Index player names by id for captain lookup
+        bootstrap.elements.forEach(p => {
+          state.bootstrapPlayers[p.id] = p.web_name;
+          state.playerTeams = state.playerTeams || {};
+          state.playerTeams[p.id] = p.team;
+        });
+        state.bootstrapElements = bootstrap.elements;
+        state.secondHalfStart = 20;
+
+        const finished = bootstrap.events.filter(e => e.finished || e.data_checked);
+        state.latestGW = finished.length > 0 ? finished[finished.length - 1].id : 1;
+        state.currentGW = state.latestGW;
+
+        const nextGWEvent = bootstrap.events.find(e => e.id === state.latestGW + 1);
+        const now = Date.now();
+        const nextDeadline = nextGWEvent ? new Date(nextGWEvent.deadline_time).getTime() : null;
+        state.showPreview = nextGWEvent && nextDeadline && now < nextDeadline;
+        state.nextGW = state.latestGW + 1;
+        const currentGWEvent = bootstrap.events.find(e => e.is_current);
+        const currentDeadline = currentGWEvent ? new Date(currentGWEvent.deadline_time).getTime() : null;
+        state.isLive = currentGWEvent && !currentGWEvent.finished && !currentGWEvent.data_checked && currentDeadline && now >= currentDeadline;
+        if (state.isLive) {
+          state.liveGW = currentGWEvent.id;
+          try {
+            const fixtures = await fetchFPL('fixtures/?event=' + currentGWEvent.id);
+            if (fixtures.length > 0 && fixtures.every(f => f.finished_provisional)) {
+              state.isLive = false;
+              state.latestGW = currentGWEvent.id;
+              state.currentGW = state.latestGW;
+            }
+          } catch(e) {}
+        }
+        const nextGWEventCurrent = bootstrap.events.find(e => e.id === state.latestGW + 1);
+        const nextDeadlineCurrent = nextGWEventCurrent ? new Date(nextGWEventCurrent.deadline_time).getTime() : null;
+        const now2 = Date.now();
+        state.isTransition = !state.isLive && nextDeadlineCurrent && now2 >= nextDeadlineCurrent && !nextGWEventCurrent?.is_current;
+        if (state.isTransition) state.transitionGW = state.latestGW + 1;
+      } // end !skipBootstrap inner if
+      } // end else (skipBootstrap)
+
+      state.secondHalfStart = 20;
 
       const gwSel = document.getElementById('gw-select');
       for (let i = state.latestGW; i >= 1; i--) {
@@ -1372,6 +1386,32 @@ async function init() {
     const CACHE_KEY = 'ff_managers';
     const CACHE_TS_KEY = 'ff_managers_ts';
     const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+    // Try static managers file first (instant, no proxy)
+    let staticManagers = null;
+    try {
+      const res = await fetch('data/managers.json');
+      if (res.ok) staticManagers = await res.json();
+    } catch(e) {}
+
+    if (staticManagers) {
+      state.managers = staticManagers;
+      // Refresh from API in background
+      fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=1`).then(async data => {
+        let entries = [...data.standings.results];
+        let page = 2;
+        while (data.standings.has_next) {
+          data = await fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=${page++}`);
+          entries = entries.concat(data.standings.results);
+        }
+        state.managers = entries.map(e => ({ id: e.entry, name: e.player_name, team: e.entry_name, total: e.total, rank: e.rank }));
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(state.managers));
+          localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
+        } catch(e) {}
+      }).catch(() => {});
+      return;
+    }
 
     // Try localStorage cache first (long TTL — managers rarely change mid-season)
     try {
