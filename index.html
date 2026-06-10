@@ -1181,16 +1181,16 @@ async function init() {
         state.bootstrapElements = bootstrap.elements;
         state.secondHalfStart = 20;
 
-        const finished = bootstrap.events.filter(e => e.finished || e.data_checked);
+        const finished = (bootstrap || state.bootstrap)?.events?.filter(e => e.finished || e.data_checked);
         state.latestGW = finished.length > 0 ? finished[finished.length - 1].id : 1;
         state.currentGW = state.latestGW;
 
-        const nextGWEvent = bootstrap.events.find(e => e.id === state.latestGW + 1);
+        const nextGWEvent = (bootstrap || state.bootstrap)?.events?.find(e => e.id === state.latestGW + 1);
         const now = Date.now();
         const nextDeadline = nextGWEvent ? new Date(nextGWEvent.deadline_time).getTime() : null;
         state.showPreview = nextGWEvent && nextDeadline && now < nextDeadline;
         state.nextGW = state.latestGW + 1;
-        const currentGWEvent = bootstrap.events.find(e => e.is_current);
+        const currentGWEvent = (bootstrap || state.bootstrap)?.events?.find(e => e.is_current);
         const currentDeadline = currentGWEvent ? new Date(currentGWEvent.deadline_time).getTime() : null;
         state.isLive = currentGWEvent && !currentGWEvent.finished && !currentGWEvent.data_checked && currentDeadline && now >= currentDeadline;
         if (state.isLive) {
@@ -1204,7 +1204,7 @@ async function init() {
             }
           } catch(e) {}
         }
-        const nextGWEventCurrent = bootstrap.events.find(e => e.id === state.latestGW + 1);
+        const nextGWEventCurrent = (bootstrap || state.bootstrap)?.events?.find(e => e.id === state.latestGW + 1);
         const nextDeadlineCurrent = nextGWEventCurrent ? new Date(nextGWEventCurrent.deadline_time).getTime() : null;
         const now2 = Date.now();
         state.isTransition = !state.isLive && nextDeadlineCurrent && now2 >= nextDeadlineCurrent && !nextGWEventCurrent?.is_current;
@@ -1234,15 +1234,16 @@ async function init() {
       document.getElementById('page-loader-text').textContent = '⚡ Almost ready...';
 
       // Populate GW callout
+      const now = Date.now();
       const callout = document.getElementById('gw-callout');
       const calloutLabel = document.getElementById('gw-callout-label');
       const deadlineLabel = document.getElementById('gw-deadline-label');
       if (callout && calloutLabel) {
-        const currentEvent = bootstrap.events.find(e => e.is_current) ||
-                             bootstrap.events.find(e => e.id === state.latestGW);
-        const nextEvent = bootstrap.events.find(e => e.is_next) ||
-                          bootstrap.events.find(e => e.id === state.latestGW + 1);
-        const isSeasonOver = state.liveGW >= 38 || state.latestGW >= 38;
+        const isSeasonOver = !state.isLive && state.latestGW >= 38;
+        const currentEvent = bootstrap?.events?.find(e => e.is_current) ||
+                             bootstrap?.events?.find(e => e.id === state.latestGW);
+        const nextEvent = bootstrap?.events?.find(e => e.is_next) ||
+                          bootstrap?.events?.find(e => e.id === state.latestGW + 1);
 
         if (currentEvent) {
           const isSeasonOver = !state.isLive && state.latestGW >= 38;
@@ -3589,7 +3590,7 @@ function buildPlayerMaps(liveData, bootstrap) {
     };
   });
 
-  bootstrap.elements.forEach(p => {
+  (bootstrap || state.bootstrap)?.elements?.forEach(p => {
     types[p.id] = p.element_type;
     names[p.id] = p.web_name;
   });
@@ -5367,7 +5368,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       localStorage.removeItem('ff_bootstrap_ts');
       const bootstrap = await fetchFPL('bootstrap-static/');
       bootstrap.elements.forEach(p => { state.bootstrapPlayers[p.id] = p.web_name; });
-      const finished = bootstrap.events.filter(e => e.finished || e.data_checked);
+      const finished = (bootstrap || state.bootstrap)?.events?.filter(e => e.finished || e.data_checked);
       const newLatest = finished.length > 0 ? finished[finished.length - 1].id : 1;
       const gwChanged = newLatest !== state.latestGW;
 
@@ -5469,7 +5470,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         localStorage.removeItem('ff_bootstrap_ts');
         const bootstrap = await fetchFPL('bootstrap-static/');
         bootstrap.elements.forEach(p => { state.bootstrapPlayers[p.id] = p.web_name; });
-        const finished = bootstrap.events.filter(ev => ev.finished || ev.data_checked);
+        const finished = (bootstrap || state.bootstrap)?.events?.filter(ev => ev.finished || ev.data_checked);
         const newLatest = finished.length > 0 ? finished[finished.length - 1].id : 1;
         if (newLatest !== state.latestGW) {
           window.location.reload();
