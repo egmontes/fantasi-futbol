@@ -2116,12 +2116,14 @@ async function init() {
         '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + (() => {
           if (!isSeasonOver) return '';
           const sRank = seasonRankMap[m.id];
-          if (sRank === 1) return ' <span class="badge badge-1">🥇 $550</span>';
-          if (sRank === 2) return ' <span class="badge badge-2">🥈 $275</span>';
-          if (sRank === 3) return ' <span class="badge badge-3">🥉 $175</span>';
-          if (sRank === 4) return ' <span class="badge badge-4">4️⃣ $100</span>';
-          if (sRank === 5) return ' <span class="badge" style="background:rgba(255,182,193,0.2);color:#ffb6c1;border:1px solid rgba(255,182,193,0.4);">5️⃣ $20</span>';
-          return '';
+          let badges = '';
+          if (sRank === 1) badges += ' <span class="badge badge-1">🥇 $550</span>';
+          else if (sRank === 2) badges += ' <span class="badge badge-2">🥈 $275</span>';
+          else if (sRank === 3) badges += ' <span class="badge badge-3">🥉 $175</span>';
+          else if (sRank === 4) badges += ' <span class="badge badge-4">4️⃣ $100</span>';
+          else if (sRank === 5) badges += ' <span class="badge" style="background:rgba(255,182,193,0.2);color:#ffb6c1;border:1px solid rgba(255,182,193,0.4);">5️⃣ $20</span>';
+          if (m.name === 'Jack Bernatchez') badges += ' <span class="badge stat-card-gold" style="background:rgba(255,215,0,0.12);color:#FFD700;border:1px solid rgba(255,215,0,0.3);">🍺🎬 $50</span>';
+          return badges;
         })() + '</div><div class="m-team">' + esc(m.team) + '</div>' + '<div style="display:flex;gap:2px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + buildChipBadges(m.id, m.chip, currentGW) + '</div></td>' +
         (!isSeasonOver ? '<td>' + (() => {
           if (m.gwLatestPts === null) return '<span class="pts-val">—</span>';
@@ -5847,7 +5849,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     let saved = localStorage.getItem(RECAP_KEY) || '';
     if (!saved) {
       try {
-        const res = await fetch(`data/${CURRENT_SEASON}/recaps/season.txt?nocache=${Date.now()}`);
+        const res = await fetch(`data/${CURRENT_SEASON}/recaps/${CURRENT_SEASON.split('-')[0]}-season.txt?nocache=${Date.now()}`);
         if (res.ok) { const t = await res.text(); if (t.trim()) saved = t.trim(); }
       } catch(e) {}
     }
@@ -5950,10 +5952,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Download as txt file
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'season.txt'; a.click();
+      const a = document.createElement('a'); a.href = url; a.download = CURRENT_SEASON.split('-')[0] + '-season.txt'; a.click();
       URL.revokeObjectURL(url);
       const btn = document.getElementById('season-save-recap-btn');
-      btn.textContent = '✓ Saved & downloaded season.txt';
+      btn.textContent = '✓ Saved & downloaded ' + CURRENT_SEASON.split('-')[0] + '-season.txt';
       setTimeout(() => btn.textContent = 'Save recap', 3000);
     });
 
