@@ -1728,6 +1728,8 @@ async function init() {
   const standingsSort = { col: 'pts', dir: 'desc' };
 
   async function renderStandings() {
+    const currentGW = state.isLive ? state.liveGW : state.latestGW;
+    const isSeasonOver = !state.isLive && state.latestGW >= 38;
     const stats = computeSeasonStats();
     const weeklyPool = state.latestGW * 60;
     const SEASON_PRIZE_TOTAL = 550 + 275 + 175 + 100 + 20; // 1120
@@ -1736,9 +1738,6 @@ async function init() {
       ? weeklyPool + SEASON_PRIZE_TOTAL + CUP_PRIZE_TOTAL
       : weeklyPool;
     const totalShotguns = state.latestGW * 2;
-
-    const currentGW = state.isLive ? state.liveGW : state.latestGW;
-    const isSeasonOver = !state.isLive && state.latestGW >= 38;
     if (!_chipCache[currentGW]) {
       fetchChipsForGW(currentGW).then(() => {
         renderStandings();
