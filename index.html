@@ -4112,17 +4112,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   // Try to load recap from GitHub Pages recaps/ folder, fall back to localStorage
   async function loadSavedRecap(gw) {
-    const season = CURRENT_SEASON;
+    const season = CURRENT_SEASON.split('-')[0];
     const gwPadded = String(gw).padStart(2, '0');
-    const filename = `gw${gwPadded}.txt`;
+    const filename = season + '-gw' + gwPadded + '.txt';
     try {
-      const res = await fetch(`data/${CURRENT_SEASON}/recaps/` + filename + '?nocache=' + Date.now());
+      const res = await fetch('recaps/' + filename + '?nocache=' + Date.now());
       if (res.ok) {
         const text = await res.text();
         if (text.trim()) return text.trim();
       }
     } catch(e) {}
-    // Fall back to localStorage
     return localStorage.getItem('recap-gw-' + gw) || '';
   }
 
@@ -4386,7 +4385,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Auto-download the .txt file with correct naming
       const season = CURRENT_SEASON;
       const gwPadded = String(gw).padStart(2, '0');
-      const filename = `gw${gwPadded}.txt`;
+      const filename = CURRENT_SEASON.split('-')[0] + '-gw' + gwPadded + '.txt';
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -5247,7 +5246,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Download file
       const season = CURRENT_SEASON;
       const gwPadded = String(gw).padStart(2, '0');
-      const filename = `gw${gwPadded}.txt`;
+      const filename = CURRENT_SEASON.split('-')[0] + '-gw' + gwPadded + '.txt';
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -5398,7 +5397,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       document.getElementById('weekly-clear-recap-btn').style.display = 'inline-block';
       const season = CURRENT_SEASON;
       const gwPadded = String(gw).padStart(2, '0');
-      const filename = `gw${gwPadded}.txt`;
+      const filename = CURRENT_SEASON.split('-')[0] + '-gw' + gwPadded + '.txt';
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
@@ -5917,7 +5916,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     let saved = localStorage.getItem(RECAP_KEY) || '';
     if (!saved) {
       try {
-        const res = await fetch(`data/${CURRENT_SEASON}/recaps/${CURRENT_SEASON.split('-')[0]}-season.txt?nocache=${Date.now()}`);
+        const res = await fetch(`recaps/${CURRENT_SEASON.split('-')[0]}-season.txt?nocache=${Date.now()}`);
         if (res.ok) { const t = await res.text(); if (t.trim()) saved = t.trim(); }
       } catch(e) {}
     }
