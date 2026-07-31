@@ -798,7 +798,7 @@
 
 </div>
 
-<script>
+<script data-v="20260730-2">
   const LEAGUE_ID = 237384;
   const PRIZE_MAP = { 1: 30, 2: 15, 3: 10, 4: 5 };
   const FPL_BASE = 'https://fantasy.premierleague.com/api/';
@@ -812,6 +812,7 @@
   ];
 
 
+  // v2026.07.30
   // ── SEASON CONFIG ────────────────────────────────────────────────────────
   // To start a new season: change CURRENT_SEASON to e.g. '2026-2027'
   // and add the old season to HISTORICAL_SEASONS below.
@@ -1237,7 +1238,34 @@ async function init() {
       buildWeeklyDropdown();
 
       document.getElementById('page-loader-text').textContent = '👥 Loading managers...';
-      await loadLeague();
+
+      // When season is over, load managers from GW38 JSON — no API needed, works first visit
+      if (skipBootstrap && !state.managers.length) {
+        try {
+          const res = await fetch(`data/${CURRENT_SEASON}/gw38.json`);
+          if (res.ok) {
+            const gw38 = await res.json();
+            if (gw38.managers?.length) {
+              const sorted = [...gw38.managers].sort((a,b) =>
+                (b.history?.total_points || 0) - (a.history?.total_points || 0)
+              );
+              state.managers = sorted.map((m, i) => ({
+                id: m.id, name: m.name, team: m.team,
+                total: m.history?.total_points || 0,
+                rank: i + 1
+              }));
+            }
+          }
+        } catch(e) {}
+      }
+
+      // If still no managers, hit the API
+      if (!state.managers.length) {
+        await loadLeague();
+      } else {
+        // Refresh in background silently
+        loadLeague().catch(() => {});
+      }
 
       // Dismiss loader right after bootstrap+league — show page immediately
       document.getElementById('page-loader-text').textContent = '⚡ Almost ready...';
@@ -1410,12 +1438,7 @@ async function init() {
     const CACHE_TS_KEY = 'ff_managers_ts';
     const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-    // Try static managers file first (instant, no proxy)
     let staticManagers = null;
-    try {
-      const res = await fetch(`data/${CURRENT_SEASON}/managers.json`);
-      if (res.ok) staticManagers = await res.json();
-    } catch(e) {}
 
     if (staticManagers) {
       state.managers = staticManagers;
@@ -1848,16 +1871,7 @@ async function init() {
         : m.total;
       const chip = standingsChips[m.id] || null;
       const captain = standingsCaptains[m.id] || null;
-      const weeklyEarned = s.moneyWon || 0;
-      const SEASON_PRIZES_ROW = { 1: 550, 2: 275, 3: 175, 4: 100, 5: 20 };
-      const sRank = seasonRankMap[m.id];
-      const seasonPrizeRow = isSeasonOver ? (SEASON_PRIZES_ROW[sRank] || 0) : 0;
-      const cupFinalRow = (window._allCupMatches || []).filter(c => c.winner).sort((a,b) => b.event - a.event)[0];
-      const cupPrizeRow = isSeasonOver && cupFinalRow
-        ? (cupFinalRow.winner === m.id ? 225 : (cupFinalRow.entry_1_entry === cupFinalRow.winner ? cupFinalRow.entry_2_entry : cupFinalRow.entry_1_entry) === m.id ? 125 : 0)
-        : 0;
-      const totalEarned = weeklyEarned + seasonPrizeRow + cupPrizeRow;
-      return { ...m, total: liveTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: weeklyEarned, totalEarned, gmisses, missedG, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain };
+      return { ...m, total: liveTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, missedG, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain };
     });
 
     // Compute rank changes vs last GW
@@ -1934,6 +1948,21 @@ async function init() {
       if (i > 0 && byTotal[i].total < byTotal[i-1].total) sRank = i + 1;
       seasonRankMap[m.id] = sRank;
     });
+
+    // Compute totalEarned (weekly + season prize + cup prize) for sorting
+    if (isSeasonOver) {
+      const SEASON_PRIZES_SORT = { 1:550, 2:275, 3:175, 4:100, 5:20 };
+      const cupFinalSort = (window._allCupMatches||[]).filter(c=>c.winner).sort((a,b)=>b.event-a.event)[0];
+      rows.forEach(m => {
+        const sp = SEASON_PRIZES_SORT[seasonRankMap[m.id]] || 0;
+        const cp = cupFinalSort
+          ? (cupFinalSort.winner===m.id ? 225 : (cupFinalSort.entry_1_entry===cupFinalSort.winner ? cupFinalSort.entry_2_entry : cupFinalSort.entry_1_entry)===m.id ? 125 : 0)
+          : 0;
+        m.totalEarned = m.earned + sp + cp;
+      });
+    } else {
+      rows.forEach(m => { m.totalEarned = m.earned; });
+    }
 
     // Build basic ticker cards immediately (no expensive fetches)
     const tickerInsights = computeTickerInsights();
