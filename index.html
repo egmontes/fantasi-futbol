@@ -5903,6 +5903,17 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       el.innerHTML = renderLeagueHistory(seasonData, labels);
       requestAnimationFrame(() => {
         initFloatingHeader('history-table');
+        const histTableOuter = document.querySelector('#history-table')?.closest('.table-outer');
+        const histScrollWrap = document.querySelector('#history-table')?.closest('.table-scroll-wrap');
+        if (histTableOuter && histScrollWrap) {
+          const updateHistScroll = () => {
+            const { scrollLeft, scrollWidth, clientWidth } = histTableOuter;
+            histScrollWrap.classList.toggle('scroll-at-start', scrollLeft <= 2);
+            histScrollWrap.classList.toggle('scroll-at-end', scrollLeft + clientWidth >= scrollWidth - 2);
+          };
+          histTableOuter.addEventListener('scroll', updateHistScroll, { passive: true });
+          requestAnimationFrame(updateHistScroll);
+        }
         const tickerEl = document.getElementById('history-ticker');
         if (tickerEl) { makeTickerInteractive(tickerEl); requestAnimationFrame(() => fitStatCards(tickerEl)); }
       });
