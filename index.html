@@ -1346,6 +1346,19 @@ async function init() {
         const gwFilesLoaded = await loadHistoryFromGWFiles(CURRENT_SEASON);
         if (gwFilesLoaded >= 38) {
           state.historyLoaded = true;
+
+          // Load cup matches from static file
+          const loadCupStatic = async () => {
+            if (window._allCupMatches?.length) return;
+            try {
+              const r = await fetch(`data/${CURRENT_SEASON}/cup-matches.json`);
+              if (r.ok) { window._allCupMatches = await r.json(); return; }
+            } catch(e) {}
+            // Fall back to API
+            loadCupData(true).catch(() => {});
+          };
+
+          loadCupStatic().then(() => renderStandings());
           renderStandings();
           updateExportBtn(state.latestGW);
           loadGWFromCache(38).then(() => renderStandings());
@@ -4458,13 +4471,13 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const seen = new Set();
 
       // Get cup_league ID from the classic league standings
-      let cupLeagueId = null;
+      let cupLeagueId = 2970051; // known cup league ID for this league — fallback
       try {
         const leagueData = await fetchFPL('leagues-classic/' + LEAGUE_ID + '/standings/');
-        cupLeagueId = leagueData.league && leagueData.league.cup_league;
+        cupLeagueId = (leagueData.league && leagueData.league.cup_league) || cupLeagueId;
         console.log('Cup league ID:', cupLeagueId);
       } catch(e) {
-        console.warn('Could not fetch league info:', e.message);
+        console.warn('Could not fetch league info, using hardcoded cup ID:', cupLeagueId);
       }
 
       // The correct FPL cup matches endpoint uses leagues-h2h-matches
@@ -4487,7 +4500,17 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       }
 
       console.log('Total cup matches found:', allMatches.length);
-      if (allMatches.length > 0) console.log('Sample:', JSON.stringify(allMatches[0]));
+      // If fetch returned nothing but we have a static file, try it
+      if (allMatches.length === 0) {
+        try {
+          const r = await fetch(`data/${CURRENT_SEASON}/cup-matches.json`);
+          if (r.ok) allMatches = await r.json();
+        } catch(e) {}
+      }
+      // If still empty but we already had matches loaded, keep them
+      if (allMatches.length === 0 && window._allCupMatches?.length > 0) {
+        allMatches = window._allCupMatches;
+      }
       window._allCupMatches = allMatches;
       if (silent) {
         renderStandings(); // re-render standings with cup prize data
@@ -6179,9 +6202,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       let gwCupMatches = (window._allCupMatches || []).filter(m => m.event === gw);
       if (gwCupMatches.length === 0) {
         try {
-          let cupLeagueId = null;
+          let cupLeagueId = 2970051; // hardcoded fallback
           const leagueData = await fetchFPL('leagues-classic/' + LEAGUE_ID + '/standings/');
-          cupLeagueId = leagueData.league?.cup_league;
+          cupLeagueId = leagueData.league?.cup_league || cupLeagueId;
           if (!cupLeagueId) {
             const leagueInfo = await fetchFPL('leagues-classic/' + LEAGUE_ID + '/');
             cupLeagueId = leagueInfo.league?.cup_league;
