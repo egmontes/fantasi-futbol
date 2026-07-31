@@ -6651,12 +6651,18 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       document.getElementById('season-menu').style.display = 'none';
     }
 
-    // Reset all state
-    state.managers = []; state.gwHistory = {}; state.historyLoaded = false;
-    state.chipsHistory = {}; state.latestGW = 38; state.currentGW = 38;
-    state.isLive = false; state.isTransition = false;
-    window._allCupMatches = []; window._captainCache = {};
-    window._picksCache = {}; window._gwCacheLoaded = {};
+    // Reset state only if not already on 2025/2026
+    const alreadyLoaded = window.__viewingSeason === '2025-2026' && state.historyLoaded && state.managers.length > 0;
+    if (!alreadyLoaded) {
+      state.managers = []; state.gwHistory = {}; state.historyLoaded = false;
+      state.chipsHistory = {}; state.latestGW = 38; state.currentGW = 38;
+      state.isLive = false; state.isTransition = false;
+      window._allCupMatches = []; window._captainCache = {};
+      window._picksCache = {}; window._gwCacheLoaded = {};
+    } else {
+      state.latestGW = 38; state.currentGW = 38;
+      state.isLive = false; state.isTransition = false;
+    }
 
     // Show the standings section
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -6686,6 +6692,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       }
     } catch(e) {}
 
+    // Set season before loading guinness so it fetches from correct path
+    window.__viewingSeason = '2025-2026';
+
     // Load all history from GW files
     const loaded = await loadHistoryFromGWFiles('2025-2026');
     await loadGuinnessDebts();
@@ -6701,7 +6710,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     }
 
     // Update GW selector and UI (skip in silent mode)
-    window.__viewingSeason = '2025-2026';
     if (!silent) {
       const gwSel = document.getElementById('gw-select');
       if (gwSel) {
