@@ -5380,7 +5380,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   }
 
   async function setupWeeklyRecap(gw, container) {
-    const saved = await loadSavedRecap(gw);
+    try {
+      const saved = await loadSavedRecap(gw);
     let html = '';
 
     if (saved) html += '<div id="weekly-recap-display" style="margin-bottom:2rem;"></div>';
@@ -5488,6 +5489,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       if (d) d.innerHTML = '';
       document.getElementById('weekly-clear-recap-btn').style.display = 'none';
     });
+    } catch(e) {
+      container.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:var(--text3);">Recap not available for GW' + gw + ' yet.</div>';
+    }
   }
   // ── END WEEKLY VIEW TOGGLE ────────────────────────────────────────────────
 
@@ -5741,14 +5745,97 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         { file: '2022-2023', label: '2022/23' },
         { file: '2023-2024', label: '2023/24' },
         { file: '2024-2025', label: '2024/25' },
-        // { file: '2025-2026', label: '2025/26' }, // uncomment after running window._exportSeasonSummary() and pushing data/seasons/2025-2026.json
       ];
+
       const seasonData = {};
+      const labels = [];
+
+      // Load historical seasons from summary JSONs
       await Promise.all(SEASON_FILES.map(async s => {
         const res = await fetch('data/seasons/' + s.file + '.json?nocache=' + Date.now());
-        if (res.ok) seasonData[s.label] = await res.json();
+        if (res.ok) { seasonData[s.label] = await res.json(); labels.push(s.label); }
       }));
-      const labels = SEASON_FILES.map(s => s.label);
+      // Sort labels chronologically
+      labels.sort();
+
+      // Load 2025/2026 — always load GW history for accurate weekly earnings
+      try {
+        // Save current state to restore after
+        const savedManagers = state.managers;
+        const savedHistory = state.gwHistory;
+        const savedChips = state.chipsHistory;
+        const savedCaptains = { ..._captainCache };
+        const savedCupMatches = window._allCupMatches;
+        const savedLatestGW = state.latestGW;
+        const savedHistLoaded = state.historyLoaded;
+
+        // Temporarily load 2025/2026 into state
+        state.managers = [];
+        state.gwHistory = {};
+        state.chipsHistory = {};
+        state.historyLoaded = false;
+        window._allCupMatches = [];
+
+        const gw38res = await fetch('data/2025-2026/gw38.json');
+        if (gw38res.ok) {
+          const gw38 = await gw38res.json();
+          state.managers = [...gw38.managers].sort((a,b) =>
+            (b.history?.total_points||0) - (a.history?.total_points||0)
+          ).map((m,i) => ({ id:m.id, name:m.name, team:m.team, total:m.history?.total_points||0, rank:i+1 }));
+
+          await loadHistoryFromGWFiles('2025-2026');
+
+          // Load cup data
+          try {
+            const cr = await fetch('data/2025-2026/cup-matches.json');
+            if (cr.ok) window._allCupMatches = await cr.json();
+          } catch(e) {}
+
+          const stats2025 = computeSeasonStats(38);
+          const seasonRanked2025 = [...state.managers].sort((a,b) => {
+            const ha = (state.gwHistory[a.id]||[]).sort((x,y)=>y.event-x.event)[0];
+            const hb = (state.gwHistory[b.id]||[]).sort((x,y)=>y.event-x.event)[0];
+            return (hb?.total_points||0) - (ha?.total_points||0);
+          });
+
+          const cupFinal2025 = (window._allCupMatches||[]).filter(m=>m.winner).sort((a,b)=>b.event-a.event)[0];
+          const cwId = cupFinal2025?.winner;
+          const crId = cupFinal2025 ? (cupFinal2025.entry_1_entry===cwId?cupFinal2025.entry_2_entry:cupFinal2025.entry_1_entry) : null;
+          const PRIZES_2025 = {1:550,2:275,3:175,4:100,5:20};
+          const CUP_2025 = {winner:225,runnerUp:125};
+
+          seasonData['2025/26'] = {
+            season: '2025/2026',
+            managers: seasonRanked2025.map((m, i) => {
+              const s = stats2025[m.id] || {};
+              const sp = PRIZES_2025[i+1] || 0;
+              const cp = m.id===cwId ? CUP_2025.winner : m.id===crId ? CUP_2025.runnerUp : 0;
+              const kluis = m.name === 'Jack Bernatchez' ? 50 : 0;
+              return {
+                name: m.name,
+                earned: (s.moneyWon||0) + sp + cp + kluis,
+                guinness: getTotalGuinnesses(m.name, s.bottom2||0),
+                top1:0, top2:0, top3:0, top4:0, last:0,
+              };
+            }),
+            awards: {
+              League: { winner:seasonRanked2025[0]?.name, runner_up:seasonRanked2025[1]?.name, third:seasonRanked2025[2]?.name, fourth:seasonRanked2025[3]?.name, fifth:seasonRanked2025[4]?.name },
+              Cup: { winner:state.managers.find(m=>m.id===cwId)?.name, runner_up:state.managers.find(m=>m.id===crId)?.name }
+            }
+          };
+          labels.push('2025/26');
+        }
+
+        // Restore original state
+        state.managers = savedManagers;
+        state.gwHistory = savedHistory;
+        state.chipsHistory = savedChips;
+        Object.assign(_captainCache, savedCaptains);
+        window._allCupMatches = savedCupMatches;
+        state.latestGW = savedLatestGW;
+        state.historyLoaded = savedHistLoaded;
+
+      } catch(e) { console.warn('2025/2026 history load error:', e.message); }
 
       // Build current season data from live state
       const currentLabel = CURRENT_SEASON_SHORT;
@@ -5789,25 +5876,28 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         };
       });
 
-      seasonData[currentLabel] = {
-        season: CURRENT_SEASON_LABEL,
-        managers: currentManagers,
-        awards: {
-          League: {
-            winner: seasonRanked[0]?.name,
-            runner_up: seasonRanked[1]?.name,
-            third: seasonRanked[2]?.name,
-            fourth: seasonRanked[3]?.name,
-            fifth: seasonRanked[4]?.name,
-          },
-          Cup: {
-            winner: cupWinner,
-            runner_up: cupRunnerUp,
+      // Only add current season if it's actually the current season (not 2025/2026 loaded for history)
+      const isActualCurrentSeason = window.__viewingSeason !== '2025-2026' && state.managers.length > 0 && !labels.includes(currentLabel);
+      if (isActualCurrentSeason) {
+        seasonData[currentLabel] = {
+          season: CURRENT_SEASON_LABEL,
+          managers: currentManagers,
+          awards: {
+            League: {
+              winner: seasonRanked[0]?.name,
+              runner_up: seasonRanked[1]?.name,
+              third: seasonRanked[2]?.name,
+              fourth: seasonRanked[3]?.name,
+              fifth: seasonRanked[4]?.name,
+            },
+            Cup: {
+              winner: cupWinner,
+              runner_up: cupRunnerUp,
+            }
           }
-        }
-      };
-
-      labels.push(currentLabel);
+        };
+        labels.push(currentLabel);
+      }
       window._historyData = { seasonData, labels };
       window._historySort = { col: 'earned', dir: -1 };
       el.innerHTML = renderLeagueHistory(seasonData, labels);
@@ -6514,11 +6604,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   window._ssHistory = () => showLeagueHistory();
   window._ssLive = () => { window.__viewingSeason = null; window.location.reload(); };
-  window._ss2025 = async function() {
-    document.getElementById('season-label').textContent = '2025 / 2026';
-    const wtl = document.getElementById('weekly-tab-label');
-    if (wtl) wtl.textContent = '2025 / 2026';
-    document.getElementById('season-menu').style.display = 'none';
+  window._ss2025 = async function(silent = false) {
+    if (!silent) {
+      document.getElementById('season-label').textContent = '2025 / 2026';
+      const wtl = document.getElementById('weekly-tab-label');
+      if (wtl) wtl.textContent = '2025 / 2026';
+      _weeklyRecapGW = null;
+      document.getElementById('weekly-recap-content').innerHTML = '';
+      switchWeeklyView('table');
+      document.getElementById('season-menu').style.display = 'none';
+    }
 
     // Reset all state
     state.managers = []; state.gwHistory = {}; state.historyLoaded = false;
@@ -6568,28 +6663,27 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       }
     }
 
-    // Update GW selector
-    const gwSel = document.getElementById('gw-select');
-    if (gwSel) {
-      gwSel.innerHTML = '';
-      for (let i = 38; i >= 1; i--) {
-        const opt = document.createElement('option');
-        opt.value = i; opt.textContent = 'GW ' + i;
-        if (i === 38) opt.selected = true;
-        gwSel.appendChild(opt);
-      }
-    }
-
-    buildWeeklyDropdown();
-    renderStandings();
-    // Fix all labels to show 2025/2026 — overrides CURRENT_SEASON_LABEL
+    // Update GW selector and UI (skip in silent mode)
     window.__viewingSeason = '2025-2026';
-    const wtl2 = document.getElementById('weekly-tab-label');
-    if (wtl2) wtl2.textContent = '2025 / 2026';
-    // Fix dropdown top item
-    const standingsItem = document.querySelector('.tab-dropdown-item[data-view="standings"]');
-    if (standingsItem) standingsItem.innerHTML = '2025 / 2026 <span style="font-size:10px;color:var(--text3);">Season</span>';
-    updateStickyOffsets();
+    if (!silent) {
+      const gwSel = document.getElementById('gw-select');
+      if (gwSel) {
+        gwSel.innerHTML = '';
+        for (let i = 38; i >= 1; i--) {
+          const opt = document.createElement('option');
+          opt.value = i; opt.textContent = 'GW ' + i;
+          if (i === 38) opt.selected = true;
+          gwSel.appendChild(opt);
+        }
+      }
+      buildWeeklyDropdown();
+      renderStandings();
+      const wtl2 = document.getElementById('weekly-tab-label');
+      if (wtl2) wtl2.textContent = '2025 / 2026';
+      const standingsItem = document.querySelector('.tab-dropdown-item[data-view="standings"]');
+      if (standingsItem) standingsItem.innerHTML = '2025 / 2026 <span style="font-size:10px;color:var(--text3);">Season</span>';
+      updateStickyOffsets();
+    }
   };
   window._ss2024 = () => window.selectSeason('2024/2025');
   window._ss2023 = () => window.selectSeason('2023/2024');
