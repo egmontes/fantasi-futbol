@@ -1334,7 +1334,7 @@ async function init() {
       // Show loading placeholder while history fetches
       document.getElementById('standings-content').innerHTML =
         '<div class="loading-state"><span class="spinner"></span><div style="text-align:center"><div>📊 Loading season data...</div><div style="font-size:11px;color:var(--text3);margin-top:6px;font-family:var(--font-mono);">Fetching ' + state.managers.length + ' managers\' history</div></div></div>';
-      if (activeTab === 'cup') loadCupData();
+      if (activeTab === 'cup') { if (window._allCupMatches?.length) renderCup(window._allCupMatches); else loadCupData(); }
       else if (activeTab === 'recap') setupRecapTab();
 
       // Load history + guinness in background, then render everything at once
@@ -2203,6 +2203,13 @@ async function init() {
     // Save ticker offset before re-render
     const savedTickerOffset = window.__fantasiTickerOffset || 0;
     document.getElementById('standings-content').innerHTML = html;
+
+    // Show season toggle bar (do this before any early returns)
+    if (isSeasonOver) {
+      const seasonToggleBar = document.getElementById('season-toggle-bar');
+      if (seasonToggleBar) seasonToggleBar.style.display = 'flex';
+    }
+
     const tickerEl = document.querySelector('.stat-ticker');
     if (tickerEl) {
       // Restore offset so position doesn't reset on sort
@@ -2215,17 +2222,24 @@ async function init() {
     const newHash = tickerEl2.innerHTML.length;
     if (newHash !== window.__tickerContentHash) {
       window.__tickerContentHash = newHash;
-      tickerEl2._tickerFontSizes = null;
-      requestAnimationFrame(() => fitStatCards(tickerEl2));
+      window.__tickerFontSizesByHash = window.__tickerFontSizesByHash || {};
+      if (window.__tickerFontSizesByHash[newHash]) {
+        // Same content rendered before — restore saved sizes instantly
+        tickerEl2._tickerFontSizes = window.__tickerFontSizesByHash[newHash];
+        requestAnimationFrame(() => applyStoredTickerSizes(tickerEl2));
+      } else {
+        tickerEl2._tickerFontSizes = null;
+        requestAnimationFrame(() => {
+          fitStatCards(tickerEl2);
+          window.__tickerFontSizesByHash[newHash] = tickerEl2._tickerFontSizes;
+        });
+      }
     } else {
       requestAnimationFrame(() => {
         if (!applyStoredTickerSizes(tickerEl2)) fitStatCards(tickerEl2);
       });
     }
     requestAnimationFrame(() => {
-      // Show season toggle bar when season is over
-      const seasonToggleBar = document.getElementById('season-toggle-bar');
-      if (isSeasonOver && seasonToggleBar) seasonToggleBar.style.display = 'flex';
       updateStickyOffsets();
       initFloatingHeader('standings-table');
     });
@@ -4500,20 +4514,13 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       }
 
       console.log('Total cup matches found:', allMatches.length);
-      // If fetch returned nothing but we have a static file, try it
-      if (allMatches.length === 0) {
-        try {
-          const r = await fetch(`data/${CURRENT_SEASON}/cup-matches.json`);
-          if (r.ok) allMatches = await r.json();
-        } catch(e) {}
-      }
-      // If still empty but we already had matches loaded, keep them
+      // If fetch returned nothing, use what's already loaded from GW files
       if (allMatches.length === 0 && window._allCupMatches?.length > 0) {
         allMatches = window._allCupMatches;
       }
-      window._allCupMatches = allMatches;
+      if (allMatches.length > 0) window._allCupMatches = allMatches;
       if (silent) {
-        renderStandings(); // re-render standings with cup prize data
+        renderStandings();
       } else {
         renderCup(allMatches);
       }
@@ -4750,6 +4757,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         if (liveElS) liveElS.style.display = state.isLive ? 'block' : 'none';
         updateExportBtn(currentGW);
         document.getElementById('gw-callout').style.display = isSeasonOver ? 'none' : 'block';
+        window.__lastWeeklyView = 'standings';
+        window.__lastWeeklyGW = null;
         document.getElementById('tab-standings').classList.add('active');
         setHashState('standings');
         if (gwBarEl) gwBarEl.classList.add('hidden');
@@ -4787,6 +4796,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         updateExportBtn(gw);
         // Show callout for past GW views even when season is over
         document.getElementById('gw-callout').style.display = 'block';
+        window.__lastWeeklyView = 'gw';
+        window.__lastWeeklyGW = gw;
         switchWeeklyView('table');
         renderWeekly(gw);
       }
@@ -4804,23 +4815,46 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         const isActive = btn.classList.contains('active');
         const menu = document.getElementById('weekly-tab-menu');
         if (!isActive) {
-          // Switch to gameweek tab (show standings by default)
           document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
           document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
           btn.classList.add('active');
-          document.getElementById('tab-standings').classList.add('active');
-          setHashState('standings');
-          document.getElementById('standings-toggle-bar').style.display = (!state.isLive && state.latestGW >= 38) ? 'none' : 'flex';
-          const weeklyToggleEl = document.getElementById('weekly-toggle-bar');
-          if (weeklyToggleEl) weeklyToggleEl.style.display = 'none';
           document.getElementById('floating-header').classList.remove('visible');
-          updateExportBtn(state.isLive ? state.liveGW : state.latestGW);
-          updateStickyOffsets();
-          requestAnimationFrame(() => {
-            initFloatingHeader('standings-table');
-            const tickerEl = document.querySelector('.stat-ticker');
-            if (tickerEl) makeTickerInteractive(tickerEl, window.__fantasiTickerOffset || 0);
-          });
+
+          // Restore last GW view if one was selected, otherwise go to standings
+          const lastView = window.__lastWeeklyView || 'standings';
+          const lastGW = window.__lastWeeklyGW;
+          const isSeasonOverNow = !state.isLive && state.latestGW >= 38;
+          if (lastView === 'gw' && lastGW) {
+            // Restore past GW view
+            document.getElementById('tab-weekly').classList.add('active');
+            setHashState('weekly');
+            document.getElementById('standings-toggle-bar').style.display = 'none';
+            const seasonToggleBarWB2 = document.getElementById('season-toggle-bar');
+            if (seasonToggleBarWB2) seasonToggleBarWB2.style.display = 'none';
+            const weeklyToggleEl2 = document.getElementById('weekly-toggle-bar');
+            if (weeklyToggleEl2) weeklyToggleEl2.style.display = 'flex';
+            document.getElementById('gw-callout').style.display = 'block';
+            updateExportBtn(lastGW);
+            updateStickyOffsets();
+            switchWeeklyView('table');
+            renderWeekly(lastGW);
+          } else {
+            // Go to season/standings view
+            document.getElementById('tab-standings').classList.add('active');
+            setHashState('standings');
+            document.getElementById('standings-toggle-bar').style.display = (!state.isLive && state.latestGW >= 38) ? 'none' : 'flex';
+            const seasonToggleBarWB = document.getElementById('season-toggle-bar');
+            if (seasonToggleBarWB) seasonToggleBarWB.style.display = isSeasonOverNow ? 'flex' : 'none';
+            const weeklyToggleEl = document.getElementById('weekly-toggle-bar');
+            if (weeklyToggleEl) weeklyToggleEl.style.display = 'none';
+            updateExportBtn(state.isLive ? state.liveGW : state.latestGW);
+            updateStickyOffsets();
+            requestAnimationFrame(() => {
+              initFloatingHeader('standings-table');
+              const tickerEl = document.querySelector('.stat-ticker');
+              if (tickerEl) makeTickerInteractive(tickerEl, window.__fantasiTickerOffset || 0);
+            });
+          }
           return;
         }
         // Already active — position and toggle dropdown
@@ -4882,7 +4916,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         else if (val === 'live') renderLive();
         else renderWeekly(parseInt(val)).catch(console.error);
       }
-      if (tab === 'cup') loadCupData();
+      if (tab === 'cup') { if (window._allCupMatches?.length) renderCup(window._allCupMatches); else loadCupData(); }
       if (tab === 'recap') setupRecapTab();
     });
   });
