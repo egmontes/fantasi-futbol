@@ -2255,23 +2255,22 @@ async function init() {
     const tickerEl2 = document.querySelector('.stat-ticker:not(#history-ticker)');
     if (!tickerEl2) return;
     const newHash = tickerEl2.innerHTML.length;
-    if (newHash !== window.__tickerContentHash) {
+    if (!window.__tickerFitted) {
       window.__tickerContentHash = newHash;
-      window.__tickerFontSizesByHash = window.__tickerFontSizesByHash || {};
-      if (window.__tickerFontSizesByHash[newHash]) {
-        // Same content rendered before — restore saved sizes instantly
-        tickerEl2._tickerFontSizes = window.__tickerFontSizesByHash[newHash];
-        requestAnimationFrame(() => applyStoredTickerSizes(tickerEl2));
-      } else {
-        tickerEl2._tickerFontSizes = null;
-        requestAnimationFrame(() => {
-          fitStatCards(tickerEl2);
-          window.__tickerFontSizesByHash[newHash] = tickerEl2._tickerFontSizes;
-        });
-      }
-    } else {
       requestAnimationFrame(() => {
-        if (!applyStoredTickerSizes(tickerEl2)) fitStatCards(tickerEl2);
+        fitStatCards(tickerEl2);
+        window.__tickerLastFontSizes = tickerEl2._tickerFontSizes;
+        window.__tickerFitted = true;
+      });
+    } else {
+      // Always restore — never recompute
+      requestAnimationFrame(() => {
+        if (tickerEl2._tickerFontSizes) {
+          applyStoredTickerSizes(tickerEl2);
+        } else if (window.__tickerLastFontSizes) {
+          tickerEl2._tickerFontSizes = window.__tickerLastFontSizes;
+          applyStoredTickerSizes(tickerEl2);
+        }
       });
     }
     requestAnimationFrame(() => {
@@ -4950,7 +4949,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         else if (val === 'live') renderLive();
         else renderWeekly(parseInt(val)).catch(console.error);
       }
-      if (tab === 'cup') { if (window._allCupMatches?.length) renderCup(window._allCupMatches); else loadCupData(); }
+      if (tab === 'cup') { window.__tickerFitted = false; if (window._allCupMatches?.length) renderCup(window._allCupMatches); else loadCupData(); }
       if (tab === 'recap') setupRecapTab();
     });
   });
