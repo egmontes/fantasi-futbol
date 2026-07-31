@@ -836,7 +836,7 @@
 
   async function loadGuinnessDebts() {
     try {
-      const url = `data/${CURRENT_SEASON}/guinness-misses.json?nocache=${Date.now()}`;
+      const url = `data/${window.__viewingSeason || CURRENT_SEASON}/guinness-misses.json?nocache=${Date.now()}`;
       console.log('Fetching guinness debts from:', url);
       const res = await fetch(url);
       console.log('Guinness fetch status:', res.status);
@@ -4153,7 +4153,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const gwPadded = String(gw).padStart(2, '0');
     const filename = season + '-gw' + gwPadded + '.txt';
     try {
-      const res = await fetch('recaps/' + filename + '?nocache=' + Date.now());
+      const res = await fetch(`recaps/${seasonSlug}/${filename}?nocache=${Date.now()}`);
       if (res.ok) {
         const text = await res.text();
         if (text.trim()) return text.trim();
@@ -4434,7 +4434,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Show download confirmation
       const btn = document.getElementById('save-recap-btn');
       const orig = btn.textContent;
-      btn.textContent = '✓ Saved & downloaded ' + filename;
+      btn.textContent = '✓ Downloaded → recaps/' + (window.__viewingSeason || CURRENT_SEASON) + '/' + filename;
       setTimeout(() => btn.textContent = orig, 3000);
     });
 
@@ -5290,7 +5290,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       a.href = url; a.download = filename; a.click();
       URL.revokeObjectURL(url);
       const btn = document.getElementById('standings-save-recap-btn');
-      btn.textContent = '✓ Saved & downloaded ' + filename;
+      btn.textContent = '✓ Downloaded → recaps/' + (window.__viewingSeason || CURRENT_SEASON) + '/' + filename;
       setTimeout(() => btn.textContent = 'Save recap', 3000);
     });
 
@@ -5440,7 +5440,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
       URL.revokeObjectURL(url);
       const btn = document.getElementById('weekly-save-recap-btn');
-      btn.textContent = '✓ Saved & downloaded ' + filename;
+      btn.textContent = '✓ Downloaded → recaps/' + (window.__viewingSeason || CURRENT_SEASON) + '/' + filename;
       setTimeout(() => btn.textContent = 'Save recap', 3000);
     });
 
@@ -5955,7 +5955,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     let saved = localStorage.getItem(RECAP_KEY) || '';
     if (!saved) {
       try {
-        const res = await fetch(`recaps/${(window.__viewingSeason || CURRENT_SEASON).split('-')[0]}-season.txt?nocache=${Date.now()}`);
+        const res = await fetch(`recaps/${window.__viewingSeason || CURRENT_SEASON}/${(window.__viewingSeason || CURRENT_SEASON).split('-')[0]}-season.txt?nocache=${Date.now()}`);
         if (res.ok) { const t = await res.text(); if (t.trim()) saved = t.trim(); }
       } catch(e) {}
     }
@@ -6061,7 +6061,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const a = document.createElement('a'); a.href = url; a.download = (window.__viewingSeason || CURRENT_SEASON).split('-')[0] + '-season.txt'; a.click();
       URL.revokeObjectURL(url);
       const btn = document.getElementById('season-save-recap-btn');
-      btn.textContent = '✓ Saved & downloaded ' + (window.__viewingSeason || CURRENT_SEASON).split('-')[0] + '-season.txt';
+      btn.textContent = '✓ Downloaded → recaps/' + (window.__viewingSeason || CURRENT_SEASON) + '/' + (window.__viewingSeason || CURRENT_SEASON).split('-')[0] + '-season.txt';
       setTimeout(() => btn.textContent = 'Save recap', 3000);
     });
 
@@ -6357,7 +6357,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   async function loadGWFromCache(gw) {
     if (_gwCacheLoaded[gw]) return true;
     try {
-      const res = await fetch(`data/${CURRENT_SEASON}/gw${String(gw).padStart(2,'0')}.json?nocache=${Date.now()}`);
+      const season = window.__viewingSeason || CURRENT_SEASON;
+      const res = await fetch(`data/${season}/gw${String(gw).padStart(2,'0')}.json?nocache=${Date.now()}`);
       if (!res.ok) return false;
       const cache = await res.json();
 
