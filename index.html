@@ -706,13 +706,15 @@
     <div class="site-logo">Fantasi <span style="color:var(--theme)">Futbol</span></div>
     <div style="position:relative;display:inline-block;">
       <button id="season-btn" onclick="toggleSeasonMenu()" style="background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;font-size:11px;font-family:var(--font-mono);color:var(--text3);">
-        <span id="season-label" style="color:var(--theme);">2025 / 2026</span>
+        <span id="season-label" style="color:var(--theme);">2026 / 2027</span>
         <span style="font-size:9px;opacity:0.6;">▾</span>
       </button>
       <div id="season-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:8px;padding:4px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);min-width:130px;">
+        <button onclick="window._ssLive()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--theme);border:none;border-radius:6px;cursor:pointer;font-weight:600;">2026 / 2027 ✦</button>
+        <div style="height:1px;background:var(--border);margin:4px 0;"></div>
         <button onclick="window._ssHistory()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">📊 All Time</button>
         <div style="height:1px;background:var(--border);margin:4px 0;"></div>
-        <button onclick="window._ss2025()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:var(--theme-dim);color:var(--theme);border:none;border-radius:6px;cursor:pointer;font-weight:600;">2025 / 2026</button>
+        <button onclick="window._ss2025()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2025 / 2026</button>
         <button onclick="window._ss2024()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2024 / 2025</button>
         <button onclick="window._ss2023()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2023 / 2024</button>
         <button onclick="window._ss2022()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2022 / 2023</button>
@@ -799,7 +801,7 @@
 </div>
 
 <script data-v="20260730-2">
-  const LEAGUE_ID = 237384;
+  const LEAGUE_ID = 196059;
   const PRIZE_MAP = { 1: 30, 2: 15, 3: 10, 4: 5 };
   const FPL_BASE = 'https://fantasy.premierleague.com/api/';
 
@@ -816,9 +818,9 @@
   // ── SEASON CONFIG ────────────────────────────────────────────────────────
   // To start a new season: change CURRENT_SEASON to e.g. '2026-2027'
   // and add the old season to HISTORICAL_SEASONS below.
-  const CURRENT_SEASON      = '2025-2026';
-  const CURRENT_SEASON_LABEL = '2025/2026'; // human-readable
-  const CURRENT_SEASON_SHORT = '2025/26';   // short label for all-time page
+  const CURRENT_SEASON      = '2026-2027';
+  const CURRENT_SEASON_LABEL = '2026/2027'; // human-readable
+  const CURRENT_SEASON_SHORT = '2026/27';   // short label for all-time page
   // ── END SEASON CONFIG ────────────────────────────────────────────────────
 
   const state = {
@@ -4146,7 +4148,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   // Try to load recap from GitHub Pages recaps/ folder, fall back to localStorage
   async function loadSavedRecap(gw) {
-    const season = CURRENT_SEASON.split('-')[0];
+    const seasonSlug = window.__viewingSeason || CURRENT_SEASON;
+    const season = seasonSlug.split('-')[0];
     const gwPadded = String(gw).padStart(2, '0');
     const filename = season + '-gw' + gwPadded + '.txt';
     try {
@@ -4208,7 +4211,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       '<div class="recap-card">' +
         '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:0.75rem;">' +
           '<div>' +
-            '<div class="recap-gw-label">' + (container ? CURRENT_SEASON_LABEL + ' SEASON RECAP' : 'GW' + gw + ' RECAP') + '</div>' +
+            '<div class="recap-gw-label">' + (container ? (window.__viewingSeason || CURRENT_SEASON).replace('-', '/').replace('-', '/') + ' SEASON RECAP' : 'GW' + gw + ' RECAP') + '</div>' +
             '<div class="recap-sub">Fantasi Futbol' + (container ? '' : ' · GW' + gw) + '</div>' +
           '</div>' +
           '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
@@ -4419,7 +4422,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Auto-download the .txt file with correct naming
       const season = CURRENT_SEASON;
       const gwPadded = String(gw).padStart(2, '0');
-      const filename = CURRENT_SEASON.split('-')[0] + '-gw' + gwPadded + '.txt';
+      const filename = (window.__viewingSeason || CURRENT_SEASON).split('-')[0] + '-gw' + gwPadded + '.txt';
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -4518,7 +4521,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const seen = new Set();
 
       // Get cup_league ID from the classic league standings
-      let cupLeagueId = 2970051; // known cup league ID for this league — fallback
+      let cupLeagueId = 0; // TODO: update with 2026/2027 cup league ID
       try {
         const leagueData = await fetchFPL('leagues-classic/' + LEAGUE_ID + '/standings/');
         cupLeagueId = (leagueData.league && leagueData.league.cup_league) || cupLeagueId;
@@ -4748,7 +4751,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     standingsItem.className = 'tab-dropdown-item active';
     standingsItem.dataset.view = 'standings';
     if (isSeasonOver) {
-      standingsItem.innerHTML = '2025 / 2026 <span style="font-size:10px;color:var(--text3);">Season</span>';
+      standingsItem.innerHTML = (window.__viewingSeason ? window.__viewingSeason.replace('-', ' / ').replace('-', '/') : CURRENT_SEASON_LABEL.replace('/', ' / ')) + ' <span style="font-size:10px;color:var(--text3);">Season</span>';
     } else {
       standingsItem.innerHTML = 'GW ' + currentGW + (state.isLive ? ' <span style="font-size:10px;color:var(--red);">● Live</span>' : ' <span style="font-size:10px;color:var(--text3);">Current</span>');
     }
@@ -4765,7 +4768,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       menu.appendChild(item);
     }
 
-    label.textContent = isSeasonOver ? CURRENT_SEASON_LABEL.replace('/', ' / ') : 'Gameweek ' + currentGW;
+    label.textContent = isSeasonOver ? (window.__viewingSeason ? window.__viewingSeason.replace(/-/g,'/').replace('2025/2026','2025 / 2026') : CURRENT_SEASON_LABEL.replace('/', ' / ')) : 'Gameweek ' + currentGW;
     const liveEl = document.getElementById('weekly-tab-live');
     if (liveEl) liveEl.style.display = state.isLive ? 'block' : 'none';
 
@@ -4785,7 +4788,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
       if (item.dataset.view === 'standings') {
         const isSeasonOver = !state.isLive && state.latestGW >= 38;
-        label.textContent = isSeasonOver ? CURRENT_SEASON_LABEL.replace('/', ' / ') : 'Gameweek ' + currentGW;
+        label.textContent = isSeasonOver ? (window.__viewingSeason ? window.__viewingSeason.replace(/-/g,'/').replace('2025/2026','2025 / 2026') : CURRENT_SEASON_LABEL.replace('/', ' / ')) : 'Gameweek ' + currentGW;
         const liveElS = document.getElementById('weekly-tab-live');
         if (liveElS) liveElS.style.display = state.isLive ? 'block' : 'none';
         updateExportBtn(currentGW);
@@ -4828,7 +4831,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         if (recapBtn) recapBtn.textContent = 'GW' + gw + ' Recap';
         updateExportBtn(gw);
         // Show callout for past GW views even when season is over
-        document.getElementById('gw-callout').style.display = 'block';
+        document.getElementById('gw-callout').style.display = window.__viewingSeason ? 'none' : 'block';
         window.__lastWeeklyView = 'gw';
         window.__lastWeeklyGW = gw;
         switchWeeklyView('table');
@@ -4866,7 +4869,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
             if (seasonToggleBarWB2) seasonToggleBarWB2.style.display = 'none';
             const weeklyToggleEl2 = document.getElementById('weekly-toggle-bar');
             if (weeklyToggleEl2) weeklyToggleEl2.style.display = 'flex';
-            document.getElementById('gw-callout').style.display = 'block';
+            document.getElementById('gw-callout').style.display = window.__viewingSeason ? 'none' : 'block';
             updateExportBtn(lastGW);
             updateStickyOffsets();
             switchWeeklyView('table');
@@ -5280,7 +5283,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Download file
       const season = CURRENT_SEASON;
       const gwPadded = String(gw).padStart(2, '0');
-      const filename = CURRENT_SEASON.split('-')[0] + '-gw' + gwPadded + '.txt';
+      const filename = (window.__viewingSeason || CURRENT_SEASON).split('-')[0] + '-gw' + gwPadded + '.txt';
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -5431,7 +5434,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       document.getElementById('weekly-clear-recap-btn').style.display = 'inline-block';
       const season = CURRENT_SEASON;
       const gwPadded = String(gw).padStart(2, '0');
-      const filename = CURRENT_SEASON.split('-')[0] + '-gw' + gwPadded + '.txt';
+      const filename = (window.__viewingSeason || CURRENT_SEASON).split('-')[0] + '-gw' + gwPadded + '.txt';
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
@@ -5701,6 +5704,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         { file: '2022-2023', label: '2022/23' },
         { file: '2023-2024', label: '2023/24' },
         { file: '2024-2025', label: '2024/25' },
+        // { file: '2025-2026', label: '2025/26' }, // uncomment after running window._exportSeasonSummary() and pushing data/seasons/2025-2026.json
       ];
       const seasonData = {};
       await Promise.all(SEASON_FILES.map(async s => {
@@ -5947,11 +5951,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (!el) return;
 
     const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const RECAP_KEY = `recap-season-${CURRENT_SEASON}`;
+    const RECAP_KEY = `recap-season-${window.__viewingSeason || CURRENT_SEASON}`;
     let saved = localStorage.getItem(RECAP_KEY) || '';
     if (!saved) {
       try {
-        const res = await fetch(`recaps/${CURRENT_SEASON.split('-')[0]}-season.txt?nocache=${Date.now()}`);
+        const res = await fetch(`recaps/${(window.__viewingSeason || CURRENT_SEASON).split('-')[0]}-season.txt?nocache=${Date.now()}`);
         if (res.ok) { const t = await res.text(); if (t.trim()) saved = t.trim(); }
       } catch(e) {}
     }
@@ -6054,10 +6058,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Download as txt file
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = CURRENT_SEASON.split('-')[0] + '-season.txt'; a.click();
+      const a = document.createElement('a'); a.href = url; a.download = (window.__viewingSeason || CURRENT_SEASON).split('-')[0] + '-season.txt'; a.click();
       URL.revokeObjectURL(url);
       const btn = document.getElementById('season-save-recap-btn');
-      btn.textContent = '✓ Saved & downloaded ' + CURRENT_SEASON.split('-')[0] + '-season.txt';
+      btn.textContent = '✓ Saved & downloaded ' + (window.__viewingSeason || CURRENT_SEASON).split('-')[0] + '-season.txt';
       setTimeout(() => btn.textContent = 'Save recap', 3000);
     });
 
@@ -6191,6 +6195,37 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     return p;
   }
   // ── END SEASON RECAP ─────────────────────────────────────────────────────
+
+  // Export a season summary JSON for the historical page
+  window._exportSeasonSummary = function() {
+    const SEASON_PRIZES = {1:550,2:275,3:175,4:100,5:20};
+    const CUP_PRIZES = {winner:225,runnerUp:125};
+    const stats = computeSeasonStats(state.latestGW);
+    const cupFinal = (window._allCupMatches||[]).filter(m=>m.winner).sort((a,b)=>b.event-a.event)[0];
+    const cupWinnerId = cupFinal?.winner;
+    const cupRunnerUpId = cupFinal ? (cupFinal.entry_1_entry===cupFinal.winner?cupFinal.entry_2_entry:cupFinal.entry_1_entry) : null;
+    const ranked = state.managers.map(m => {
+      const hist = state.gwHistory[m.id]||[];
+      const last = [...hist].sort((a,b)=>b.event-a.event)[0];
+      return {id:m.id,name:m.name,team:m.team,total:last?.total_points||0};
+    }).sort((a,b)=>b.total-a.total);
+    const summary = {
+      season: '2025/2026',
+      managers: ranked.map((m,i) => {
+        const s = stats[m.id]||{};
+        const sp = SEASON_PRIZES[i+1]||0;
+        const cp = m.id===cupWinnerId?CUP_PRIZES.winner:m.id===cupRunnerUpId?CUP_PRIZES.runnerUp:0;
+        return { name:m.name, team:m.team, earned:(s.moneyWon||0)+sp+cp, guinness:getTotalGuinnesses(m.name,s.bottom2||0) };
+      }),
+      awards: {
+        League: { winner:ranked[0]?.name, runner_up:ranked[1]?.name, third:ranked[2]?.name, fourth:ranked[3]?.name, fifth:ranked[4]?.name },
+        Cup: { winner:state.managers.find(m=>m.id===cupWinnerId)?.name, runner_up:state.managers.find(m=>m.id===cupRunnerUpId)?.name }
+      }
+    };
+    const blob = new Blob([JSON.stringify(summary,null,2)],{type:'application/json'});
+    const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='2025-2026.json'; a.click();
+    URL.revokeObjectURL(a.href);
+  };
 
   init().then(() => initPullToRefresh());
 
@@ -6440,7 +6475,84 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   };
 
   window._ssHistory = () => showLeagueHistory();
-  window._ss2025 = () => window.selectSeason(CURRENT_SEASON_LABEL);
+  window._ssLive = () => { window.__viewingSeason = null; window.location.reload(); };
+  window._ss2025 = async function() {
+    document.getElementById('season-label').textContent = '2025 / 2026';
+    const wtl = document.getElementById('weekly-tab-label');
+    if (wtl) wtl.textContent = '2025 / 2026';
+    document.getElementById('season-menu').style.display = 'none';
+
+    // Reset all state
+    state.managers = []; state.gwHistory = {}; state.historyLoaded = false;
+    state.chipsHistory = {}; state.latestGW = 38; state.currentGW = 38;
+    state.isLive = false; state.isTransition = false;
+    window._allCupMatches = []; window._captainCache = {};
+    window._picksCache = {}; window._gwCacheLoaded = {};
+
+    // Show the standings section
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('weekly-tab-btn').classList.add('active');
+    document.getElementById('tab-standings').classList.add('active');
+    document.getElementById('gw-callout').style.display = 'none';
+    document.getElementById('season-toggle-bar').style.display = 'flex';
+    document.getElementById('standings-toggle-bar').style.display = 'none';
+    document.getElementById('weekly-toggle-bar').style.display = 'none';
+    document.getElementById('main-tabs').style.visibility = 'visible';
+    document.getElementById('main-tabs').style.height = '';
+    document.getElementById('main-tabs').style.padding = '';
+    document.getElementById('main-tabs').style.borderBottom = '';
+
+    document.getElementById('standings-content').innerHTML = '<div class="loading-state"><span class="spinner"></span>Loading 2025/2026...</div>';
+
+    // Load managers from gw38.json
+    try {
+      const res = await fetch('data/2025-2026/gw38.json');
+      if (res.ok) {
+        const gw38 = await res.json();
+        if (gw38.managers?.length) {
+          const sorted = [...gw38.managers].sort((a,b) => (b.history?.total_points||0) - (a.history?.total_points||0));
+          state.managers = sorted.map((m,i) => ({ id:m.id, name:m.name, team:m.team, total:m.history?.total_points||0, rank:i+1 }));
+        }
+      }
+    } catch(e) {}
+
+    // Load all history from GW files
+    const loaded = await loadHistoryFromGWFiles('2025-2026');
+    if (loaded >= 38) {
+      state.historyLoaded = true;
+      // Load cup data
+      if (!window._allCupMatches?.length) {
+        try {
+          const r = await fetch('data/2025-2026/cup-matches.json');
+          if (r.ok) window._allCupMatches = await r.json();
+        } catch(e) {}
+      }
+    }
+
+    // Update GW selector
+    const gwSel = document.getElementById('gw-select');
+    if (gwSel) {
+      gwSel.innerHTML = '';
+      for (let i = 38; i >= 1; i--) {
+        const opt = document.createElement('option');
+        opt.value = i; opt.textContent = 'GW ' + i;
+        if (i === 38) opt.selected = true;
+        gwSel.appendChild(opt);
+      }
+    }
+
+    buildWeeklyDropdown();
+    renderStandings();
+    // Fix all labels to show 2025/2026 — overrides CURRENT_SEASON_LABEL
+    window.__viewingSeason = '2025-2026';
+    const wtl2 = document.getElementById('weekly-tab-label');
+    if (wtl2) wtl2.textContent = '2025 / 2026';
+    // Fix dropdown top item
+    const standingsItem = document.querySelector('.tab-dropdown-item[data-view="standings"]');
+    if (standingsItem) standingsItem.innerHTML = '2025 / 2026 <span style="font-size:10px;color:var(--text3);">Season</span>';
+    updateStickyOffsets();
+  };
   window._ss2024 = () => window.selectSeason('2024/2025');
   window._ss2023 = () => window.selectSeason('2023/2024');
   window._ss2022 = () => window.selectSeason('2022/2023');
@@ -6516,6 +6628,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     try {
       const res = await fetch('data/seasons/' + file + '.json?nocache=' + Date.now());
+      if (!res.ok) throw new Error('Season data not yet available. Push data/seasons/' + file + '.json to enable this view.');
       const data = await res.json();
       window._histData = data;
       window._histSort = { col: 'earned', dir: -1 }; // reset sort on season change
