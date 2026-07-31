@@ -6071,10 +6071,24 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (window._historyData) {
       const el = document.getElementById('history-content');
       const savedScrollY = window.scrollY;
+      const tableOuter = document.querySelector('#history-table')?.closest('.table-outer');
+      const savedScrollX = tableOuter?.scrollLeft || 0;
       el.innerHTML = renderLeagueHistory(window._historyData.seasonData, window._historyData.labels);
       requestAnimationFrame(() => {
         window.scrollTo(0, savedScrollY);
+        const newTableOuter = document.querySelector('#history-table')?.closest('.table-outer');
+        if (newTableOuter) newTableOuter.scrollLeft = savedScrollX;
         initFloatingHeader('history-table');
+        const histScrollWrap = document.querySelector('#history-table')?.closest('.table-scroll-wrap');
+        if (newTableOuter && histScrollWrap) {
+          const updateHistScroll = () => {
+            const { scrollLeft, scrollWidth, clientWidth } = newTableOuter;
+            histScrollWrap.classList.toggle('scroll-at-start', scrollLeft <= 2);
+            histScrollWrap.classList.toggle('scroll-at-end', scrollLeft + clientWidth >= scrollWidth - 2);
+          };
+          newTableOuter.addEventListener('scroll', updateHistScroll, { passive: true });
+          requestAnimationFrame(updateHistScroll);
+        }
         const tickerEl = document.getElementById('history-ticker');
         if (tickerEl) { makeTickerInteractive(tickerEl); requestAnimationFrame(() => fitStatCards(tickerEl)); }
       });
