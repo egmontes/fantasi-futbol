@@ -1768,6 +1768,19 @@ async function init() {
   async function renderStandings() {
     const currentGW = state.isLive ? state.liveGW : state.latestGW;
     const isSeasonOver = !state.isLive && state.latestGW >= 38;
+
+    // Pre-season — no managers or GW data yet
+    if (!state.managers.length) {
+      document.getElementById('standings-content').innerHTML =
+        '<div style="text-align:center;padding:4rem 1rem;">' +
+          '<div style="font-size:3rem;margin-bottom:1rem;">⚽</div>' +
+          '<div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;">' + CURRENT_SEASON_LABEL + ' Season</div>' +
+          '<div style="font-size:14px;color:var(--text3);max-width:360px;margin:0 auto;line-height:1.6;">The season hasn\'t started yet. Check back once managers have joined and GW1 kicks off!</div>' +
+        '</div>';
+      document.getElementById('season-toggle-bar').style.display = 'none';
+      document.getElementById('weekly-toggle-bar').style.display = 'none';
+      return;
+    }
     const stats = computeSeasonStats();
     const weeklyPool = state.latestGW * 60;
     const SEASON_PRIZE_TOTAL = 550 + 275 + 175 + 100 + 20; // 1120
@@ -3295,6 +3308,8 @@ async function init() {
       if (!ranked.length) {
         document.getElementById('weekly-content').innerHTML =
           `<div class="loading-state">No data available for GW${gw} yet.</div>`;
+        const wtb = document.getElementById('weekly-toggle-bar');
+        if (wtb) wtb.style.display = 'flex';
         return;
       }
       const n = ranked.length;
@@ -3774,6 +3789,11 @@ function computeTeam(picks, liveData, bootstrap, chip) {
 async function buildPrompt(gw) {
     const stats = computeSeasonStats(gw);
     const ranked = getWeeklyRankings(gw);
+
+    if (!ranked.length || !state.managers.length) {
+      throw new Error('No data available for GW' + gw + ' yet — check back after the gameweek completes.');
+    }
+
     const weekPrizes = computeWeeklyPrizes(ranked);
     const n = ranked.length;
 
@@ -4240,8 +4260,20 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   async function setupRecapTab() {
     const gwVal = document.getElementById('gw-select').value;
     const isPreview = gwVal === 'preview';
-    // Always use latestGW for recap — it reflects the most recently completed GW
     const gw = isPreview ? state.nextGW : (state.isLive ? state.liveGW : state.latestGW);
+
+    // No data yet for new season
+    if (!state.managers.length || !state.historyLoaded) {
+      document.getElementById('recap-content').innerHTML = `
+        <div style="text-align:center;padding:3rem 1rem;">
+          <div style="font-size:2rem;margin-bottom:1rem;">📅</div>
+          <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px;">No data yet</div>
+          <div style="font-size:13px;color:var(--text3);max-width:360px;margin:0 auto;line-height:1.6;">
+            Recaps will be available once GW${gw} is complete and scores are finalized.
+          </div>
+        </div>`;
+      return;
+    }
 
     // Live GW — show pending message
     if (state.isLive) {
@@ -5334,6 +5366,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Get current selected GW
       const gwVal = document.getElementById('gw-select').value;
       const gw = parseInt(gwVal) || state.latestGW;
+      // Show placeholder if no managers loaded yet
+      if (!state.managers.length) {
+        recapContent.innerHTML = '<div style="text-align:center;padding:3rem 1rem;"><div style="font-size:2rem;margin-bottom:1rem;">📅</div><div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px;">No recap yet</div><div style="font-size:13px;color:var(--text3);max-width:360px;margin:0 auto;line-height:1.6;">Recaps will be available once GW' + gw + ' is complete and scores are finalized.</div></div>';
+        return;
+      }
       // Re-setup if GW changed
       if (_weeklyRecapGW !== gw) {
         _weeklyRecapGW = gw;
