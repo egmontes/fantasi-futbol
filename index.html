@@ -6475,9 +6475,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       document.getElementById('weekly-toggle-bar').style.display = 'none';
       document.getElementById('tab-historical').classList.remove('active');
       document.getElementById('tab-history').classList.remove('active');
-      document.getElementById('gw-callout').style.display = '';
+      document.getElementById('gw-callout').style.display = (!state.isLive && state.latestGW >= 38) ? 'none' : '';
       const seasonToggleBarS = document.getElementById('season-toggle-bar');
-      if (seasonToggleBarS) seasonToggleBarS.style.display = 'none';
+      if (seasonToggleBarS) seasonToggleBarS.style.display = (!state.isLive && state.latestGW >= 38) ? 'flex' : 'none';
       // Reset season recap to table view
       const recapEl = document.getElementById('season-recap-content');
       if (recapEl) recapEl.style.display = 'none';
