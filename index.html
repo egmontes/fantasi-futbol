@@ -1919,24 +1919,6 @@ async function init() {
 
     const col = standingsSort.col;
     const dir = standingsSort.dir === 'asc' ? 1 : -1;
-    rows.sort((a, b) => {
-      if (col === 'name') return dir * a.name.localeCompare(b.name);
-      if (col === 'captain') { const ca = a.captain?.name||''; const cb = b.captain?.name||''; return dir * ca.localeCompare(cb); }
-      if (col === 'gwpts') return dir * ((a.gwLatestPts||0) - (b.gwLatestPts||0));
-      if (col === 'pts')  return dir * (a.total - b.total);
-      if (col === 'played') {
-        const ap = (window._playedCache || {})[currentGW]?.[a.id]?.played || 0;
-        const bp = (window._playedCache || {})[currentGW]?.[b.id]?.played || 0;
-        return dir * (ap - bp);
-      }
-      if (col === 'top4') return dir * (a.top4 - b.top4);
-      if (col === 'bot2') return dir * (a.bottom2 - b.bottom2);
-      if (col === 'earned') return dir * ((a.totalEarned || a.earned) - (b.totalEarned || b.earned));
-      if (col === 'gmisses') return dir * (a.gmisses - b.gmisses);
-      if (col === 'missed') return dir * (a.missedG - b.missedG);
-      if (col === 'totalg') return dir * (a.totalG - b.totalG);
-      return 0;
-    });
 
     const thClass = c => 'class="sortable' + (col === c ? ' sort-' + standingsSort.dir : '') + '"';
 
@@ -1950,19 +1932,34 @@ async function init() {
     });
 
     // Compute totalEarned (weekly + season prize + cup prize) for sorting
-    if (isSeasonOver) {
-      const SEASON_PRIZES_SORT = { 1:550, 2:275, 3:175, 4:100, 5:20 };
-      const cupFinalSort = (window._allCupMatches||[]).filter(c=>c.winner).sort((a,b)=>b.event-a.event)[0];
-      rows.forEach(m => {
-        const sp = SEASON_PRIZES_SORT[seasonRankMap[m.id]] || 0;
-        const cp = cupFinalSort
-          ? (cupFinalSort.winner===m.id ? 225 : (cupFinalSort.entry_1_entry===cupFinalSort.winner ? cupFinalSort.entry_2_entry : cupFinalSort.entry_1_entry)===m.id ? 125 : 0)
-          : 0;
-        m.totalEarned = m.earned + sp + cp;
-      });
-    } else {
-      rows.forEach(m => { m.totalEarned = m.earned; });
-    }
+    const SEASON_PRIZES_SORT = { 1:550, 2:275, 3:175, 4:100, 5:20 };
+    const cupFinalSort = (window._allCupMatches||[]).filter(c=>c.winner).sort((a,b)=>b.event-a.event)[0];
+    rows.forEach(m => {
+      const sp = isSeasonOver ? (SEASON_PRIZES_SORT[seasonRankMap[m.id]]||0) : 0;
+      const cp = isSeasonOver && cupFinalSort
+        ? (cupFinalSort.winner===m.id ? 225 : (cupFinalSort.entry_1_entry===cupFinalSort.winner?cupFinalSort.entry_2_entry:cupFinalSort.entry_1_entry)===m.id ? 125 : 0)
+        : 0;
+      m.totalEarned = m.earned + sp + cp;
+    });
+
+    rows.sort((a, b) => {
+      if (col === 'name') return dir * a.name.localeCompare(b.name);
+      if (col === 'captain') { const ca = a.captain?.name||''; const cb = b.captain?.name||''; return dir * ca.localeCompare(cb); }
+      if (col === 'gwpts') return dir * ((a.gwLatestPts||0) - (b.gwLatestPts||0));
+      if (col === 'pts')  return dir * (a.total - b.total);
+      if (col === 'played') {
+        const ap = (window._playedCache || {})[currentGW]?.[a.id]?.played || 0;
+        const bp = (window._playedCache || {})[currentGW]?.[b.id]?.played || 0;
+        return dir * (ap - bp);
+      }
+      if (col === 'top4') return dir * (a.top4 - b.top4);
+      if (col === 'bot2') return dir * (a.bottom2 - b.bottom2);
+      if (col === 'earned') return dir * (a.totalEarned - b.totalEarned);
+      if (col === 'gmisses') return dir * (a.gmisses - b.gmisses);
+      if (col === 'missed') return dir * (a.missedG - b.missedG);
+      if (col === 'totalg') return dir * (a.totalG - b.totalG);
+      return 0;
+    });
 
     // Build basic ticker cards immediately (no expensive fetches)
     const tickerInsights = computeTickerInsights();
