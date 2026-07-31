@@ -5769,6 +5769,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         const savedLatestGW = state.latestGW;
         const savedHistLoaded = state.historyLoaded;
 
+        const savedGuinness = state.guinnessDebts;
+
         // Temporarily load 2025/2026 into state
         state.managers = [];
         state.gwHistory = {};
@@ -5791,7 +5793,15 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
             if (cr.ok) window._allCupMatches = await cr.json();
           } catch(e) {}
 
-          const stats2025 = computeSeasonStats(38);
+          // Load guinness debts from 2025/2026
+        try {
+          const gr = await fetch('data/2025-2026/guinness-misses.json');
+          if (gr.ok) state.guinnessDebts = await gr.json();
+          else state.guinnessDebts = {};
+        } catch(e) { state.guinnessDebts = {}; }
+
+        const stats2025 = computeSeasonStats(38);
+          const guinness2025 = { ...state.guinnessDebts }; // capture before state restore
           const seasonRanked2025 = [...state.managers].sort((a,b) => {
             const ha = (state.gwHistory[a.id]||[]).sort((x,y)=>y.event-x.event)[0];
             const hb = (state.gwHistory[b.id]||[]).sort((x,y)=>y.event-x.event)[0];
@@ -5830,6 +5840,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         state.managers = savedManagers;
         state.gwHistory = savedHistory;
         state.chipsHistory = savedChips;
+        state.guinnessDebts = savedGuinness;
         Object.assign(_captainCache, savedCaptains);
         window._allCupMatches = savedCupMatches;
         state.latestGW = savedLatestGW;
@@ -6677,6 +6688,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     // Load all history from GW files
     const loaded = await loadHistoryFromGWFiles('2025-2026');
+    await loadGuinnessDebts();
     if (loaded >= 38) {
       state.historyLoaded = true;
       // Load cup data
