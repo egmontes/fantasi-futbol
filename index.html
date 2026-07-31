@@ -1848,7 +1848,16 @@ async function init() {
         : m.total;
       const chip = standingsChips[m.id] || null;
       const captain = standingsCaptains[m.id] || null;
-      return { ...m, total: liveTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, missedG, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain };
+      const weeklyEarned = s.moneyWon || 0;
+      const SEASON_PRIZES_ROW = { 1: 550, 2: 275, 3: 175, 4: 100, 5: 20 };
+      const sRank = seasonRankMap[m.id];
+      const seasonPrizeRow = isSeasonOver ? (SEASON_PRIZES_ROW[sRank] || 0) : 0;
+      const cupFinalRow = (window._allCupMatches || []).filter(c => c.winner).sort((a,b) => b.event - a.event)[0];
+      const cupPrizeRow = isSeasonOver && cupFinalRow
+        ? (cupFinalRow.winner === m.id ? 225 : (cupFinalRow.entry_1_entry === cupFinalRow.winner ? cupFinalRow.entry_2_entry : cupFinalRow.entry_1_entry) === m.id ? 125 : 0)
+        : 0;
+      const totalEarned = weeklyEarned + seasonPrizeRow + cupPrizeRow;
+      return { ...m, total: liveTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: weeklyEarned, totalEarned, gmisses, missedG, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain };
     });
 
     // Compute rank changes vs last GW
@@ -1908,7 +1917,7 @@ async function init() {
       }
       if (col === 'top4') return dir * (a.top4 - b.top4);
       if (col === 'bot2') return dir * (a.bottom2 - b.bottom2);
-      if (col === 'earned') return dir * (a.earned - b.earned);
+      if (col === 'earned') return dir * ((a.totalEarned || a.earned) - (b.totalEarned || b.earned));
       if (col === 'gmisses') return dir * (a.gmisses - b.gmisses);
       if (col === 'missed') return dir * (a.missedG - b.missedG);
       if (col === 'totalg') return dir * (a.totalG - b.totalG);
