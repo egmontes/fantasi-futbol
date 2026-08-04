@@ -5,17 +5,32 @@
   "awards": {
     "League": {
       "winner": "Matt Nicolai",
-      "runner_up": "JCarr Gamble",
-      "third": "Aidan White",
-      "fourth": "Andrew Denucci",
-      "fifth": "Mike Adipietro"
+      "runner_up": [
+        "JCarr Gamble"
+      ],
+      "third": [
+        "Andrew Denucci"
+      ],
+      "fourth": [
+        "Andrew Denucci"
+      ],
+      "fifth": [
+        "Mike Adipietro"
+      ]
     },
     "Cup": {
       "winner": "Mike Adipietro",
-      "runner_up": "Andrew Denucci",
-      "third": null,
-      "fourth": null,
-      "fifth": null
+      "runner_up": [
+        "Andrew Denucci"
+      ],
+      "third": [
+        "Rob Disanto"
+      ],
+      "fourth": [],
+      "fifth": []
+    },
+    "Kluis": {
+      "winner": "Logan Kluis"
     }
   },
   "managers": [
@@ -25,11 +40,11 @@
       "guinness": 0,
       "top1": 2.0,
       "top2": 2.0,
+      "last": 0.0,
       "top3": 0.5,
       "top4": 1.5,
-      "top4_count": 7,
       "second_last": 0.0,
-      "last": 0.0
+      "top4_count": 7.0
     },
     {
       "name": "JCarr Gamble",
@@ -37,11 +52,11 @@
       "guinness": 0,
       "top1": 2.0,
       "top2": 0.5,
+      "last": 0.0,
       "top3": 2.5,
       "top4": 0.0,
-      "top4_count": 6,
       "second_last": 0.0,
-      "last": 0.0
+      "top4_count": 6.0
     },
     {
       "name": "Mike Adipietro",
@@ -49,11 +64,11 @@
       "guinness": 0,
       "top1": 0.0,
       "top2": 1.0,
+      "last": 0.0,
       "top3": 3.0,
       "top4": 0.0,
-      "top4_count": 6,
       "second_last": 0.0,
-      "last": 0.0
+      "top4_count": 6.0
     },
     {
       "name": "Aidan White",
@@ -61,11 +76,11 @@
       "guinness": 0,
       "top1": 3.0,
       "top2": 2.0,
+      "last": 0.0,
       "top3": 0.25,
       "top4": 0.0,
-      "top4_count": 6,
       "second_last": 0.0,
-      "last": 0.0
+      "top4_count": 6.0
     },
     {
       "name": "Andrew Denucci",
@@ -73,11 +88,11 @@
       "guinness": 0,
       "top1": 0.0,
       "top2": 2.5,
+      "last": 0.0,
       "top3": 1.33,
       "top4": 0.0,
-      "top4_count": 5,
       "second_last": 0.0,
-      "last": 0.0
+      "top4_count": 5.0
     },
     {
       "name": "Tucker Cina",
@@ -85,11 +100,11 @@
       "guinness": 2,
       "top1": 2.5,
       "top2": 0.5,
+      "last": 1.0,
       "top3": 1.5,
       "top4": 2.0,
-      "top4_count": 9,
       "second_last": 0.5,
-      "last": 1.0
+      "top4_count": 9.0
     },
     {
       "name": "Tommy Harris",
@@ -97,11 +112,11 @@
       "guinness": 3,
       "top1": 3.0,
       "top2": 0.0,
+      "last": 1.0,
       "top3": 2.0,
       "top4": 3.0,
-      "top4_count": 8,
       "second_last": 1.33,
-      "last": 1.0
+      "top4_count": 8.0
     },
     {
       "name": "John Morcos",
@@ -109,11 +124,11 @@
       "guinness": 0,
       "top1": 3.0,
       "top2": 0.25,
+      "last": 0.0,
       "top3": 0.5,
       "top4": 1.5,
-      "top4_count": 7,
       "second_last": 0.0,
-      "last": 0.0
+      "top4_count": 7.0
     },
     {
       "name": "Jack Bernatchez",
@@ -121,11 +136,11 @@
       "guinness": 2,
       "top1": 2.0,
       "top2": 1.0,
+      "last": 1.0,
       "top3": 1.0,
       "top4": 0.5,
-      "top4_count": 6,
       "second_last": 0.5,
-      "last": 1.0
+      "top4_count": 6.0
     },
     {
       "name": "Dave Bambrick",
@@ -133,11 +148,11 @@
       "guinness": 2,
       "top1": 2.0,
       "top2": 1.5,
+      "last": 1.5,
       "top3": 0.0,
       "top4": 1.0,
-      "top4_count": 5,
       "second_last": 0.0,
-      "last": 1.5
+      "top4_count": 5.0
     },
     {
       "name": "Eddy GM",
@@ -145,11 +160,11 @@
       "guinness": 1,
       "top1": 1.0,
       "top2": 3.0,
+      "last": 0.0,
       "top3": 1.0,
       "top4": 1.0,
-      "top4_count": 6,
       "second_last": 0.5,
-      "last": 0.0
+      "top4_count": 6.0
     },
     {
       "name": "Rob Disanto",
@@ -157,11 +172,11 @@
       "guinness": 1,
       "top1": 2.0,
       "top2": 0.0,
+      "last": 0.0,
       "top3": 1.33,
       "top4": 1.0,
-      "top4_count": 5,
       "second_last": 1.0,
-      "last": 0.0
+      "top4_count": 5.0
     },
     {
       "name": "Mark Wright",
@@ -169,11 +184,11 @@
       "guinness": 2,
       "top1": 2.0,
       "top2": 1.0,
+      "last": 2.0,
       "top3": 0.0,
       "top4": 1.0,
-      "top4_count": 4,
       "second_last": 0.0,
-      "last": 2.0
+      "top4_count": 4.0
     },
     {
       "name": "Zach Duguid",
@@ -181,11 +196,11 @@
       "guinness": 2,
       "top1": 2.0,
       "top2": 0.0,
+      "last": 1.0,
       "top3": 1.25,
       "top4": 0.0,
-      "top4_count": 4,
       "second_last": 0.5,
-      "last": 1.0
+      "top4_count": 4.0
     },
     {
       "name": "Mike Delaus",
@@ -193,11 +208,11 @@
       "guinness": 1,
       "top1": 0.0,
       "top2": 2.0,
+      "last": 0.0,
       "top3": 2.5,
       "top4": 2.0,
-      "top4_count": 9,
       "second_last": 1.0,
-      "last": 0.0
+      "top4_count": 9.0
     },
     {
       "name": "Ryan Kelly",
@@ -205,11 +220,11 @@
       "guinness": 4,
       "top1": 0.5,
       "top2": 2.0,
+      "last": 2.0,
       "top3": 1.5,
       "top4": 0.0,
-      "top4_count": 5,
       "second_last": 1.5,
-      "last": 2.0
+      "top4_count": 5.0
     },
     {
       "name": "Mitch Pattullo",
@@ -217,11 +232,11 @@
       "guinness": 2,
       "top1": 1.0,
       "top2": 2.0,
+      "last": 0.5,
       "top3": 0.33,
       "top4": 1.0,
-      "top4_count": 5,
       "second_last": 1.0,
-      "last": 0.5
+      "top4_count": 5.0
     },
     {
       "name": "Jimmy Romanelli",
@@ -229,11 +244,11 @@
       "guinness": 0,
       "top1": 1.0,
       "top2": 1.5,
+      "last": 0.0,
       "top3": 0.75,
       "top4": 0.0,
-      "top4_count": 5,
       "second_last": 0.0,
-      "last": 0.0
+      "top4_count": 5.0
     },
     {
       "name": "James McMullen",
@@ -241,11 +256,11 @@
       "guinness": 0,
       "top1": 1.5,
       "top2": 1.0,
+      "last": 0.0,
       "top3": 0.0,
       "top4": 0.0,
-      "top4_count": 3,
       "second_last": 0.0,
-      "last": 0.0
+      "top4_count": 3.0
     },
     {
       "name": "Tommy Mayer",
@@ -253,11 +268,11 @@
       "guinness": 4,
       "top1": 1.0,
       "top2": 1.0,
+      "last": 3.0,
       "top3": 1.5,
       "top4": 0.5,
-      "top4_count": 5,
       "second_last": 1.0,
-      "last": 3.0
+      "top4_count": 5.0
     },
     {
       "name": "John King",
@@ -265,11 +280,11 @@
       "guinness": 5,
       "top1": 2.0,
       "top2": 0.0,
+      "last": 3.5,
       "top3": 0.0,
       "top4": 0.0,
-      "top4_count": 2,
       "second_last": 0.5,
-      "last": 3.5
+      "top4_count": 2.0
     },
     {
       "name": "Liam Kelly",
@@ -277,11 +292,11 @@
       "guinness": 2,
       "top1": 0.5,
       "top2": 2.25,
+      "last": 1.0,
       "top3": 0.0,
       "top4": 0.0,
-      "top4_count": 4,
       "second_last": 1.0,
-      "last": 1.0
+      "top4_count": 4.0
     },
     {
       "name": "Eric Wallerstein",
@@ -289,11 +304,11 @@
       "guinness": 1,
       "top1": 1.0,
       "top2": 1.0,
+      "last": 0.0,
       "top3": 0.5,
       "top4": 1.0,
-      "top4_count": 4,
       "second_last": 1.0,
-      "last": 0.0
+      "top4_count": 4.0
     },
     {
       "name": "Luke Civantos",
@@ -301,11 +316,11 @@
       "guinness": 2,
       "top1": 0.0,
       "top2": 2.25,
+      "last": 0.0,
       "top3": 1.0,
       "top4": 0.0,
-      "top4_count": 4,
       "second_last": 1.5,
-      "last": 0.0
+      "top4_count": 4.0
     },
     {
       "name": "Harry Wang",
@@ -313,11 +328,11 @@
       "guinness": 2,
       "top1": 0.0,
       "top2": 1.0,
+      "last": 2.0,
       "top3": 2.5,
       "top4": 0.0,
-      "top4_count": 4,
       "second_last": 0.0,
-      "last": 2.0
+      "top4_count": 4.0
     },
     {
       "name": "Jeff Wright",
@@ -325,11 +340,11 @@
       "guinness": 5,
       "top1": 1.0,
       "top2": 0.5,
+      "last": 1.0,
       "top3": 0.0,
       "top4": 0.0,
-      "top4_count": 2,
       "second_last": 3.0,
-      "last": 1.0
+      "top4_count": 2.0
     },
     {
       "name": "Graham Derfner",
@@ -337,11 +352,11 @@
       "guinness": 1,
       "top1": 0.0,
       "top2": 2.0,
+      "last": 1.0,
       "top3": 1.0,
       "top4": 0.0,
-      "top4_count": 3,
       "second_last": 0.0,
-      "last": 1.0
+      "top4_count": 3.0
     },
     {
       "name": "John Heyer",
@@ -349,11 +364,11 @@
       "guinness": 4,
       "top1": 0.0,
       "top2": 1.0,
+      "last": 1.0,
       "top3": 1.0,
       "top4": 1.0,
-      "top4_count": 4,
       "second_last": 3.0,
-      "last": 1.0
+      "top4_count": 4.0
     },
     {
       "name": "Logan Kluis",
@@ -361,11 +376,11 @@
       "guinness": 2,
       "top1": 1.0,
       "top2": 0.0,
+      "last": 0.0,
       "top3": 0.25,
       "top4": 0.0,
-      "top4_count": 2,
       "second_last": 1.33,
-      "last": 0.0
+      "top4_count": 2.0
     },
     {
       "name": "Tyler Ray",
@@ -373,11 +388,11 @@
       "guinness": 3,
       "top1": 1.0,
       "top2": 0.0,
+      "last": 1.0,
       "top3": 0.0,
       "top4": 0.0,
-      "top4_count": 1,
       "second_last": 1.33,
-      "last": 1.0
+      "top4_count": 1.0
     },
     {
       "name": "Collin Johnston",
@@ -385,11 +400,11 @@
       "guinness": 4,
       "top1": 0.0,
       "top2": 1.0,
+      "last": 2.0,
       "top3": 1.0,
       "top4": 0.5,
-      "top4_count": 3,
       "second_last": 1.5,
-      "last": 2.0
+      "top4_count": 3.0
     },
     {
       "name": "Liam Cashman",
@@ -397,11 +412,11 @@
       "guinness": 2,
       "top1": 0.0,
       "top2": 0.0,
+      "last": 1.5,
       "top3": 1.5,
       "top4": 1.5,
-      "top4_count": 4,
       "second_last": 0.0,
-      "last": 1.5
+      "top4_count": 4.0
     },
     {
       "name": "Alex Mack",
@@ -409,11 +424,11 @@
       "guinness": 3,
       "top1": 0.0,
       "top2": 0.25,
+      "last": 0.0,
       "top3": 0.5,
       "top4": 1.5,
-      "top4_count": 4,
       "second_last": 3.0,
-      "last": 0.0
+      "top4_count": 4.0
     },
     {
       "name": "Tyler Wasser",
@@ -421,11 +436,11 @@
       "guinness": 3,
       "top1": 0.0,
       "top2": 0.0,
+      "last": 1.0,
       "top3": 1.0,
       "top4": 0.0,
-      "top4_count": 1,
       "second_last": 1.5,
-      "last": 1.0
+      "top4_count": 1.0
     },
     {
       "name": "Mitch Maisel",
@@ -433,11 +448,11 @@
       "guinness": 3,
       "top1": 0.0,
       "top2": 0.0,
+      "last": 0.0,
       "top3": 1.0,
       "top4": 0.0,
-      "top4_count": 1,
       "second_last": 2.0,
-      "last": 0.0
+      "top4_count": 1.0
     },
     {
       "name": "Richard Katz",
@@ -445,11 +460,11 @@
       "guinness": 7,
       "top1": 0.0,
       "top2": 0.0,
+      "last": 2.0,
       "top3": 0.0,
       "top4": 1.0,
-      "top4_count": 1,
       "second_last": 4.0,
-      "last": 2.0
+      "top4_count": 1.0
     },
     {
       "name": "Gabriel Costa",
@@ -457,11 +472,11 @@
       "guinness": 5,
       "top1": 0.0,
       "top2": 0.0,
+      "last": 4.0,
       "top3": 0.0,
       "top4": 0.5,
-      "top4_count": 1,
       "second_last": 0.5,
-      "last": 4.0
+      "top4_count": 1.0
     },
     {
       "name": "Ben Boldt",
@@ -469,11 +484,11 @@
       "guinness": 4,
       "top1": 0.0,
       "top2": 0.0,
+      "last": 2.0,
       "top3": 0.0,
       "top4": 0.0,
-      "top4_count": 0,
       "second_last": 1.0,
-      "last": 2.0
+      "top4_count": 0.0
     },
     {
       "name": "Marcus Williams",
@@ -481,11 +496,11 @@
       "guinness": 3,
       "top1": 0.0,
       "top2": 0.0,
+      "last": 2.0,
       "top3": 0.0,
       "top4": 0.0,
-      "top4_count": 0,
       "second_last": 1.0,
-      "last": 2.0
+      "top4_count": 0.0
     }
   ]
 }

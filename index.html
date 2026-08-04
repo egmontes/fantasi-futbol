@@ -702,7 +702,7 @@
     <div class="site-logo">Fantasi <span style="color:var(--theme)">Futbol</span></div>
     <div style="position:relative;display:inline-block;">
       <button id="season-btn" onclick="toggleSeasonMenu()" style="background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;font-size:11px;font-family:var(--font-mono);color:var(--text3);">
-        <span id="season-label" style="color:var(--theme);font-weight:600;">2026 / 2027</span>
+        <span id="season-label" style="color:var(--theme);font-weight:600;background:var(--theme-dim);padding:2px 6px;border-radius:4px;">2026 / 2027</span>
         <span style="font-size:9px;opacity:0.6;">▾</span>
       </button>
       <div id="season-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:8px;padding:4px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);min-width:130px;">
@@ -2230,11 +2230,13 @@ async function init() {
             }
           }
 
-          const total = m.earned + seasonPrize + cupPrize;
+          const kluisPrize = isSeasonOver && m.name === 'Jack Bernatchez' ? 50 : 0;
+          const total = m.earned + seasonPrize + cupPrize + kluisPrize;
           const parts = [];
           if (m.earned > 0) parts.push('Weekly: $' + m.earned.toFixed(2).replace('.00',''));
           if (seasonPrize > 0) parts.push('Season: $' + seasonPrize);
           if (cupPrize > 0) parts.push('Cup: $' + cupPrize);
+          if (kluisPrize > 0) parts.push('Kluis Award: $' + kluisPrize);
           if (parts.length > 1) {
             return '<span title="' + parts.join(' + ') + '">$' + total.toFixed(2).replace('.00','') + '</span>';
           }
@@ -5808,7 +5810,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
             }),
             awards: {
               League: { winner:seasonRanked2025[0]?.name, runner_up:seasonRanked2025[1]?.name, third:seasonRanked2025[2]?.name, fourth:seasonRanked2025[3]?.name, fifth:seasonRanked2025[4]?.name },
-              Cup: { winner:state.managers.find(m=>m.id===cwId)?.name, runner_up:state.managers.find(m=>m.id===crId)?.name }
+              Cup: { winner:state.managers.find(m=>m.id===cwId)?.name, runner_up:state.managers.find(m=>m.id===crId)?.name },
+              Kluis: { winner: 'Jack Bernatchez' }
             }
           };
           labels.push('2025/26');
@@ -5936,12 +5939,14 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       if (!data) return;
       const league = data.awards?.League || {};
       const cup = data.awards?.Cup || {};
+      const kluis = data.awards?.Kluis || {};
       data.managers.forEach(m => {
         const name = normName(m.name);
         if (!managers[name]) managers[name] = {
           name, seasons: 0, earned: 0, guinness: 0,
           top1: 0, top2: 0, top3: 0, top4: 0, last: 0,
           leagueTitles: 0, leagueRunnerUp: 0, cupTitles: 0, cupRunnerUp: 0,
+          kluisTitles: 0,
           s1st: 0, s2nd: 0, s3rd: 0, s4th: 0, s5th: 0,
           seasonResults: {}
         };
@@ -5957,6 +5962,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         else if (toArr(league.fifth).map(normName).includes(name)) { s.s5th++; }
         if (normName(cup.winner) === name) { badge += '🏆'; s.cupTitles++; }
         else if (toArr(cup.runner_up).map(normName).includes(name)) { badge += '🥈'; s.cupRunnerUp++; }
+        if (normName(kluis.winner) === name) { badge += '🍺🎬'; s.kluisTitles++; }
         s.seasonResults[label] = { earned: m.earned||0, badge };
       });
     });
@@ -5994,6 +6000,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const byBeers   = topNames(ranked, 'guinness');
     const byLast    = topNames(ranked, 'last');
 
+    const byKluis   = topNames(ranked, 'kluisTitles');
+
     const statCard = (label, value, cls='') =>
       `<div class="stat-card${cls ? ' ' + cls : ''}"><div class="s-label">${label}</div><div class="s-value">${value}</div></div>`;
 
@@ -6008,6 +6016,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (byTitles) cards += statCard('🥇 Most Titles', namesStr(byTitles.names) + '<br>' + byTitles.value + 'x');
     if (byCups)   cards += statCard('🏆 Most Cups', namesStr(byCups.names) + '<br>' + byCups.value + 'x', 'stat-card-gold');
     if (byBeers)  cards += statCard('🍺 Most Beers', namesStr(byBeers.names) + '<br>' + byBeers.value);
+    if (byKluis)  cards += statCard('🎬 Most Kluis Rolling Can Awards', namesStr(byKluis.names) + '<br>' + byKluis.value + 'x', 'stat-card-gold');
     if (byLast)   cards += statCard('💀 Most Last Place', namesStr(byLast.names) + '<br>' + byLast.value.toFixed(1) + 'x', 'stat-card-red');
     cards += statCard('⌛ Seasons', seasonLabels.length + '');
     cards += statCard('👥 All-Time Managers', Object.keys(managers).length + '');
@@ -6033,6 +6042,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     html += th('s5th', '5️⃣ 5th', '55px');
     html += th('cupTitles', '🏆', '45px');
     html += th('cupRunnerUp', '🥈 Cup', '55px');
+    html += th('kluisTitles', '🎬', '40px');
     html += th('last', '💀', '50px');
     html += th('guinness', '🍺', '45px');
     html += '</tr></thead><tbody>';
@@ -6059,6 +6069,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.s5th > 0 ? 'var(--theme)' : 'var(--text3)'};">${m.s5th || '—'}</td>`;
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.cupTitles > 0 ? '#FFD700' : 'var(--text3)'};">${m.cupTitles || '—'}</td>`;
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.cupRunnerUp > 0 ? 'var(--text2)' : 'var(--text3)'};">${m.cupRunnerUp || '—'}</td>`;
+      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.kluisTitles > 0 ? '#FFD700' : 'var(--text3)'};">${m.kluisTitles || '—'}</td>`;
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.last > 0 ? 'var(--red)' : 'var(--text3)'};">${m.last ? m.last.toFixed(1) : '—'}</td>`;
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.guinness > 0 ? 'var(--amber)' : 'var(--text3)'};">${m.guinness || '—'}</td>`;
       html += '</tr>';
@@ -6646,10 +6657,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const label = document.getElementById('season-label');
     if (!label) return;
     label.textContent = text;
-    label.style.color = isLive ? 'var(--theme)' : 'var(--theme)';
-    label.style.background = isLive ? 'none' : 'var(--theme-dim)';
-    label.style.padding = isLive ? '0' : '2px 6px';
-    label.style.borderRadius = isLive ? '0' : '4px';
+    label.style.color = 'var(--theme)';
+    label.style.background = 'var(--theme-dim)';
+    label.style.padding = '2px 6px';
+    label.style.borderRadius = '4px';
     label.style.border = 'none';
   }
 
@@ -6914,6 +6925,13 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         (toArr(cup.third).length ? '<div style="font-size:11px;color:var(--text3);">🥉 ' + toArr(cup.third).join(', ') + '</div>' : '') +
         '</div>';
     }
+    const kluis = awards?.Kluis || {};
+    if (kluis.winner) {
+      html += '<div style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);border-radius:8px;padding:10px 14px;">' +
+        '<div style="font-size:10px;color:#FFD700;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">🍺🎬 Kluis Rolling Can Award</div>' +
+        '<div style="font-weight:700;color:var(--theme);">' + esc(kluis.winner) + '</div>' +
+        '</div>';
+    }
     html += '</div>';
 
     // Table
@@ -6956,7 +6974,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const bg = i % 2 === 0 ? '' : 'background:var(--bg2);';
       html += '<tr style="' + bg + 'border-bottom:1px solid var(--border);">';
       html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:700;color:var(--theme);">' + (i+1) + '</td>';
-      html += '<td style="padding:8px 10px;"><div style="font-weight:600;color:var(--text);">' + esc(m.name) + lBadge + '</div></td>';
+      const kluisBadge = kluis.winner === m.name ? ' 🍺🎬' : '';
+      html += '<td style="padding:8px 10px;"><div style="font-weight:600;color:var(--text);">' + esc(m.name) + lBadge + kluisBadge + '</div></td>';
       html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:600;color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(0) + '</td>';
       if (has4) {
         html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top1 || '—') + '</td>';
