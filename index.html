@@ -5355,6 +5355,12 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   // ── WEEKLY VIEW TOGGLE ───────────────────────────────────────────────────
   let _weeklyRecapGW = null;
 
+  function resetWeeklyRecap() {
+    const recapContent = document.getElementById('weekly-recap-content');
+    if (recapContent) { recapContent.style.display = 'none'; recapContent.innerHTML = ''; }
+    _weeklyRecapGW = null;
+  }
+
   function switchWeeklyView(view) {
     // Ensure tab-weekly is active
     if (!document.getElementById('tab-weekly').classList.contains('active')) {
@@ -5395,13 +5401,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   async function setupWeeklyRecap(gw, container) {
     try {
-      // Check if GW data exists at all
-      const hasGWData = Object.values(state.gwHistory).some(h => h.some(e => e.event === gw));
-      if (!hasGWData) {
-        container.innerHTML = '<div style="text-align:center;padding:3rem 1rem;"><div style="font-size:2rem;margin-bottom:1rem;">📅</div><div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px;">No data yet</div><div style="font-size:13px;color:var(--text3);max-width:360px;margin:0 auto;line-height:1.6;">Recaps will be available once GW' + gw + ' is complete and scores are finalized.</div></div>';
-        return;
-      }
-
       const saved = await loadSavedRecap(gw);
     let html = '';
 
@@ -5740,6 +5739,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   async function showLeagueHistory() {
     updateSeasonLabel('All Time', false);
     window.__viewingSeason = 'all-time';
+    resetWeeklyRecap();
     document.getElementById('season-menu').style.display = 'none';
     document.querySelectorAll('.season-item').forEach(btn => {
       btn.style.background = 'none'; btn.style.color = 'var(--text3)'; btn.style.fontWeight = 'normal';
@@ -6678,8 +6678,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       updateSeasonLabel('2025 / 2026', false);
       const wtl = document.getElementById('weekly-tab-label');
       if (wtl) wtl.textContent = '2025 / 2026';
-      _weeklyRecapGW = null;
-      document.getElementById('weekly-recap-content').innerHTML = '';
+      resetWeeklyRecap();
       switchWeeklyView('table');
       document.getElementById('season-menu').style.display = 'none';
     }
@@ -6797,7 +6796,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   window.selectSeason = async function(season) {
     updateSeasonLabel(season.replace(/\//g, ' / '), false);
     document.getElementById('season-menu').style.display = 'none';
-    // Track which season we're viewing for dropdown highlight
+    resetWeeklyRecap();
     const seasonFileMap = { '2024/2025': '2024-2025', '2023/2024': '2023-2024', '2022/2023': '2022-2023' };
     window.__viewingSeason = seasonFileMap[season] || null;
 
