@@ -2173,18 +2173,18 @@ async function init() {
           }
           return '<div style="display:flex;align-items:center;"><span class="rank-num">' + rank + '</span>' + indicator + '</div>';
         })() + '</td>' +
-        '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + (() => {
+        '<td><div class="m-name" style="' + (isKickedOut(m.name) ? 'text-decoration:line-through;color:var(--text3);' : '') + '">' + esc(m.name) + (isKickedOut(m.name) ? ' <span style="font-size:11px;color:var(--red);">KICKED</span>' : '') + '</div>' + (() => {
           if (!isSeasonOver) return '';
           const sRank = seasonRankMap[m.id];
           let badges = '';
-          if (sRank === 1) badges += ' <span class="badge badge-1">🥇 $550</span>';
-          else if (sRank === 2) badges += ' <span class="badge badge-2">🥈 $275</span>';
-          else if (sRank === 3) badges += ' <span class="badge badge-3">🥉 $175</span>';
-          else if (sRank === 4) badges += ' <span class="badge badge-4">4️⃣ $100</span>';
-          else if (sRank === 5) badges += ' <span class="badge" style="background:rgba(255,182,193,0.2);color:#ffb6c1;border:1px solid rgba(255,182,193,0.4);">5️⃣ $20</span>';
-          if (m.name === 'Jack Bernatchez') badges += ' <span class="badge stat-card-gold" style="background:rgba(255,215,0,0.12);color:#FFD700;border:1px solid rgba(255,215,0,0.3);">🍺🎬 $50</span>';
-          return badges;
-        })() + '</div><div class="m-team">' + esc(m.team) + '</div>' + '<div style="display:flex;gap:2px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + buildChipBadges(m.id, m.chip, currentGW) + '</div></td>' +
+          if (sRank === 1) badges += '<span class="badge badge-1">🥇 $550</span> ';
+          else if (sRank === 2) badges += '<span class="badge badge-2">🥈 $275</span> ';
+          else if (sRank === 3) badges += '<span class="badge badge-3">🥉 $175</span> ';
+          else if (sRank === 4) badges += '<span class="badge badge-4">4️⃣ $100</span> ';
+          else if (sRank === 5) badges += '<span class="badge" style="background:rgba(255,182,193,0.2);color:#ffb6c1;border:1px solid rgba(255,182,193,0.4);">5️⃣ $20</span> ';
+          if (m.name === 'Jack Bernatchez') badges += '<span class="badge stat-card-gold" style="background:rgba(255,215,0,0.12);color:#FFD700;border:1px solid rgba(255,215,0,0.3);">🍺🎬 $50</span>';
+          return badges ? '<div style="display:flex;gap:2px;flex-wrap:wrap;margin-top:2px;">' + badges + '</div>' : '';
+        })() + '<div class="m-team">' + esc(m.team) + '</div>' + '<div style="display:flex;gap:2px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + buildChipBadges(m.id, m.chip, currentGW) + '</div></td>' +
         (!isSeasonOver ? '<td>' + (() => {
           if (m.gwLatestPts === null) return '<span class="pts-val">—</span>';
           const rank = gwRankMap[m.id];
