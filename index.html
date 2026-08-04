@@ -2573,6 +2573,37 @@ async function init() {
                 const missedList = guinnessData.missed_gws.map(g => 'GW' + g).join(', ');
                 html += '<div style="font-size:12px;font-family:var(--font-mono);margin-top:2px;"><span style="color:var(--red);font-weight:600;">🍺 Missed ×' + guinnessData.missed_gws.length + '</span> <span style="color:var(--text3);">' + missedList + '</span></div>';
               }
+              html += '</div>'; // close finishes div
+              // Additional season stats from GW history
+              const gwHist = (state.gwHistory[managerId] || []).sort((a,b) => a.event - b.event);
+              const highGW = gwHist.reduce((best, g) => g.points > (best?.points||0) ? g : best, null);
+              const lowGW = gwHist.reduce((worst, g) => g.points < (worst?.points||999) ? g : worst, null);
+              const totalTransfers = gwHist.reduce((sum, g) => sum + (g.event_transfers||0), 0);
+              const transferCost = gwHist.reduce((sum, g) => sum + (g.event_transfers_cost||0), 0);
+              const totalBenchPts = gwHist.reduce((sum, g) => sum + (g.points_on_bench||0), 0);
+
+              const avgBenchPts = gwHist.length ? (totalBenchPts / gwHist.length).toFixed(1) : 0;
+
+              // Captain frequency from GW files
+              const captainCount = {};
+              for (let gw = 1; gw <= 38; gw++) {
+                try {
+                  const pad = String(gw).padStart(2,'0');
+                  const gd = await fetch(`data/2025-2026/gw${pad}.json`).then(r => r.ok ? r.json() : null).catch(()=>null);
+                  if (!gd) continue;
+                  const mgr = gd.managers?.find(m => m.id === managerId);
+                  if (mgr?.captain?.name) captainCount[mgr.captain.name] = (captainCount[mgr.captain.name]||0) + 1;
+                } catch(e) {}
+              }
+              const topCaptain = Object.entries(captainCount).sort((a,b)=>b[1]-a[1])[0];
+
+              html += '<div style="display:flex;gap:16px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--border);">';
+              if (highGW) html += '<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">BEST GW</div><div style="font-size:16px;font-weight:700;color:var(--green);">' + highGW.points + ' pts <span style="font-size:11px;color:var(--text3);">GW' + highGW.event + '</span></div></div>';
+              if (lowGW) html += '<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">WORST GW</div><div style="font-size:16px;font-weight:700;color:var(--red);">' + lowGW.points + ' pts <span style="font-size:11px;color:var(--text3);">GW' + lowGW.event + '</span></div></div>';
+              html += '<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">TRANSFERS</div><div style="font-size:16px;font-weight:700;color:var(--text);">' + totalTransfers + (transferCost > 0 ? ' <span style="font-size:11px;color:var(--red);">(-' + transferCost + ')</span>' : '') + '</div></div>';
+              html += '<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">AVG BENCH PTS</div><div style="font-size:16px;font-weight:700;color:var(--text3);">' + avgBenchPts + '</div></div>';
+              if (topCaptain) html += '<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">FAV CAPTAIN</div><div style="font-size:14px;font-weight:700;color:var(--text);">' + esc(topCaptain[0]) + ' <span style="font-size:11px;color:var(--text3);">×' + topCaptain[1] + '</span></div></div>';
+              html += '</div>';
               html += '</div></div>';
 
               drawerTd.innerHTML = html;
