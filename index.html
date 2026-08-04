@@ -6035,22 +6035,37 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const arrow = c => window._historySort?.col === c ? (window._historySort.dir === -1 ? ' sort-desc' : ' sort-asc') : '';
     const th = (c, label, w) => `<th class="sortable${arrow(c)}" onclick="window._historySortBy('${c}')" style="width:${w};padding:8px 6px;text-align:center;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;cursor:pointer;">${label}</th>`;
 
-    // Leader widgets
-    const byEarned = [...ranked].sort((a,b) => b.earned - a.earned)[0];
-    const byTitles = [...ranked].sort((a,b) => b.leagueTitles - a.leagueTitles)[0];
-    const byCups   = [...ranked].sort((a,b) => b.cupTitles - a.cupTitles)[0];
-    const byBeers  = [...ranked].sort((a,b) => b.guinness - a.guinness)[0];
-    const byLast   = [...ranked].sort((a,b) => b.last - a.last)[0];
+    // Leader widgets — handle ties
+    const topNames = (arr, key) => {
+      if (!arr.length) return null;
+      const sorted = [...arr].sort((a,b) => b[key] - a[key]);
+      const best = sorted[0][key];
+      if (!best) return null;
+      const tied = sorted.filter(m => m[key] === best);
+      return { names: tied.map(m => m.name), value: best };
+    };
+
+    const byEarned  = topNames(ranked, 'earned');
+    const byTitles  = topNames(ranked, 'leagueTitles');
+    const byCups    = topNames(ranked, 'cupTitles');
+    const byBeers   = topNames(ranked, 'guinness');
+    const byLast    = topNames(ranked, 'last');
 
     const statCard = (label, value, cls='') =>
       `<div class="stat-card${cls ? ' ' + cls : ''}"><div class="s-label">${label}</div><div class="s-value">${value}</div></div>`;
 
+    const namesStr = (names) => {
+      if (names.length === 1) return esc(names[0]);
+      if (names.length === 2) return esc(names[0]) + ', ' + esc(names[1]);
+      return names.length + '-way tie';
+    };
+
     let cards = '';
-    if (byEarned) cards += statCard('💰 All-Time Earner', esc(byEarned.name) + '<br>$' + byEarned.earned.toFixed(0), 'stat-card-green');
-    if (byTitles?.leagueTitles > 0) cards += statCard('🥇 Most Titles', esc(byTitles.name) + '<br>' + byTitles.leagueTitles + 'x');
-    if (byCups?.cupTitles > 0) cards += statCard('🏆 Most Cups', esc(byCups.name) + '<br>' + byCups.cupTitles + 'x', 'stat-card-gold');
-    if (byBeers?.guinness > 0) cards += statCard('🍺 Most Beers', esc(byBeers.name) + '<br>' + byBeers.guinness);
-    if (byLast?.last > 0) cards += statCard('💀 Most Last Place', esc(byLast.name) + '<br>' + byLast.last.toFixed(1) + 'x', 'stat-card-red');
+    if (byEarned) cards += statCard('💰 All-Time Earner', namesStr(byEarned.names) + '<br>$' + byEarned.value.toFixed(0), 'stat-card-green');
+    if (byTitles) cards += statCard('🥇 Most Titles', namesStr(byTitles.names) + '<br>' + byTitles.value + 'x');
+    if (byCups)   cards += statCard('🏆 Most Cups', namesStr(byCups.names) + '<br>' + byCups.value + 'x', 'stat-card-gold');
+    if (byBeers)  cards += statCard('🍺 Most Beers', namesStr(byBeers.names) + '<br>' + byBeers.value);
+    if (byLast)   cards += statCard('💀 Most Last Place', namesStr(byLast.names) + '<br>' + byLast.value.toFixed(1) + 'x', 'stat-card-red');
     cards += statCard('⌛ Seasons', seasonLabels.length + '');
     cards += statCard('👥 All-Time Managers', Object.keys(managers).length + '');
 
