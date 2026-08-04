@@ -706,7 +706,7 @@
     <div class="site-logo">Fantasi <span style="color:var(--theme)">Futbol</span></div>
     <div style="position:relative;display:inline-block;">
       <button id="season-btn" onclick="toggleSeasonMenu()" style="background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;font-size:11px;font-family:var(--font-mono);color:var(--text3);">
-        <span id="season-label" style="color:var(--theme);">2026 / 2027</span>
+        <span id="season-label" style="color:var(--theme);font-weight:600;">2026 / 2027</span>
         <span style="font-size:9px;opacity:0.6;">▾</span>
       </button>
       <div id="season-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:8px;padding:4px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);min-width:130px;">
@@ -800,7 +800,7 @@
 
 </div>
 
-<script data-v="20260730-2">
+<script data-v="20260731-1">
   const LEAGUE_ID = 196059;
   const PRIZE_MAP = { 1: 30, 2: 15, 3: 10, 4: 5 };
   const FPL_BASE = 'https://fantasy.premierleague.com/api/';
@@ -3307,9 +3307,13 @@ async function init() {
       const ranked = getWeeklyRankings(gw);
       if (!ranked.length) {
         document.getElementById('weekly-content').innerHTML =
-          `<div class="loading-state">No data available for GW${gw} yet.</div>`;
+          `<div style="text-align:center;padding:4rem 1rem;"><div style="font-size:2rem;margin-bottom:1rem;">📅</div><div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px;">No data yet for GW${gw}</div><div style="font-size:13px;color:var(--text3);max-width:360px;margin:0 auto;line-height:1.6;">Check back once GW${gw} is complete and scores are finalized.</div></div>`;
+        // Activate tab-weekly and show toggle bar so recap is accessible
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById('tab-weekly').classList.add('active');
         const wtb = document.getElementById('weekly-toggle-bar');
         if (wtb) wtb.style.display = 'flex';
+        updateStickyOffsets();
         return;
       }
       const n = ranked.length;
@@ -4906,6 +4910,18 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
             updateStickyOffsets();
             switchWeeklyView('table');
             renderWeekly(lastGW);
+          } else if (!isSeasonOverNow && state.latestGW <= 1 && !state.historyLoaded) {
+            // New season with no GW data yet — go to weekly view with no-data message
+            document.getElementById('tab-weekly').classList.add('active');
+            setHashState('weekly');
+            document.getElementById('standings-toggle-bar').style.display = 'flex';
+            document.getElementById('season-toggle-bar').style.display = 'none';
+            const weeklyToggleEl3 = document.getElementById('weekly-toggle-bar');
+            if (weeklyToggleEl3) weeklyToggleEl3.style.display = 'flex';
+            document.getElementById('gw-callout').style.display = 'block';
+            updateStickyOffsets();
+            switchWeeklyView('table');
+            renderWeekly(state.latestGW);
           } else {
             // Go to season/standings view
             document.getElementById('tab-standings').classList.add('active');
@@ -5340,6 +5356,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   let _weeklyRecapGW = null;
 
   function switchWeeklyView(view) {
+    // Ensure tab-weekly is active
+    if (!document.getElementById('tab-weekly').classList.contains('active')) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById('tab-weekly').classList.add('active');
+    }
     const tableBtn = document.getElementById('weekly-toggle-table');
     const recapBtn = document.getElementById('weekly-toggle-recap');
     const tableContent = document.getElementById('weekly-content');
@@ -5363,15 +5384,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       tableBtn.style.background = 'transparent';
       tableBtn.style.color = 'var(--text3)';
       tableBtn.style.fontWeight = '400';
-      // Get current selected GW
       const gwVal = document.getElementById('gw-select').value;
       const gw = parseInt(gwVal) || state.latestGW;
-      // Show placeholder if no managers loaded yet
-      if (!state.managers.length) {
-        recapContent.innerHTML = '<div style="text-align:center;padding:3rem 1rem;"><div style="font-size:2rem;margin-bottom:1rem;">📅</div><div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px;">No recap yet</div><div style="font-size:13px;color:var(--text3);max-width:360px;margin:0 auto;line-height:1.6;">Recaps will be available once GW' + gw + ' is complete and scores are finalized.</div></div>';
-        return;
-      }
-      // Re-setup if GW changed
       if (_weeklyRecapGW !== gw) {
         _weeklyRecapGW = gw;
         setupWeeklyRecap(gw, recapContent);
@@ -5381,6 +5395,13 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   async function setupWeeklyRecap(gw, container) {
     try {
+      // Check if GW data exists at all
+      const hasGWData = Object.values(state.gwHistory).some(h => h.some(e => e.event === gw));
+      if (!hasGWData) {
+        container.innerHTML = '<div style="text-align:center;padding:3rem 1rem;"><div style="font-size:2rem;margin-bottom:1rem;">📅</div><div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px;">No data yet</div><div style="font-size:13px;color:var(--text3);max-width:360px;margin:0 auto;line-height:1.6;">Recaps will be available once GW' + gw + ' is complete and scores are finalized.</div></div>';
+        return;
+      }
+
       const saved = await loadSavedRecap(gw);
     let html = '';
 
@@ -5717,7 +5738,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   }
   // ── END LOAD HISTORY FROM GW CACHE FILES ────────────────────────────────
   async function showLeagueHistory() {
-    document.getElementById('season-label').textContent = 'All Time';
+    updateSeasonLabel('All Time', false);
+    window.__viewingSeason = 'all-time';
     document.getElementById('season-menu').style.display = 'none';
     document.querySelectorAll('.season-item').forEach(btn => {
       btn.style.background = 'none'; btn.style.color = 'var(--text3)'; btn.style.fontWeight = 'normal';
@@ -6639,10 +6661,21 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   };
 
   window._ssHistory = () => showLeagueHistory();
+  function updateSeasonLabel(text, isLive) {
+    const label = document.getElementById('season-label');
+    if (!label) return;
+    label.textContent = text;
+    label.style.color = isLive ? 'var(--theme)' : 'var(--text2)';
+    label.style.background = isLive ? 'none' : 'var(--bg2)';
+    label.style.padding = isLive ? '0' : '2px 6px';
+    label.style.borderRadius = isLive ? '0' : '4px';
+    label.style.border = isLive ? 'none' : '1px solid var(--border)';
+  }
+
   window._ssLive = () => { window.__viewingSeason = null; window.location.reload(); };
   window._ss2025 = async function(silent = false) {
     if (!silent) {
-      document.getElementById('season-label').textContent = '2025 / 2026';
+      updateSeasonLabel('2025 / 2026', false);
       const wtl = document.getElementById('weekly-tab-label');
       if (wtl) wtl.textContent = '2025 / 2026';
       _weeklyRecapGW = null;
@@ -6740,12 +6773,33 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   window.toggleSeasonMenu = function() {
     const menu = document.getElementById('season-menu');
-    if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    if (menu) {
+      // Determine which item is currently active
+      const isAllTime = window.__viewingSeason === 'all-time';
+      const viewing = window.__viewingSeason; // '2025-2026' or null for live
+      document.querySelectorAll('.season-item').forEach(btn => {
+        const txt = btn.textContent.trim();
+        let match = false;
+        if (isAllTime) match = txt.includes('All Time');
+        else if (viewing === '2025-2026') match = txt.includes('2025') && txt.includes('2026');
+        else if (viewing === '2024-2025') match = txt.includes('2024') && txt.includes('2025');
+        else if (viewing === '2023-2024') match = txt.includes('2023') && txt.includes('2024');
+        else if (viewing === '2022-2023') match = txt.includes('2022') && txt.includes('2023');
+        else match = txt.includes('2026') && txt.includes('2027'); // live current season
+        btn.style.background = match ? 'var(--theme-dim)' : 'none';
+        btn.style.color = match ? 'var(--theme)' : 'var(--text3)';
+        btn.style.fontWeight = match ? '600' : 'normal';
+      });
+      menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
   };
 
   window.selectSeason = async function(season) {
-    document.getElementById('season-label').textContent = season.replace(/\//g, ' / ');
+    updateSeasonLabel(season.replace(/\//g, ' / '), false);
     document.getElementById('season-menu').style.display = 'none';
+    // Track which season we're viewing for dropdown highlight
+    const seasonFileMap = { '2024/2025': '2024-2025', '2023/2024': '2023-2024', '2022/2023': '2022-2023' };
+    window.__viewingSeason = seasonFileMap[season] || null;
 
     // Highlight active item
     document.querySelectorAll('.season-item').forEach(btn => {
