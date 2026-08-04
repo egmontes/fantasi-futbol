@@ -6864,7 +6864,20 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._histData = data;
       window._histSort = { col: 'earned', dir: -1 }; // reset sort on season change
       el.innerHTML = renderHistoricalSeason(data);
-      requestAnimationFrame(() => initFloatingHeader('historical-table'));
+      requestAnimationFrame(() => {
+        initFloatingHeader('historical-table');
+        const histOuter = document.querySelector('#historical-table')?.closest('.table-outer');
+        const histWrap = document.querySelector('#historical-table')?.closest('.table-scroll-wrap');
+        if (histOuter && histWrap) {
+          const updateScroll = () => {
+            const { scrollLeft, scrollWidth, clientWidth } = histOuter;
+            histWrap.classList.toggle('scroll-at-start', scrollLeft <= 2);
+            histWrap.classList.toggle('scroll-at-end', scrollLeft + clientWidth >= scrollWidth - 2);
+          };
+          histOuter.addEventListener('scroll', updateScroll, { passive: true });
+          requestAnimationFrame(updateScroll);
+        }
+      });
     } catch(e) {
       console.error('Historical load error:', e.message, e.stack);
       el.innerHTML = '<div class="loading-state" style="color:var(--red);">Failed to load season data: ' + e.message + '</div>';
@@ -7017,6 +7030,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         const newOuter = document.querySelector('#historical-table')?.closest('.table-outer');
         if (newOuter) newOuter.scrollLeft = savedScrollX;
         initFloatingHeader('historical-table');
+        const newWrap = document.querySelector('#historical-table')?.closest('.table-scroll-wrap');
+        if (newOuter && newWrap) {
+          const updateScroll = () => {
+            const { scrollLeft, scrollWidth, clientWidth } = newOuter;
+            newWrap.classList.toggle('scroll-at-start', scrollLeft <= 2);
+            newWrap.classList.toggle('scroll-at-end', scrollLeft + clientWidth >= scrollWidth - 2);
+          };
+          newOuter.addEventListener('scroll', updateScroll, { passive: true });
+          requestAnimationFrame(updateScroll);
+        }
       });
     }
   };
