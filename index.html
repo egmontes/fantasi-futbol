@@ -739,7 +739,7 @@
       </span>
       <span id="weekly-tab-live" style="font-size:9px;color:var(--red);display:none;">● Live</span>
     </button>
-    <button class="tab-btn" data-tab="cup" style="flex:1;">Cup 🏆</button>
+    <button class="tab-btn" data-tab="cup" id="cup-tab-btn" style="flex:1;">Cup 🏆</button>
   </div>
   <div id="weekly-tab-wrapper" style="position:relative;">
     <div id="weekly-tab-menu" class="tab-dropdown-menu" style="display:none;"></div>
@@ -6383,7 +6383,19 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     URL.revokeObjectURL(a.href);
   };
 
-  init().then(() => initPullToRefresh());
+  init().then(() => {
+    initPullToRefresh();
+    // Hide cup tab if no cup data available yet
+    const cupBtn = document.getElementById('cup-tab-btn');
+    if (cupBtn && !window._allCupMatches?.length && !window.__viewingSeason) {
+      cupBtn.style.display = 'none';
+    }
+    if (sessionStorage.getItem('ff_skipAllTime')) {
+      sessionStorage.removeItem('ff_skipAllTime');
+    } else {
+      window._ssHistory();
+    }
+  });
 
   // Season selector — exposed globally for onclick handlers
   // ── GW CACHE EXPORT ─────────────────────────────────────────────────────
@@ -6634,14 +6646,20 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const label = document.getElementById('season-label');
     if (!label) return;
     label.textContent = text;
-    label.style.color = isLive ? 'var(--theme)' : 'var(--text2)';
-    label.style.background = isLive ? 'none' : 'var(--bg2)';
+    label.style.color = isLive ? 'var(--theme)' : 'var(--theme)';
+    label.style.background = isLive ? 'none' : 'var(--theme-dim)';
     label.style.padding = isLive ? '0' : '2px 6px';
     label.style.borderRadius = isLive ? '0' : '4px';
-    label.style.border = isLive ? 'none' : '1px solid var(--border)';
+    label.style.border = 'none';
   }
 
-  window._ssLive = () => { window.__viewingSeason = null; window.location.reload(); };
+  window._ssLive = () => {
+    window.__viewingSeason = null;
+    const cupBtn = document.getElementById('cup-tab-btn');
+    if (cupBtn && !window._allCupMatches?.length) cupBtn.style.display = 'none';
+    sessionStorage.setItem('ff_skipAllTime', '1');
+    window.location.reload();
+  };
   window._ss2025 = async function(silent = false) {
     if (!silent) {
       updateSeasonLabel('2025 / 2026', false);
@@ -6695,6 +6713,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     // Set season before loading guinness so it fetches from correct path
     window.__viewingSeason = '2025-2026';
+    // Show cup tab for 2025/2026 which has cup data
+    const cupBtn = document.getElementById('cup-tab-btn');
+    if (cupBtn) cupBtn.style.display = '';
 
     // Load all history from GW files
     const loaded = await loadHistoryFromGWFiles('2025-2026');
