@@ -5874,6 +5874,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
                 name: m.name,
                 earned: (s.moneyWon||0) + sp + cp + kluis,
                 guinness: getTotalGuinnesses(m.name, s.bottom2||0),
+                missedBeers: (state.guinnessDebts?.[m.name]?.missed_gws||[]).length,
                 top1:0, top2:0, top3:0, top4:0, last:0,
               };
             }),
@@ -6012,7 +6013,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       data.managers.forEach(m => {
         const name = normName(m.name);
         if (!managers[name]) managers[name] = {
-          name, seasons: 0, earned: 0, guinness: 0,
+          name, seasons: 0, earned: 0, guinness: 0, missedBeers: 0,
           top1: 0, top2: 0, top3: 0, top4: 0, last: 0,
           leagueTitles: 0, leagueRunnerUp: 0, cupTitles: 0, cupRunnerUp: 0,
           kluisTitles: 0,
@@ -6021,6 +6022,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         };
         const s = managers[name];
         s.seasons++; s.earned += m.earned||0; s.guinness += m.guinness||0;
+        s.missedBeers += m.missedBeers||0;
         s.top1 += m.top1||0; s.top2 += m.top2||0; s.top3 += m.top3||0;
         s.top4 += m.top4||0; s.last += m.last||0;
         let badge = '';
@@ -6114,6 +6116,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     html += th('kluisTitles', '🎬', '40px');
     html += th('last', '💀', '50px');
     html += th('guinness', '🍺', '45px');
+    html += th('missedBeers', '🍺❌', '45px');
     html += '</tr></thead><tbody>';
 
     ranked.forEach((m, i) => {
@@ -6141,6 +6144,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.kluisTitles > 0 ? '#FFD700' : 'var(--text3)'};">${m.kluisTitles || '—'}</td>`;
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.last > 0 ? 'var(--red)' : 'var(--text3)'};">${m.last ? m.last.toFixed(1) : '—'}</td>`;
       html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.guinness > 0 ? 'var(--amber)' : 'var(--text3)'};">${m.guinness || '—'}</td>`;
+      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.missedBeers > 0 ? 'var(--red)' : 'var(--text3)'};">${m.missedBeers || '—'}</td>`;
       html += '</tr>';
     });
 
