@@ -2508,7 +2508,76 @@ async function init() {
         // Fetch picks + live/historical scores (use cache if available)
         (async () => {
           try {
-            const cacheKey = managerId + '_' + drawerGW;
+            const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            // Season-over: show season summary instead of GW picks
+            if (!state.isLive && state.latestGW >= 38) {
+              const stats = computeSeasonStats(38);
+              const s = stats[managerId] || {};
+              const hist = (state.gwHistory[managerId] || []).sort((a,b) => b.event - a.event);
+              const lastEntry = hist[0];
+              const total = lastEntry?.total_points || manager?.total || 0;
+              const allRanked = state.managers.map(m => {
+                const h = (state.gwHistory[m.id]||[]).sort((a,b)=>b.event-a.event)[0];
+                return { id: m.id, total: h?.total_points||0 };
+              }).sort((a,b)=>b.total-a.total);
+              const sRank = allRanked.findIndex(m=>m.id===managerId) + 1;
+              const SEASON_PRIZES = {1:550,2:275,3:175,4:100,5:20};
+              const sp = SEASON_PRIZES[sRank] || 0;
+              const cupFinal = (window._allCupMatches||[]).filter(c=>c.winner).sort((a,b)=>b.event-a.event)[0];
+              const cp = cupFinal ? (cupFinal.winner===managerId ? 225 : (cupFinal.entry_1_entry===cupFinal.winner?cupFinal.entry_2_entry:cupFinal.entry_1_entry)===managerId ? 125 : 0) : 0;
+              const kluis = manager?.name === 'Jack Bernatchez' ? 50 : 0;
+              const totalEarned = (s.moneyWon||0) + sp + cp + kluis;
+
+              // Build GW finish map
+              const gwFinishes = { 1:[], 2:[], 3:[], 4:[], secondLast:[], last:[] };
+              const n = state.managers.length;
+              for (let gw = 1; gw <= 38; gw++) {
+                const gwRankings = state.managers.map(m => {
+                  const entry = (state.gwHistory[m.id]||[]).find(e=>e.event===gw);
+                  return { id: m.id, pts: entry?.points || 0 };
+                }).sort((a,b) => b.pts - a.pts);
+                const pos = gwRankings.findIndex(m=>m.id===managerId) + 1;
+                if (pos === 1) gwFinishes[1].push(gw);
+                else if (pos === 2) gwFinishes[2].push(gw);
+                else if (pos === 3) gwFinishes[3].push(gw);
+                else if (pos === 4) gwFinishes[4].push(gw);
+                else if (pos === n - 1) gwFinishes.secondLast.push(gw);
+                else if (pos === n) gwFinishes.last.push(gw);
+              }
+
+              const gwList = (gws) => gws.length ? gws.map(g=>'GW'+g).join(', ') : '—';
+
+              let html = '<div class="manager-drawer-inner" style="flex-direction:column;align-items:stretch;padding:0.75rem 1.5rem;gap:10px;">';
+              html += '<div style="font-weight:700;font-size:15px;color:var(--text);">' + esc(managerName) + ' — 2025/26 Season</div>';
+              html += '<div style="display:flex;gap:16px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px solid var(--border);">';
+              html += '<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">FINAL RANK</div><div style="font-size:18px;font-weight:700;color:var(--theme);">' + (sRank||'—') + (sRank===1?' 🥇':sRank===2?' 🥈':sRank===3?' 🥉':'') + '</div></div>';
+              html += '<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">TOTAL PTS</div><div style="font-size:18px;font-weight:700;color:var(--text);">' + total + '</div></div>';
+              html += '<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">EARNED</div><div style="font-size:18px;font-weight:700;color:var(--green);">$' + totalEarned.toFixed(0) + '</div></div>';
+              html += '</div>';
+
+              const row = (label, color, gws) => gws.length === 0 ? '' :
+                '<div style="font-size:12px;font-family:var(--font-mono);"><span style="color:' + color + ';font-weight:600;">' + label + '</span> <span style="color:var(--text3);">' + gwList(gws) + '</span></div>';
+
+              html += '<div style="display:flex;flex-direction:column;gap:5px;">';
+              html += row('🥇 1st ×' + gwFinishes[1].length, 'var(--theme)', gwFinishes[1]);
+              html += row('🥈 2nd ×' + gwFinishes[2].length, 'var(--text2)', gwFinishes[2]);
+              html += row('🥉 3rd ×' + gwFinishes[3].length, 'var(--text2)', gwFinishes[3]);
+              html += row('4️⃣ 4th ×' + gwFinishes[4].length, 'var(--text3)', gwFinishes[4]);
+              html += row('😬 2nd Last ×' + gwFinishes.secondLast.length, 'var(--red)', gwFinishes.secondLast);
+              html += row('💀 Last ×' + gwFinishes.last.length, 'var(--red)', gwFinishes.last);
+
+              // Missed beers
+              const guinnessData = state.guinnessDebts?.[managerName];
+              if (guinnessData?.missed_gws?.length) {
+                const missedList = guinnessData.missed_gws.map(g => 'GW' + g).join(', ');
+                html += '<div style="font-size:12px;font-family:var(--font-mono);margin-top:2px;"><span style="color:var(--red);font-weight:600;">🍺 Missed ×' + guinnessData.missed_gws.length + '</span> <span style="color:var(--text3);">' + missedList + '</span></div>';
+              }
+              html += '</div></div>';
+
+              drawerTd.innerHTML = html;
+              requestAnimationFrame(syncDrawerScroll);
+              return;
+            }
             const picks = window._picksCache?.[cacheKey] || await fetchFPL('entry/' + managerId + '/event/' + drawerGW + '/picks/');
             if (!window._picksCache) window._picksCache = {};
             window._picksCache[cacheKey] = picks;
