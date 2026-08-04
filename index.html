@@ -1778,6 +1778,7 @@ async function init() {
           '<div style="font-size:14px;color:var(--text3);max-width:360px;margin:0 auto;line-height:1.6;">The season hasn\'t started yet. Check back once managers have joined and GW1 kicks off!</div>' +
         '</div>';
       document.getElementById('season-toggle-bar').style.display = 'none';
+      document.getElementById('standings-toggle-bar').style.display = 'none';
       document.getElementById('weekly-toggle-bar').style.display = 'none';
       return;
     }
@@ -4824,6 +4825,18 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
       if (item.dataset.view === 'standings') {
         const isSeasonOver = !state.isLive && state.latestGW >= 38;
+        // New season with no data — go to weekly view instead
+        if (!isSeasonOver && state.managers.length === 0) {
+          document.getElementById('tab-weekly').classList.add('active');
+          setHashState('weekly');
+          if (toggleBarStandings) toggleBarStandings.style.display = 'none';
+          if (weeklyToggleEl) weeklyToggleEl.style.display = 'flex';
+          document.getElementById('gw-callout').style.display = 'block';
+          updateStickyOffsets();
+          switchWeeklyView('table');
+          renderWeekly(state.latestGW);
+          return;
+        }
         label.textContent = isSeasonOver ? (window.__viewingSeason ? window.__viewingSeason.replace(/-/g,'/').replace('2025/2026','2025 / 2026') : CURRENT_SEASON_LABEL.replace('/', ' / ')) : 'Gameweek ' + currentGW;
         const liveElS = document.getElementById('weekly-tab-live');
         if (liveElS) liveElS.style.display = state.isLive ? 'block' : 'none';
@@ -4910,7 +4923,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
             updateStickyOffsets();
             switchWeeklyView('table');
             renderWeekly(lastGW);
-          } else if (!isSeasonOverNow && state.latestGW <= 1 && !state.historyLoaded) {
+          } else if (!isSeasonOverNow && state.managers.length === 0) {
             // New season with no GW data yet — go to weekly view with no-data message
             document.getElementById('tab-weekly').classList.add('active');
             setHashState('weekly');
@@ -5362,11 +5375,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   }
 
   function switchWeeklyView(view) {
-    // Ensure tab-weekly is active
-    if (!document.getElementById('tab-weekly').classList.contains('active')) {
-      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      document.getElementById('tab-weekly').classList.add('active');
-    }
+    // Hide standings toggle bar — it overlaps weekly toggle bar
+    document.getElementById('standings-toggle-bar').style.display = 'none';
+    // Always ensure weekly toggle bar is visible
+    const weeklyBar = document.getElementById('weekly-toggle-bar');
+    if (weeklyBar) weeklyBar.style.display = 'flex';
     const tableBtn = document.getElementById('weekly-toggle-table');
     const recapBtn = document.getElementById('weekly-toggle-recap');
     const tableContent = document.getElementById('weekly-content');
