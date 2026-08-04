@@ -5910,7 +5910,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       });
 
       // Only add current season if it's actually the current season (not 2025/2026 loaded for history)
-      const isActualCurrentSeason = window.__viewingSeason !== '2025-2026' && state.managers.length > 0 && !labels.includes(currentLabel);
+      const isActualCurrentSeason = !['2025-2026','2024-2025','2023-2024','2022-2023','all-time'].includes(window.__viewingSeason) && state.managers.length > 0 && !labels.includes(currentLabel);
       if (isActualCurrentSeason) {
         seasonData[currentLabel] = {
           season: CURRENT_SEASON_LABEL,
