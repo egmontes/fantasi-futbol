@@ -107,7 +107,7 @@
     .header-meta { font-size: 12px; color: var(--text3); font-family: var(--font-mono); }
 
     /* MAIN LAYOUT */
-    .container { max-width: 960px; margin: 0 auto; padding: var(--content-top, 160px) 1.5rem 4rem; }
+    .container { max-width: 960px; margin: 0 auto; padding: var(--content-top, 160px) 1.5rem 5rem; }
 
     /* GW SELECTOR */
     .gw-bar {
@@ -700,22 +700,6 @@
 <header class="site-header">
   <div style="display:flex;flex-direction:column;justify-content:center;gap:2px;">
     <div class="site-logo">Fantasi <span style="color:var(--theme)">Futbol</span></div>
-    <div style="position:relative;display:inline-block;">
-      <button id="season-btn" onclick="toggleSeasonMenu()" style="background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;font-size:11px;font-family:var(--font-mono);color:var(--text3);">
-        <span id="season-label" style="color:var(--theme);font-weight:600;background:var(--theme-dim);padding:2px 6px;border-radius:4px;">2026 / 2027</span>
-        <span style="font-size:9px;opacity:0.6;">▾</span>
-      </button>
-      <div id="season-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:8px;padding:4px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);min-width:130px;">
-        <button onclick="window._ssLive()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--theme);border:none;border-radius:6px;cursor:pointer;font-weight:600;">2026 / 2027</button>
-        <div style="height:1px;background:var(--border);margin:4px 0;"></div>
-        <button onclick="window._ssHistory()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">📊 All Time</button>
-        <div style="height:1px;background:var(--border);margin:4px 0;"></div>
-        <button onclick="window._ss2025()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2025 / 2026</button>
-        <button onclick="window._ss2024()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2024 / 2025</button>
-        <button onclick="window._ss2023()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2023 / 2024</button>
-        <button onclick="window._ss2022()" class="season-item" style="display:block;width:100%;text-align:left;padding:7px 12px;font-size:12px;font-family:var(--font-mono);background:none;color:var(--text3);border:none;border-radius:6px;cursor:pointer;">2022 / 2023</button>
-      </div>
-    </div>
   </div>
   <div class="header-meta"><span id="header-meta">Loading...</span><span id="deploy-status" style="margin-left:10px;font-size:11px;opacity:0.6;">Loading...</span></div>
 </header>
@@ -788,6 +772,29 @@
     <div id="historical-content"><div class="loading-state"><span class="spinner"></span>Loading season data...</div></div>
   </div>
 
+  <div id="tab-seasons" class="section">
+    <div style="padding:2rem 0;">
+      <div style="font-size:13px;color:var(--text3);font-family:var(--font-mono);margin-bottom:1.5rem;text-transform:uppercase;letter-spacing:.08em;">Past Seasons</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <button onclick="window._ss2025()" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;cursor:pointer;text-align:left;">
+          <span style="font-size:16px;font-weight:700;color:var(--text);font-family:var(--font-mono);">2025 / 2026</span>
+          <span style="font-size:12px;color:var(--text3);">→</span>
+        </button>
+        <button onclick="window._ss2024()" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;cursor:pointer;text-align:left;">
+          <span style="font-size:16px;font-weight:700;color:var(--text);font-family:var(--font-mono);">2024 / 2025</span>
+          <span style="font-size:12px;color:var(--text3);">→</span>
+        </button>
+        <button onclick="window._ss2023()" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;cursor:pointer;text-align:left;">
+          <span style="font-size:16px;font-weight:700;color:var(--text);font-family:var(--font-mono);">2023 / 2024</span>
+          <span style="font-size:12px;color:var(--text3);">→</span>
+        </button>
+        <button onclick="window._ss2022()" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;cursor:pointer;text-align:left;">
+          <span style="font-size:16px;font-weight:700;color:var(--text);font-family:var(--font-mono);">2022 / 2023</span>
+          <span style="font-size:12px;color:var(--text3);">→</span>
+        </button>
+      </div>
+    </div>
+  </div>
   <div id="tab-history" class="section">
     <div id="history-content"><div class="loading-state"><span class="spinner"></span>Loading league history...</div></div>
   </div>
@@ -5821,7 +5828,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     updateSeasonLabel('All Time', false);
     window.__viewingSeason = 'all-time';
     resetWeeklyRecap();
-    document.getElementById('season-menu').style.display = 'none';
+    updateBottomNav('history');
+    document.getElementById('season-menu') && (document.getElementById('season-menu').style.display = 'none');
     document.querySelectorAll('.season-item').forEach(btn => {
       btn.style.background = 'none'; btn.style.color = 'var(--text3)'; btn.style.fontWeight = 'normal';
     });
@@ -6524,13 +6532,13 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   init().then(() => {
     initPullToRefresh();
-    // Hide cup tab if no cup data available yet
     const cupBtn = document.getElementById('cup-tab-btn');
     if (cupBtn && !window._allCupMatches?.length && !window.__viewingSeason) {
       cupBtn.style.display = 'none';
     }
     if (sessionStorage.getItem('ff_skipAllTime')) {
       sessionStorage.removeItem('ff_skipAllTime');
+      updateBottomNav('current');
     } else {
       window._ssHistory();
     }
@@ -6792,10 +6800,40 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     label.style.border = 'none';
   }
 
+  // Bottom nav
+  window._bnavSeasons = () => {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('tab-seasons').classList.add('active');
+    document.getElementById('standings-toggle-bar').style.display = 'none';
+    document.getElementById('weekly-toggle-bar').style.display = 'none';
+    document.getElementById('season-toggle-bar').style.display = 'none';
+    document.getElementById('gw-callout').style.display = 'none';
+    document.getElementById('main-tabs').style.visibility = 'hidden';
+    document.getElementById('main-tabs').style.height = '0';
+    document.getElementById('main-tabs').style.padding = '0';
+    document.getElementById('main-tabs').style.borderBottom = 'none';
+    updateSeasonLabel('Seasons', false);
+    window.__viewingSeason = 'seasons-page';
+    updateBottomNav('seasons');
+    updateStickyOffsets();
+  };
+
+  function updateBottomNav(active) {
+    ['current', 'seasons', 'history'].forEach(key => {
+      const btn = document.getElementById('bnav-' + key);
+      if (!btn) return;
+      const isActive = key === active;
+      const label = btn.querySelector('.bnav-label');
+      if (label) label.style.color = isActive ? 'var(--theme)' : 'var(--text3)';
+      btn.style.borderTop = isActive ? '2px solid var(--theme)' : '2px solid transparent';
+    });
+  }
+
   window._ssLive = () => {
     window.__viewingSeason = null;
     const cupBtn = document.getElementById('cup-tab-btn');
     if (cupBtn && !window._allCupMatches?.length) cupBtn.style.display = 'none';
+    updateBottomNav('current');
     sessionStorage.setItem('ff_skipAllTime', '1');
     window.location.reload();
   };
@@ -6806,7 +6844,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       if (wtl) wtl.textContent = '2025 / 2026';
       resetWeeklyRecap();
       switchWeeklyView('table');
-      document.getElementById('season-menu').style.display = 'none';
+      document.getElementById('season-menu') && (document.getElementById('season-menu').style.display = 'none');
+        updateBottomNav('seasons');
     }
 
     // Reset state only if not already on 2025/2026
@@ -6924,10 +6963,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   window.selectSeason = async function(season) {
     updateSeasonLabel(season.replace(/\//g, ' / '), false);
-    document.getElementById('season-menu').style.display = 'none';
+    document.getElementById('season-menu') && (document.getElementById('season-menu').style.display = 'none');
     resetWeeklyRecap();
     const seasonFileMap = { '2024/2025': '2024-2025', '2023/2024': '2023-2024', '2022/2023': '2022-2023' };
     window.__viewingSeason = seasonFileMap[season] || null;
+    updateBottomNav('seasons');
 
     // Highlight active item
     document.querySelectorAll('.season-item').forEach(btn => {
@@ -7179,6 +7219,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       menu.style.display = 'none';
     }
     // Also close weekly dropdown
+    const bnavMenu = document.getElementById('bnav-seasons-menu');
+    const bnavSeasons = document.getElementById('bnav-seasons');
+    if (bnavMenu && bnavSeasons && !bnavSeasons.contains(e.target)) {
+      bnavMenu.style.display = 'none';
+    }
     const wMenu = document.getElementById('weekly-tab-menu');
     const wBtn = document.getElementById('weekly-tab-btn');
     if (wMenu && wBtn && !wBtn.contains(e.target) && !wMenu.contains(e.target)) {
@@ -7186,5 +7231,21 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     }
   });
 </script>
+<!-- Bottom Nav -->
+<nav id="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(13,15,14,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;align-items:stretch;height:56px;padding-bottom:env(safe-area-inset-bottom);">
+  <button id="bnav-current" onclick="window._ssLive()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 4px;border-top:2px solid transparent;font-family:var(--font-body);">
+    <span style="font-size:18px;">⚽</span>
+    <span style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">2026/27</span>
+  </button>
+  <button id="bnav-seasons" onclick="window._bnavSeasons()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 4px;border-top:2px solid transparent;font-family:var(--font-body);">
+    <span style="font-size:18px;">📅</span>
+    <span style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">Seasons</span>
+  </button>
+  <button id="bnav-history" onclick="window._ssHistory()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 4px;border-top:2px solid transparent;font-family:var(--font-body);">
+    <span style="font-size:18px;">🏆</span>
+    <span style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">All Time</span>
+  </button>
+</nav>
+
 </body>
 </html>
