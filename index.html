@@ -2341,7 +2341,7 @@ async function init() {
       html += '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">' + esc(m.team) + '</div>';
       // Stats chips left-aligned under name
       html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
-      if (earned >= 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + (earned > 0 ? 'var(--green)' : 'var(--text3)') + ';background:' + (earned > 0 ? 'var(--green-dim)' : 'var(--bg3)') + ';border-radius:6px;padding:3px 8px;">$' + earned.toFixed(0) + '</span>';
+      if (earned >= 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + (earned > 0 ? 'var(--green)' : 'var(--text3)') + ';background:' + (earned > 0 ? 'var(--green-dim)' : 'var(--bg3)') + ';border-radius:6px;padding:3px 8px;">$' + earned.toFixed(2) + '</span>';
       if (!isSeasonOver && m.gwLatestPts !== null) {
         const gwColor = gwRankMap[m.id] <= 4 ? 'var(--theme)' : 'var(--text2)';
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + gwColor + ';background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + (m.gwRawPts||0) + 'pts</span>';
@@ -3826,7 +3826,7 @@ async function init() {
 
         // Chips row
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
-        if (m._prize > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;">$' + m._prize.toFixed(0) + '</span>';
+        if (m._prize > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;">$' + m._prize.toFixed(2) + '</span>';
         if (m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;">🍺 Shotgun</span>';
         if (capStr) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">© ' + esc(capStr) + '</span>';
         html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:' + (m.gwTotal > 0 ? 'var(--theme)' : 'var(--text3)') + ';">Total:</span><span style="color:' + (m.gwTotal > 0 ? 'var(--text)' : 'var(--text3)') + ';">' + m.gwTotal + '</span></span>';
@@ -6450,7 +6450,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     };
 
     let cards = '';
-    if (byEarned) cards += statCard('💰 All-Time Earner', namesStr(byEarned.names) + '<br>$' + byEarned.value.toFixed(0), 'stat-card-green');
+    if (byEarned) cards += statCard('💰 All-Time Earner', namesStr(byEarned.names) + '<br>$' + byEarned.value.toFixed(2), 'stat-card-green');
     if (byTitles) cards += statCard('🥇 Most Titles', namesStr(byTitles.names) + '<br>' + byTitles.value + 'x');
     if (byCups)   cards += statCard('🏆 Most Cups', namesStr(byCups.names) + '<br>' + byCups.value + 'x', 'stat-card-gold');
     if (byBeers)  cards += statCard('🍺 Most Beers', namesStr(byBeers.names) + '<br>' + byBeers.value);
@@ -6547,7 +6547,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       html += '<div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);">' + m.seasons + ' season' + (m.seasons !== 1 ? 's' : '') + '</div>';
       html += '</div>';
       html += '<div style="text-align:right;flex-shrink:0;align-self:center;">';
-      html += '<div class="at-right-val" style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(0) + '</div>';
+      html += '<div class="at-right-val" style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(2) + '</div>';
       html += '<div class="at-right-label" style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">earned</div>';
       html += '</div>';
       html += '</div>'; // close top row
@@ -7212,8 +7212,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     // Update right side of each card to show sort value
     const sortMeta = {
-      earned:      { label: 'earned',  fmt: v => '$' + Math.round(v), color: v => v > 0 ? 'var(--green)' : 'var(--text3)' },
-      last:        { label: 'last',    fmt: v => v ? (+v).toFixed(1) + 'x' : '—', color: () => 'var(--red)' },
+      earned:      { label: 'earned',  fmt: v => '$' + (+v).toFixed(2), color: v => v > 0 ? 'var(--green)' : 'var(--text3)' },
+      last:        { label: 'last',    fmt: v => v ? (+v).toFixed(1) : '—', color: () => 'var(--red)' },
       guinness:    { label: 'beers',   fmt: v => v || '—', color: v => v > 0 ? 'var(--amber)' : 'var(--text3)' },
       missedBeers: { label: 'missed',  fmt: v => v || '—', color: v => v > 0 ? 'var(--red)' : 'var(--text3)' },
     };
@@ -7609,7 +7609,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:700;color:var(--theme);">' + (i+1) + '</td>';
       const kluisBadge = kluis.winner === m.name ? ' 🍺🎬' : '';
       html += '<td style="padding:8px 10px;"><div style="font-weight:600;color:var(--text);">' + esc(m.name) + lBadge + kluisBadge + '</div></td>';
-      html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:600;color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(0) + '</td>';
+      html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:600;color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(2) + '</td>';
       if (has4) {
         html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top1 || '—') + '</td>';
         html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top2 || '—') + '</td>';
