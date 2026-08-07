@@ -2292,11 +2292,11 @@ async function init() {
       { key: 'totalG', label: 'Total 🍺' },
     ];
     html += '<div class="standings-cards">';
-    html += '<div id="cards-sort-bar" style="position:sticky;top:var(--sticky-toggle-top,150px);z-index:12;background:var(--bg);padding:8px 0;display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;border-bottom:1px solid var(--border);">';
-    html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
+    html += '<div id="cards-sort-bar" style="position:sticky;top:var(--sticky-toggle-top,150px);z-index:12;background:var(--bg);padding:4px 0;display:flex;gap:0;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--border);width:100%;">';
+    html += '';
     sortOptions.forEach((opt, i) => {
       const isActive = i === 0;
-      html += '<button onclick="window._sortCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="font-size:11px;font-family:var(--font-mono);border-radius:20px;padding:4px 12px;border:1px solid ' + (isActive ? 'var(--theme)' : 'var(--border2)') + ';background:' + (isActive ? 'var(--theme-dim)' : 'none') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';cursor:pointer;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
+      html += '<button onclick="window._sortCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
     });
     html += '</div>';
     rows.forEach((m, idx) => {
@@ -3809,11 +3809,11 @@ async function init() {
         { key: 'transferCost', label: 'Hits' },
       ];
       html += '<div class="weekly-cards">';
-      html += '<div id="gw-cards-sort-bar" style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;">';
-      html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
+      html += '<div id="gw-cards-sort-bar" style="display:flex;gap:0;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:4px 0;width:100%;">';
+      html += '';
       gwSortOptions.forEach((opt, i) => {
         const isActive = i === 0;
-        html += '<button onclick="window._sortGWCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="font-size:11px;font-family:var(--font-mono);border-radius:20px;padding:4px 12px;border:1px solid ' + (isActive ? 'var(--theme)' : 'var(--border2)') + ';background:' + (isActive ? 'var(--theme-dim)' : 'none') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';cursor:pointer;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
+        html += '<button onclick="window._sortGWCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
       });
       html += '</div>';
 
@@ -5138,13 +5138,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const roundNum = totalRounds - idx;
       const roundName = ROUND_NAMES[roundNum] || ('Round ' + roundNum);
       const isSelected = event === _selectedCupRound;
-      html += '<button class="cup-round-btn" data-event="' + event + '" style="' +
-        'padding:6px 14px;border-radius:20px;font-size:12px;font-family:var(--font-mono);cursor:pointer;border:1px solid ' +
-        (isSelected ? 'var(--theme)' : 'var(--border2)') + ';' +
-        'background:' + (isSelected ? 'var(--theme-dim)' : 'var(--surface)') + ';' +
-        'color:' + (isSelected ? 'var(--theme)' : 'var(--text2)') + ';' +
-        'font-weight:' + (isSelected ? '600' : '400') + ';' +
-        '">' + roundName + ' · GW' + event + '</button>';
+      html += '<button class="cup-round-btn" data-event="' + event + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;padding:6px 14px;white-space:nowrap;text-align:center;">' + roundName + ' · GW' + event + '</button>';
     });
     html += '</div>';
 
@@ -6521,21 +6515,21 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     html += '<div class="alltime-cards" style="max-width:760px;margin:0 auto;">';
 
     // Sort bar
-    html += '<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;">';
-    html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
+    html += '<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:8px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:4px 0;">';
+    html += '';
     atSortOptions.forEach((opt, i) => {
       const isActive = i === 0;
-      html += '<button onclick="window._sortATCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="font-size:11px;font-family:var(--font-mono);border-radius:20px;padding:4px 12px;border:1px solid ' + (isActive ? 'var(--theme)' : 'var(--border2)') + ';background:' + (isActive ? 'var(--theme-dim)' : 'none') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';cursor:pointer;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
+      html += '<button onclick="window._sortATCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
     });
     html += '</div>';
 
     // Filter bar
-    html += '<div id="at-filter-bar" style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;">';
-    html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Filter:</span>';
+    html += '<div id="at-filter-bar" style="display:flex;gap:0;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:4px 0;width:100%;">';
+    html += '';
     atFilterOptions.forEach(opt => {
-      html += '<button onclick="window._toggleATFilter(\'' + opt.key + '\', this)" data-filter-key="' + opt.key + '" style="font-size:13px;border-radius:20px;padding:4px 10px;border:1px solid var(--border2);background:none;cursor:pointer;line-height:1;">' + opt.label + '</button>';
+      html += '<button onclick="window._toggleATFilter(\'' + opt.key + '\', this)" data-filter-key="' + opt.key + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + '</button>';
     });
-    html += '<button onclick="window._clearATFilters()" style="font-size:10px;font-family:var(--font-mono);border-radius:20px;padding:4px 10px;border:1px solid var(--border2);background:none;color:var(--text3);cursor:pointer;">Clear</button>';
+    html += '<button onclick="window._clearATFilters()" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);padding:6px 14px;white-space:nowrap;text-align:center;">Clear</button>';
     html += '</div>';
 
     const atChip = (label, value, activeColor, activeBg, active) => {
@@ -7231,9 +7225,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     document.querySelectorAll('.alltime-cards button[data-sort-key]').forEach(b => {
       const isActive = b.dataset.sortKey === key;
-      b.style.borderColor = isActive ? 'var(--theme)' : 'var(--border2)';
-      b.style.background = isActive ? 'var(--theme-dim)' : 'none';
+      b.style.background = isActive ? 'var(--theme-dim)' : 'transparent';
       b.style.color = isActive ? 'var(--theme)' : 'var(--text3)';
+      b.style.fontWeight = isActive ? '600' : 'normal';
       b.textContent = isActive ? b.dataset.label + ' ' + (window._atCardSort.dir === -1 ? '↓' : '↑') : b.dataset.label;
     });
 
@@ -7603,10 +7597,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     ];
 
     html += '<div id="hist-sort-bar" style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;">';
-    html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
+    html += '';
     histSortOptions.forEach((opt, i) => {
       const isActive = (window._histSort?.col || 'earned') === opt.key;
-      html += '<button onclick="window._histSortBy(\'' + opt.key + '\')" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="font-size:11px;font-family:var(--font-mono);border-radius:20px;padding:4px 12px;border:1px solid ' + (isActive ? 'var(--theme)' : 'var(--border2)') + ';background:' + (isActive ? 'var(--theme-dim)' : 'none') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';cursor:pointer;white-space:nowrap;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
+      html += '<button onclick="window._histSortBy(\'' + opt.key + '\')" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
     });
     html += '</div>';
 
