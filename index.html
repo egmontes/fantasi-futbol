@@ -694,7 +694,7 @@
   <div style="display:flex;flex-direction:column;justify-content:center;gap:2px;">
     <div class="site-logo">Fantasi <span style="color:var(--theme)">Futbol</span> <span style="font-size:12px;color:var(--text3);font-family:var(--font-mono);letter-spacing:.05em;">EST. 2022</span></div>
   </div>
-  <div class="header-meta"><span id="header-meta">Loading...</span><span id="deploy-status" style="margin-left:10px;font-size:11px;opacity:0.6;">Loading...</span></div>
+
 </header>
 <div id="gw-callout" style="position:fixed;top:var(--header-h,56px);left:0;right:0;background:var(--bg);z-index:14;padding:8px 1.5rem;border-bottom:1px solid var(--border);min-height:40px;">
   <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:nowrap;overflow:hidden;white-space:nowrap;">
@@ -1359,7 +1359,7 @@ async function init() {
         });
       }
 
-      document.getElementById('header-meta').textContent = '';
+      const hm = document.getElementById('header-meta'); if (hm) hm.textContent = '';
 
       loadLastUpdated();
       // Update standings tab label with live GW
@@ -1459,7 +1459,7 @@ async function init() {
       const errHtml = `<div class="error-state">Failed to load league data — the FPL API or CORS proxy may be temporarily unavailable.<small>${e.message}</small><br><br>Try hitting ↺ Refresh, or wait a moment and reload the page.</div>`;
       document.getElementById('standings-content').innerHTML = errHtml;
       document.getElementById('weekly-content').innerHTML = errHtml;
-      document.getElementById('header-meta').textContent = 'Error loading data';
+      const hme = document.getElementById('header-meta'); if (hme) hme.textContent = 'Error loading data';
     }
   }
 
