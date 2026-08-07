@@ -676,7 +676,6 @@
     #tab-weekly .table-outer { visibility: hidden; height: 0; overflow: hidden; position: absolute; pointer-events: none; }
     /* All-time card layout */
     #tab-history .alltime-cards { display: block !important; }
-    #tab-history .table-scroll-wrap { visibility: hidden; height: 0; overflow: hidden; position: absolute; pointer-events: none; }
     .standings-cards, .weekly-cards, .alltime-cards { max-width: 760px; margin: 0 auto; }
     .s-card { transition: border-color 0.2s, box-shadow 0.2s; }
     .s-card:hover { border-color: var(--theme) !important; box-shadow: 0 0 0 1px var(--theme-border); }
@@ -2123,7 +2122,7 @@ async function init() {
       '<div class="stat-card stat-card-red"><div class="s-label">🔴 Lowest GW Score</div><div class="s-value">' + esc(tickerInsights.lowest.manager) + '<br>GW' + tickerInsights.lowest.gw + ' · ' + tickerInsights.lowest.points + ' pts' + '</div></div>' +
       '<div class="stat-card"><div class="s-label">👑 Biggest Win Margin</div><div class="s-value">' + esc(tickerInsights.biggestMargin.manager) + '<br>GW' + tickerInsights.biggestMargin.gw + ' · ' + tickerInsights.biggestMargin.margin + ' pts' + '</div></div>' +
       '<div class="stat-card"><div class="s-label">💰 Top Weekly Earner</div><div class="s-value">' + (topMoney ? esc(topMoney.name) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') : '—') + '</div></div>' +
-      (isSeasonOver ? '<div class="stat-card stat-card-gold"><div class="s-label">🍺🎬 Kluis Rolling Can Award</div><div class="s-value">Jack Bernatchez<br>$50</div></div>' : '');
+      (isSeasonOver ? '<div class="stat-card stat-card-gold"><div class="s-label">🍺🎬 Rolling Can Rolling Can Award</div><div class="s-value">Jack Bernatchez<br>$50</div></div>' : '');
     let html = (state.historyLoaded ? '<div class="stat-ticker-wrap"><div class="stat-ticker">' + cards + cards + '</div></div>' : '') +
       // Season prizes section
       '<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:8px;">' +
@@ -6317,19 +6316,22 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._historySort = { col: 'earned', dir: -1 };
       el.innerHTML = renderLeagueHistory(seasonData, labels);
       requestAnimationFrame(() => {
-        const histTableOuter = document.querySelector('#history-table')?.closest('.table-outer');
-        const histScrollWrap = document.querySelector('#history-table')?.closest('.table-scroll-wrap');
-        if (histTableOuter && histScrollWrap) {
-          const updateHistScroll = () => {
-            const { scrollLeft, scrollWidth, clientWidth } = histTableOuter;
-            histScrollWrap.classList.toggle('scroll-at-start', scrollLeft <= 2);
-            histScrollWrap.classList.toggle('scroll-at-end', scrollLeft + clientWidth >= scrollWidth - 2);
-          };
-          histTableOuter.addEventListener('scroll', updateHistScroll, { passive: true });
-          requestAnimationFrame(updateHistScroll);
-        }
         const tickerEl = document.getElementById('history-ticker');
         if (tickerEl) { makeTickerInteractive(tickerEl); requestAnimationFrame(() => fitStatCards(tickerEl)); }
+        // Wire up all-time card taps
+        document.querySelectorAll('.at-card').forEach(card => {
+          card.addEventListener('click', () => {
+            const drawer = card.querySelector('.at-card-drawer');
+            if (!drawer) return;
+            const isOpen = drawer.style.display !== 'none';
+            document.querySelectorAll('.at-card-drawer').forEach(d => d.style.display = 'none');
+            document.querySelectorAll('.at-card').forEach(c => { c.style.borderColor = 'var(--theme-border)'; c.style.boxShadow = 'none'; });
+            if (isOpen) return;
+            drawer.style.display = 'block';
+            card.style.borderColor = 'var(--theme)';
+            card.style.boxShadow = '0 0 0 1px var(--theme-border), 0 4px 20px rgba(85,226,233,0.1)';
+          });
+        });
       });
     } catch(e) {
       el.innerHTML = '<div class="loading-state" style="color:var(--red);">Failed to load history: ' + e.message + '</div>';
@@ -6452,56 +6454,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     // Ticker
     html += '<div class="stat-ticker-wrap" style="margin-bottom:1.5rem;"><div class="stat-ticker" id="history-ticker">' + cards + cards + '</div></div>';
 
-    html += '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px;opacity:0.7;">* Detailed metrics tracked from 2025/26 season onward.</div>';
-    html += '<div class="table-scroll-wrap scroll-at-start"><div class="table-outer"><div class="table-wrap"><table id="history-table" style="width:100%;border-collapse:separate;border-spacing:0;font-size:13px;">';
-    html += '<thead><tr style="border-bottom:1px solid var(--border);">';
-    html += '<th style="width:40px;padding:8px 6px;text-align:center;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;z-index:2;">#</th>';
-    html += '<th style="padding:8px 10px;text-align:left;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;min-width:130px;max-width:160px;">Manager</th>';
-    html += th('seasons', '⌛', '45px');
-    html += th('earned', '💰 Total', '75px');
-    html += th('s1st', '🥇 1st', '55px');
-    html += th('s2nd', '🥈 2nd', '55px');
-    html += th('s3rd', '🥉 3rd', '55px');
-    html += th('s4th', '4️⃣ 4th', '55px');
-    html += th('s5th', '5️⃣ 5th', '55px');
-    html += th('cupTitles', '🏆', '45px');
-    html += th('cupRunnerUp', '🥈 Cup', '55px');
-    html += th('kluisTitles', '🎬', '40px');
-    html += th('last', '💀', '50px');
-    html += th('guinness', '🍺', '45px');
-    html += th('missedBeers', '🍺❌', '45px');
-    html += '</tr></thead><tbody>';
-
-    ranked.forEach((m, i) => {
-      const bg = i % 2 === 0 ? '' : 'background:var(--bg2);';
-      html += `<tr style="${bg}border-bottom:1px solid var(--border);">`;
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:700;color:var(--theme);">${i+1}</td>`;
-      html += `<td style="padding:8px 10px;min-width:130px;max-width:160px;overflow:hidden;">`;
-      html += `<div style="font-weight:600;color:var(--text);">${esc(m.name)}</div>`;
-      if (m.leagueTitles > 0 || m.cupTitles > 0) {
-        html += '<div style="font-size:10px;color:var(--text3);">';
-        if (m.leagueTitles > 0) html += '🥇×' + m.leagueTitles + ' ';
-        if (m.cupTitles > 0) html += '🏆×' + m.cupTitles;
-        html += '</div>';
-      }
-      html += '</td>';
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text3);">${m.seasons}</td>`;
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:600;color:${m.earned > 0 ? 'var(--green)' : 'var(--text3)'};">$${m.earned.toFixed(0)}</td>`;
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.s1st > 0 ? 'var(--theme)' : 'var(--text3)'};">${m.s1st || '—'}</td>`;
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.s2nd > 0 ? 'var(--theme)' : 'var(--text3)'};">${m.s2nd || '—'}</td>`;
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.s3rd > 0 ? 'var(--theme)' : 'var(--text3)'};">${m.s3rd || '—'}</td>`;
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.s4th > 0 ? 'var(--theme)' : 'var(--text3)'};">${m.s4th || '—'}</td>`;
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.s5th > 0 ? 'var(--theme)' : 'var(--text3)'};">${m.s5th || '—'}</td>`;
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.cupTitles > 0 ? '#FFD700' : 'var(--text3)'};">${m.cupTitles || '—'}</td>`;
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.cupRunnerUp > 0 ? 'var(--text2)' : 'var(--text3)'};">${m.cupRunnerUp || '—'}</td>`;
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.kluisTitles > 0 ? '#FFD700' : 'var(--text3)'};">${m.kluisTitles || '—'}</td>`;
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.last > 0 ? 'var(--red)' : 'var(--text3)'};">${m.last ? m.last.toFixed(1) : '—'}</td>`;
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.guinness > 0 ? 'var(--amber)' : 'var(--text3)'};">${m.guinness || '—'}</td>`;
-      html += `<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:${m.missedBeers > 0 ? 'var(--red)' : 'var(--text3)'};">${m.missedBeers || '—'}</td>`;
-      html += '</tr>';
-    });
-
-    html += '</tbody></table></div></div></div></div>';
+    html += '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px;opacity:0.7;">*More detailed metrics tracked from 2025/26 season onward.</div>';
+    // Table removed - replaced by cards below
 
     // All-time cards
     const atSortOptions = [
@@ -6511,7 +6465,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       { key: 'last', label: '💀 Last' },
       { key: 'guinness', label: '🍺 Beers' },
       { key: 'missedBeers', label: '🍺❌ Missed' },
-      { key: 'kluisTitles', label: '🎬 Kluis' },
+      { key: 'kluisTitles', label: '🎬 Rolling Can' },
     ];
     html += '<div class="alltime-cards" style="max-width:760px;margin:0 auto;">';
     html += '<div id="at-sort-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">';
@@ -6534,33 +6488,52 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     ranked.forEach((m, i) => {
       const rank = i + 1;
-      // Store in global map for sort function
       if (!window._atCardDataMap) window._atCardDataMap = {};
       window._atCardDataMap[m.name] = m;
-      html += '<div class="s-card at-card" data-manager-id="' + esc(m.name) + '" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:12px;padding:14px 16px;margin-bottom:8px;">';
+
+      // Award badges for face
+      let awards = '';
+      for (let t = 0; t < (m.leagueTitles||0); t++) awards += '🥇';
+      for (let t = 0; t < (m.leagueRunnerUp||0); t++) awards += '🥈';
+      for (let t = 0; t < (m.s3rd||0); t++) awards += '🥉';
+      for (let t = 0; t < (m.s4th||0); t++) awards += '4️⃣';
+      for (let t = 0; t < (m.s5th||0); t++) awards += '5️⃣';
+      for (let t = 0; t < (m.cupTitles||0); t++) awards += '🏆';
+      for (let t = 0; t < (m.cupRunnerUp||0); t++) awards += '<svg width="14" height="14" viewBox="0 0 20 20" style="vertical-align:middle;display:inline-block;margin:0 1px;"><defs><linearGradient id="sv" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e0e0e0"/><stop offset="50%" stop-color="#aaa"/><stop offset="100%" stop-color="#ccc"/></linearGradient></defs><path d="M7 2 Q6 2 5.5 3.5 L5 9 Q4.8 11 6 12 L7 12.5 L7 14 L5 14.5 L5 16 L15 16 L15 14.5 L13 14 L13 12.5 L14 12 Q15.2 11 15 9 L14.5 3.5 Q14 2 13 2 Z" fill="url(#sv)" stroke="#999" stroke-width="0.3"/><path d="M5.5 4 Q2 4 2 8 Q2 11 5.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><path d="M14.5 4 Q18 4 18 8 Q18 11 14.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><rect x="8.5" y="14" width="3" height="1.5" fill="#999" rx="0.3"/><rect x="6.5" y="15.5" width="7" height="1.5" fill="#888" rx="0.5"/></svg>';
+      for (let t = 0; t < (m.kluisTitles||0); t++) awards += '🎬';
+
+      html += '<div class="s-card at-card" data-manager-id="' + esc(m.name) + '" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;">';
+
       // Top row: rank + name + earned
-      html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
+      html += '<div style="display:flex;align-items:center;gap:10px;">';
       html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:var(--theme);min-width:28px;align-self:center;">' + rank + '</span>';
       html += '<div style="flex:1;min-width:0;">';
-      html += '<div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(m.name) + '</div>';
-      html += '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">' + m.seasons + ' season' + (m.seasons !== 1 ? 's' : '') + '</div>';
-      // Chips
-      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
-      html += atChip('🥇', m.s1st || 0, 'var(--theme)', 'var(--theme-dim)', m.s1st > 0);
-      html += atChip('🥈 League', m.s2nd || 0, 'var(--text2)', 'var(--bg3)', m.s2nd > 0);
-      html += atChip('🏆', m.cupTitles || 0, '#FFD700', 'rgba(255,215,0,0.1)', m.cupTitles > 0);
-      html += atChip('🥈 Cup', m.cupRunnerUp || 0, 'var(--text2)', 'var(--bg3)', m.cupRunnerUp > 0);
-      if (m.kluisTitles > 0) html += atChip('🎬', m.kluisTitles, '#FFD700', 'rgba(255,215,0,0.1)', true);
-      html += atChip('💀', m.last ? m.last.toFixed(1) : 0, 'var(--red)', 'var(--red-dim)', m.last > 0);
-      html += atChip('🍺', m.guinness || 0, 'var(--amber)', 'var(--amber-dim)', m.guinness > 0);
-      if (m.missedBeers > 0) html += atChip('🍺❌', m.missedBeers, 'var(--red)', 'var(--red-dim)', true);
+      html += '<div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(m.name) + (awards ? ' ' + awards : '') + '</div>';
+      html += '<div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);">' + m.seasons + ' season' + (m.seasons !== 1 ? 's' : '') + '</div>';
       html += '</div>';
-      html += '</div>'; // close name col
       html += '<div style="text-align:right;flex-shrink:0;align-self:center;">';
       html += '<div style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(0) + '</div>';
       html += '<div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">earned</div>';
       html += '</div>';
       html += '</div>'; // close top row
+
+      // Drawer with all stats
+      html += '<div class="at-card-drawer" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">';
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">';
+      html += atChip('🥇 League:', m.s1st || 0, 'var(--theme)', 'var(--theme-dim)', m.s1st > 0);
+      html += atChip('🥈 League:', m.s2nd || 0, 'var(--text2)', 'var(--bg3)', m.s2nd > 0);
+      html += atChip('🥉 League:', m.s3rd || 0, 'var(--text2)', 'var(--bg3)', m.s3rd > 0);
+      html += atChip('4️⃣ League:', m.s4th || 0, 'var(--text2)', 'var(--bg3)', m.s4th > 0);
+      html += atChip('5️⃣ League:', m.s5th || 0, 'var(--text2)', 'var(--bg3)', m.s5th > 0);
+      html += atChip('🏆 Cup:', m.cupTitles || 0, '#FFD700', 'rgba(255,215,0,0.1)', m.cupTitles > 0);
+      html += atChip('🥈 Cup:', m.cupRunnerUp || 0, 'var(--text2)', 'var(--bg3)', m.cupRunnerUp > 0);
+      html += atChip('🎬 Rolling Can:', m.kluisTitles || 0, '#FFD700', 'rgba(255,215,0,0.1)', m.kluisTitles > 0);
+      html += atChip('💀 Last:', m.last ? m.last.toFixed(1) : 0, 'var(--red)', 'var(--red-dim)', m.last > 0);
+      html += atChip('🍺 Beers:', m.guinness || 0, 'var(--amber)', 'var(--amber-dim)', m.guinness > 0);
+      html += atChip('🍺❌ Missed:', m.missedBeers || 0, 'var(--red)', 'var(--red-dim)', m.missedBeers > 0);
+      html += '</div>';
+      html += '</div>'; // close drawer
+
       html += '</div>'; // close card
     });
     html += '</div>'; // close alltime-cards
@@ -6580,20 +6553,21 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       el.innerHTML = renderLeagueHistory(window._historyData.seasonData, window._historyData.labels);
       requestAnimationFrame(() => {
         window.scrollTo(0, savedScrollY);
-        const newTableOuter = document.querySelector('#history-table')?.closest('.table-outer');
-        if (newTableOuter) newTableOuter.scrollLeft = savedScrollX;
-        const histScrollWrap = document.querySelector('#history-table')?.closest('.table-scroll-wrap');
-        if (newTableOuter && histScrollWrap) {
-          const updateHistScroll = () => {
-            const { scrollLeft, scrollWidth, clientWidth } = newTableOuter;
-            histScrollWrap.classList.toggle('scroll-at-start', scrollLeft <= 2);
-            histScrollWrap.classList.toggle('scroll-at-end', scrollLeft + clientWidth >= scrollWidth - 2);
-          };
-          newTableOuter.addEventListener('scroll', updateHistScroll, { passive: true });
-          requestAnimationFrame(updateHistScroll);
-        }
         const tickerEl = document.getElementById('history-ticker');
         if (tickerEl) { makeTickerInteractive(tickerEl); requestAnimationFrame(() => fitStatCards(tickerEl)); }
+        document.querySelectorAll('.at-card').forEach(card => {
+          card.addEventListener('click', () => {
+            const drawer = card.querySelector('.at-card-drawer');
+            if (!drawer) return;
+            const isOpen = drawer.style.display !== 'none';
+            document.querySelectorAll('.at-card-drawer').forEach(d => d.style.display = 'none');
+            document.querySelectorAll('.at-card').forEach(c => { c.style.borderColor = 'var(--theme-border)'; c.style.boxShadow = 'none'; });
+            if (isOpen) return;
+            drawer.style.display = 'block';
+            card.style.borderColor = 'var(--theme)';
+            card.style.boxShadow = '0 0 0 1px var(--theme-border), 0 4px 20px rgba(85,226,233,0.1)';
+          });
+        });
       });
     }
   };
@@ -7483,7 +7457,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const kluis = awards?.Kluis || {};
     if (kluis.winner) {
       html += '<div style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);border-radius:8px;padding:10px 14px;">' +
-        '<div style="font-size:10px;color:#FFD700;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">🍺🎬 Kluis Rolling Can Award</div>' +
+        '<div style="font-size:10px;color:#FFD700;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">🍺🎬 Rolling Can Rolling Can Award</div>' +
         '<div style="font-weight:700;color:var(--theme);">' + esc(kluis.winner) + '</div>' +
         '</div>';
     }
