@@ -788,7 +788,7 @@
   </div>
 
   <div id="tab-seasons" class="section">
-    <div style="padding:2rem 0;">
+    <div style="padding:0 0 2rem 0;">
       <div style="font-family:var(--font-display);font-size:32px;color:var(--text);letter-spacing:1px;margin-bottom:4px;">Past <span style="color:var(--theme);">Seasons</span></div>
       <div style="font-size:12px;color:var(--text3);font-family:var(--font-mono);margin-bottom:2rem;">Select a season to view standings & recaps</div>
       <div style="display:flex;flex-direction:column;gap:10px;">
@@ -797,7 +797,7 @@
           <div style="font-family:var(--font-display);font-size:28px;color:var(--theme);letter-spacing:1px;position:relative;">25/26</div>
           <div style="position:relative;">
             <div style="font-size:14px;font-weight:600;color:var(--text);">2025 / 2026</div>
-            <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;"><span style="color:var(--theme);">🥇 Aidan White</span> · <span style="color:#FFD700;">🏆 Eric Wallerstein</span></div>
+            <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;"><div><span style="color:var(--theme);">🥇 Aidan White</span></div><div style="margin-top:2px;"><span style="color:#FFD700;">🏆 Eric Wallerstein</span></div></div>
           </div>
           <div style="margin-left:auto;font-size:16px;position:relative;">→</div>
         </button>
@@ -806,7 +806,7 @@
           <div style="font-family:var(--font-display);font-size:28px;color:var(--green);letter-spacing:1px;position:relative;">24/25</div>
           <div style="position:relative;">
             <div style="font-size:14px;font-weight:600;color:var(--text);">2024 / 2025</div>
-            <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;"><span style="color:var(--theme);">🥇 Matt Nicolai</span> · <span style="color:#FFD700;">🏆 Mike Adipietro</span></div>
+            <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;"><div><span style="color:var(--theme);">🥇 Matt Nicolai</span></div><div style="margin-top:2px;"><span style="color:#FFD700;">🏆 Mike Adipietro</span></div></div>
           </div>
           <div style="margin-left:auto;font-size:16px;position:relative;">→</div>
         </button>
@@ -815,7 +815,7 @@
           <div style="font-family:var(--font-display);font-size:28px;color:var(--amber);letter-spacing:1px;position:relative;">23/24</div>
           <div style="position:relative;">
             <div style="font-size:14px;font-weight:600;color:var(--text);">2023 / 2024</div>
-            <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;"><span style="color:var(--theme);">🥇 Jimmy Romanelli</span> · <span style="color:#FFD700;">🏆 Aidan White</span></div>
+            <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;"><div><span style="color:var(--theme);">🥇 Jimmy Romanelli</span></div><div style="margin-top:2px;"><span style="color:#FFD700;">🏆 Aidan White</span></div></div>
           </div>
           <div style="margin-left:auto;font-size:16px;position:relative;">→</div>
         </button>
@@ -824,7 +824,7 @@
           <div style="font-family:var(--font-display);font-size:28px;color:var(--blue);letter-spacing:1px;position:relative;">22/23</div>
           <div style="position:relative;">
             <div style="font-size:14px;font-weight:600;color:var(--text);">2022 / 2023</div>
-            <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;"><span style="color:var(--theme);">🥇 Eddy GM</span> · <span style="color:#FFD700;">🏆 Mitch Maisel</span></div>
+            <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;"><div><span style="color:var(--theme);">🥇 Eddy GM</span></div><div style="margin-top:2px;"><span style="color:#FFD700;">🏆 Mitch Maisel</span></div></div>
           </div>
           <div style="margin-left:auto;font-size:16px;position:relative;">→</div>
         </button>
@@ -6494,9 +6494,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     cards += statCard('⌛ Seasons', seasonLabels.length + '');
     cards += statCard('👥 All-Time Managers', Object.keys(managers).length + '');
 
-    let html = '<div style="padding-top:1.5rem;padding-bottom:4rem;">';
+    let html = '<div style="padding-bottom:4rem;">';
     html += '<div style="margin-bottom:1rem;">';
-    html += '<div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--text);">League History</div>';
+    html += '<div style="font-family:var(--font-display);font-size:32px;color:var(--text);letter-spacing:1px;margin-bottom:4px;">League <span style="color:var(--theme);">History</span></div>';
     html += '</div>';
 
     // Ticker
@@ -7565,7 +7565,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const th = (col, label, width) =>
       `<th class="sortable${arrow(col)}" onclick="window._histSortBy('${col}')" style="width:${width};padding:8px 6px;text-align:center;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;white-space:nowrap;">${label}</th>`;
 
-    let html = '<div style="padding-top:1.5rem;padding-bottom:4rem;">';
+    let html = '<div style="padding-bottom:4rem;">';
 
     // Season header + awards
     html += '<div style="margin-bottom:1.5rem;">';
