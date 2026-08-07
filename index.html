@@ -104,7 +104,7 @@
       color: var(--text);
     }
     .site-logo span { color: var(--green); }
-    .header-meta { font-size: 12px; color: var(--text3); font-family: var(--font-mono); }
+    .header-meta { font-size: 12px; color: var(--theme); font-family: var(--font-mono); }
 
     /* MAIN LAYOUT */
     .container { max-width: 960px; margin: 0 auto; padding: var(--content-top, 160px) 1.5rem 5rem; }
@@ -678,7 +678,7 @@
     #tab-history .alltime-cards { display: block !important; }
     .standings-cards, .weekly-cards, .alltime-cards { max-width: 760px; margin: 0 auto; }
     .s-card { transition: border-color 0.2s, box-shadow 0.2s; }
-    .s-card:hover { border-color: var(--theme) !important; box-shadow: 0 0 0 1px var(--theme-border); }
+    .s-card:hover { border-color: var(--theme) !important; box-shadow: 0 4px 20px rgba(85,226,233,0.12), 0 2px 12px rgba(0,0,0,0.3); }
   
       font-size: 11px;
       color: var(--text3);
@@ -2140,7 +2140,7 @@ async function init() {
           : state.isTransition
             ? '<span style="color:var(--amber);margin-right:8px;">⏳ GW' + state.transitionGW + ' Loading</span>'
             : isSeasonOver ? '' : '<span style="color:var(--green);margin-right:8px;">✓ GW Scores Final</span>') +
-        'Updated: ' + new Date().toLocaleString('en-US', {timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) + ' ET' +
+        (isSeasonOver ? '' : 'Updated: ' + new Date().toLocaleString('en-US', {timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) + ' ET') +
         (state.isLive && state.fixturesTotal !== undefined
           ? '<br>Games Completed: ' + (state.fixturesTotal - state.fixturesOngoing - state.fixturesRemaining) + ' · Ongoing: ' + state.fixturesOngoing + ' · Remaining: ' + state.fixturesRemaining
           : '') +
@@ -2294,15 +2294,14 @@ async function init() {
       { key: 'earned', label: 'Earned' },
       { key: 'top4', label: 'Top 4' },
       { key: 'bottom2', label: 'Bot 2' },
-      { key: 'gmisses', label: 'Owes 🍺' },
       { key: 'totalG', label: 'Total 🍺' },
     ];
     html += '<div class="standings-cards">';
     html += '<div id="cards-sort-bar" style="position:sticky;top:var(--sticky-toggle-top,150px);z-index:12;background:var(--bg);padding:8px 0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--border);">';
-    html += '<span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
+    html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
     sortOptions.forEach((opt, i) => {
       const isActive = i === 0;
-      html += '<button onclick="window._sortCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="font-size:11px;font-family:var(--font-mono);border-radius:4px;padding:3px 8px;border:1px solid ' + (isActive ? 'var(--theme)' : 'var(--border2)') + ';background:' + (isActive ? 'var(--theme-dim)' : 'none') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';cursor:pointer;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
+      html += '<button onclick="window._sortCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="font-size:11px;font-family:var(--font-mono);border-radius:20px;padding:4px 12px;border:1px solid ' + (isActive ? 'var(--theme)' : 'var(--border2)') + ';background:' + (isActive ? 'var(--theme-dim)' : 'none') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';cursor:pointer;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
     });
     html += '</div>';
     rows.forEach((m, idx) => {
@@ -2317,7 +2316,7 @@ async function init() {
       const rankMedal = sRank===1?'🥇':sRank===2?'🥈':sRank===3?'🥉':'';
       const rankColor = pos===1?'var(--theme)':pos===2?'var(--silver)':pos===3?'var(--amber)':'var(--text3)';
 
-      html += '<div class="s-card" data-manager-id="' + m.id + '" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;">';
+      html += '<div class="s-card" data-manager-id="' + m.id + '" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.3);">';
 
       // Top row: rank + name + pts
       html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
@@ -2327,18 +2326,18 @@ async function init() {
       html += '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">' + esc(m.team) + '</div>';
       // Stats chips left-aligned under name
       html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
-      if (earned >= 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + (earned > 0 ? 'var(--green)' : 'var(--text3)') + ';background:' + (earned > 0 ? 'var(--green-dim)' : 'var(--bg3)') + ';border-radius:4px;padding:2px 6px;">$' + earned.toFixed(0) + '</span>';
+      if (earned >= 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + (earned > 0 ? 'var(--green)' : 'var(--text3)') + ';background:' + (earned > 0 ? 'var(--green-dim)' : 'var(--bg3)') + ';border-radius:6px;padding:3px 8px;">$' + earned.toFixed(0) + '</span>';
       if (!isSeasonOver && m.gwLatestPts !== null) {
         const gwColor = gwRankMap[m.id] <= 4 ? 'var(--theme)' : 'var(--text2)';
-        html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + gwColor + ';background:var(--bg3);border-radius:4px;padding:2px 6px;">GW ' + (m.gwRawPts||0) + 'pts</span>';
+        html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + gwColor + ';background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + (m.gwRawPts||0) + 'pts</span>';
       }
-      if (!isSeasonOver && m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--text2);background:var(--bg3);border-radius:4px;padding:2px 6px;">©' + esc(m.captain.name) + '</span>';
+      if (!isSeasonOver && m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--text2);background:var(--bg3);border-radius:6px;padding:3px 8px;">©' + esc(m.captain.name) + '</span>';
       if (state.historyLoaded) {
         const chip = (label, value, activeColor, activeBg, active) => {
           const bg = active ? activeBg : 'var(--bg3)';
           const labelColor = active ? activeColor : 'var(--text3)';
           const valColor = active ? 'var(--text)' : 'var(--text3)';
-          return '<span style="font-size:11px;font-family:var(--font-mono);background:' + bg + ';border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;">'
+          return '<span style="font-size:11px;font-family:var(--font-mono);background:' + bg + ';border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;">'
             + '<span style="color:' + labelColor + ';">' + label + '</span>'
             + '<span style="color:' + valColor + ';">' + value + '</span>'
             + '</span>';
@@ -2346,7 +2345,7 @@ async function init() {
         html += chip('Top 4:', m.top4, 'var(--green)', 'var(--green-dim)', m.top4 > 0);
         html += chip('Bot 2:', m.bottom2, 'var(--red)', 'var(--red-dim)', m.bottom2 > 0);
         html += chip('Total 🍺:', m.totalG, 'var(--amber)', 'var(--bg3)', m.totalG > 0);
-        html += '<span style="font-size:11px;font-family:var(--font-mono);background:' + (m.gmisses > 0 ? 'var(--red-dim)' : 'var(--bg3)') + ';border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;">'
+        html += '<span style="font-size:11px;font-family:var(--font-mono);background:' + (m.gmisses > 0 ? 'var(--red-dim)' : 'var(--bg3)') + ';border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;">'
           + (m.gmisses > 0 ? '<span>⚠️</span>' : '')
           + '<span style="color:' + (m.gmisses > 0 ? 'var(--red)' : 'var(--text3)') + ';">Owes:</span>'
           + '<span style="color:' + (m.gmisses > 0 ? 'var(--text)' : 'var(--text3)') + ';">' + m.gmisses + '</span>'
@@ -3787,10 +3786,10 @@ async function init() {
       ];
       html += '<div class="weekly-cards">';
       html += '<div id="gw-cards-sort-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">';
-      html += '<span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
+      html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
       gwSortOptions.forEach((opt, i) => {
         const isActive = i === 0;
-        html += '<button onclick="window._sortGWCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="font-size:11px;font-family:var(--font-mono);border-radius:4px;padding:3px 8px;border:1px solid ' + (isActive ? 'var(--theme)' : 'var(--border2)') + ';background:' + (isActive ? 'var(--theme-dim)' : 'none') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';cursor:pointer;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
+        html += '<button onclick="window._sortGWCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="font-size:11px;font-family:var(--font-mono);border-radius:20px;padding:4px 12px;border:1px solid ' + (isActive ? 'var(--theme)' : 'var(--border2)') + ';background:' + (isActive ? 'var(--theme-dim)' : 'none') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';cursor:pointer;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
       });
       html += '</div>';
 
@@ -3802,7 +3801,7 @@ async function init() {
         const capStr = captain ? (captain.isVC ? captain.name + ' (vc)' : captain.name) : null;
         const chipHtml = buildChipBadges(m.id, m.chip, gw);
 
-        html += '<div class="s-card gw-card" data-manager-id="' + m.id + '" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;">';
+        html += '<div class="s-card gw-card" data-manager-id="' + m.id + '" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.3);">';
 
         // Top row: rank + name + gw pts
         html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
@@ -3813,16 +3812,16 @@ async function init() {
 
         // Chips row
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
-        if (m._prize > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:4px;padding:2px 6px;">$' + m._prize.toFixed(0) + '</span>';
-        if (m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:4px;padding:2px 6px;">🍺 Shotgun</span>';
-        if (capStr) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:4px;padding:2px 6px;">© ' + esc(capStr) + '</span>';
-        html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;"><span style="color:' + (m.gwTotal > 0 ? 'var(--theme)' : 'var(--text3)') + ';">Total:</span><span style="color:' + (m.gwTotal > 0 ? 'var(--text)' : 'var(--text3)') + ';">' + m.gwTotal + '</span></span>';
-        if (m.transferCost > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:4px;padding:2px 6px;">-' + m.transferCost + ' hit</span>';
-        if (m.benchPoints > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;"><span style="color:var(--theme);">Bench:</span><span style="color:var(--text);">' + m.benchPoints + '</span></span>';
+        if (m._prize > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;">$' + m._prize.toFixed(0) + '</span>';
+        if (m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;">🍺 Shotgun</span>';
+        if (capStr) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">© ' + esc(capStr) + '</span>';
+        html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:' + (m.gwTotal > 0 ? 'var(--theme)' : 'var(--text3)') + ';">Total:</span><span style="color:' + (m.gwTotal > 0 ? 'var(--text)' : 'var(--text3)') + ';">' + m.gwTotal + '</span></span>';
+        if (m.transferCost > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;">-' + m.transferCost + ' hit</span>';
+        if (m.benchPoints > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--theme);">Bench:</span><span style="color:var(--text);">' + m.benchPoints + '</span></span>';
         const cardOwed = getGuinnessOwedAtGW(m.name, gw);
         const cardMissed = didMissGW(m.name, gw);
-        if (cardOwed > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:4px;padding:2px 6px;">🍺 Owes: ' + cardOwed + '</span>';
-        if (cardMissed) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:4px;padding:2px 6px;">❌ Missed</span>';
+        if (cardOwed > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;">🍺 Owes: ' + cardOwed + '</span>';
+        if (cardMissed) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;">❌ Missed</span>';
         html += '</div>';
 
         html += '</div>'; // close name col
@@ -6469,10 +6468,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     ];
     html += '<div class="alltime-cards" style="max-width:760px;margin:0 auto;">';
     html += '<div id="at-sort-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">';
-    html += '<span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
+    html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
     atSortOptions.forEach((opt, i) => {
       const isActive = i === 0;
-      html += '<button onclick="window._sortATCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="font-size:11px;font-family:var(--font-mono);border-radius:4px;padding:3px 8px;border:1px solid ' + (isActive ? 'var(--theme)' : 'var(--border2)') + ';background:' + (isActive ? 'var(--theme-dim)' : 'none') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';cursor:pointer;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
+      html += '<button onclick="window._sortATCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="font-size:11px;font-family:var(--font-mono);border-radius:20px;padding:4px 12px;border:1px solid ' + (isActive ? 'var(--theme)' : 'var(--border2)') + ';background:' + (isActive ? 'var(--theme-dim)' : 'none') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';cursor:pointer;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
     });
     html += '</div>';
 
@@ -6480,7 +6479,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const bg = active ? activeBg : 'var(--bg3)';
       const lc = active ? activeColor : 'var(--text3)';
       const vc = active ? 'var(--text)' : 'var(--text3)';
-      return '<span style="font-size:11px;font-family:var(--font-mono);background:' + bg + ';border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;">'
+      return '<span style="font-size:11px;font-family:var(--font-mono);background:' + bg + ';border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;">'
         + '<span style="color:' + lc + ';">' + label + '</span>'
         + '<span style="color:' + vc + ';">' + value + '</span>'
         + '</span>';
@@ -6502,7 +6501,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       for (let t = 0; t < (m.cupRunnerUp||0); t++) awards += '<svg width="14" height="14" viewBox="0 0 20 20" style="vertical-align:middle;display:inline-block;margin:0 1px;"><defs><linearGradient id="sv" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e0e0e0"/><stop offset="50%" stop-color="#aaa"/><stop offset="100%" stop-color="#ccc"/></linearGradient></defs><path d="M7 2 Q6 2 5.5 3.5 L5 9 Q4.8 11 6 12 L7 12.5 L7 14 L5 14.5 L5 16 L15 16 L15 14.5 L13 14 L13 12.5 L14 12 Q15.2 11 15 9 L14.5 3.5 Q14 2 13 2 Z" fill="url(#sv)" stroke="#999" stroke-width="0.3"/><path d="M5.5 4 Q2 4 2 8 Q2 11 5.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><path d="M14.5 4 Q18 4 18 8 Q18 11 14.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><rect x="8.5" y="14" width="3" height="1.5" fill="#999" rx="0.3"/><rect x="6.5" y="15.5" width="7" height="1.5" fill="#888" rx="0.5"/></svg>';
       for (let t = 0; t < (m.kluisTitles||0); t++) awards += '🎬';
 
-      html += '<div class="s-card at-card" data-manager-id="' + esc(m.name) + '" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;">';
+      html += '<div class="s-card at-card" data-manager-id="' + esc(m.name) + '" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.3);">';
 
       // Top row: rank + name + earned
       html += '<div style="display:flex;align-items:center;gap:10px;">';
@@ -7591,13 +7590,13 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     <span style="font-size:18px;">⚽</span>
     <span class="bnav-label" style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">2026/27</span>
   </button>
-  <button id="bnav-seasons" onclick="window._bnavSeasons()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 4px;border-top:2px solid transparent;font-family:var(--font-body);">
-    <span style="font-size:18px;">📅</span>
-    <span class="bnav-label" style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">Seasons</span>
-  </button>
   <button id="bnav-history" onclick="window._ssHistory()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 4px;border-top:2px solid transparent;font-family:var(--font-body);">
     <span style="font-size:18px;">🏆</span>
     <span class="bnav-label" style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">All Time</span>
+  </button>
+  <button id="bnav-seasons" onclick="window._bnavSeasons()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 4px;border-top:2px solid transparent;font-family:var(--font-body);">
+    <span style="font-size:18px;">📅</span>
+    <span class="bnav-label" style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">Seasons</span>
   </button>
 </nav>
 
