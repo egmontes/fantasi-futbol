@@ -107,7 +107,7 @@
     .header-meta { font-size: 12px; color: var(--theme); font-family: var(--font-mono); }
 
     /* MAIN LAYOUT */
-    .container { max-width: 960px; margin: 0 auto; padding: var(--content-top, 160px) 1.5rem 5rem; }
+    .container { max-width: 960px; margin: 0 auto; padding: var(--content-top, 160px) 1.5rem 6rem; }
 
     /* GW SELECTOR */
     .gw-bar {
@@ -7173,13 +7173,13 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   };
 
   function updateBottomNav(active) {
-    ['current', 'seasons', 'history'].forEach(key => {
+    ['current', 'history', 'seasons'].forEach(key => {
       const btn = document.getElementById('bnav-' + key);
       if (!btn) return;
       const isActive = key === active;
       const label = btn.querySelector('.bnav-label');
       if (label) label.style.color = isActive ? 'var(--theme)' : 'var(--text3)';
-      btn.style.borderTop = isActive ? '2px solid var(--theme)' : '2px solid transparent';
+      btn.style.background = isActive ? 'var(--theme-dim)' : 'none';
     });
   }
 
@@ -7584,16 +7584,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   });
 </script>
 <!-- Bottom Nav -->
-<nav id="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(20,24,22,0.98);backdrop-filter:blur(16px);border-top:1px solid var(--theme-border);box-shadow:0 -2px 20px rgba(85,226,233,0.15);display:flex;align-items:stretch;height:56px;padding-bottom:env(safe-area-inset-bottom);">
-  <button id="bnav-current" onclick="window._ssLive()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 4px;border-top:2px solid transparent;font-family:var(--font-body);">
+<nav id="bottom-nav" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(20,24,22,0.97);backdrop-filter:blur(20px);border:1px solid var(--theme-border);border-radius:24px;box-shadow:0 -2px 20px rgba(85,226,233,0.15),0 8px 32px rgba(0,0,0,0.4);display:flex;align-items:stretch;height:56px;padding:0 8px;gap:4px;min-width:280px;">
+  <button id="bnav-current" onclick="window._ssLive()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 16px;border-top:none;border-radius:20px;font-family:var(--font-body);">
     <span style="font-size:18px;">⚽</span>
     <span class="bnav-label" style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">2026/27</span>
   </button>
-  <button id="bnav-history" onclick="window._ssHistory()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 4px;border-top:2px solid transparent;font-family:var(--font-body);">
+  <button id="bnav-history" onclick="window._ssHistory()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 16px;border-top:none;border-radius:20px;font-family:var(--font-body);">
     <span style="font-size:18px;">🏆</span>
     <span class="bnav-label" style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">All Time</span>
   </button>
-  <button id="bnav-seasons" onclick="window._bnavSeasons()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 4px;border-top:2px solid transparent;font-family:var(--font-body);">
+  <button id="bnav-seasons" onclick="window._bnavSeasons()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 16px;border-top:none;border-radius:20px;font-family:var(--font-body);">
     <span style="font-size:18px;">📅</span>
     <span class="bnav-label" style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">Seasons</span>
   </button>
