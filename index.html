@@ -6608,8 +6608,19 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       if (!window._atCardDataMap) window._atCardDataMap = {};
       window._atCardDataMap[m.name] = m;
 
+      const kickedOut = ['marcus williams','ben boldt','kemdi','tom raggio'].some(n => m.name.toLowerCase().includes(n));
+      const rankTheme = {
+        1: { border:'rgba(255,215,0,0.4)', bg:'rgba(255,215,0,0.05)', rankColor:'#FFD700' },
+        2: { border:'rgba(192,192,192,0.4)', bg:'rgba(192,192,192,0.05)', rankColor:'#C0C0C0' },
+        3: { border:'rgba(205,127,50,0.4)', bg:'rgba(205,127,50,0.05)', rankColor:'#CD7F32' },
+      };
+      const theme = kickedOut
+        ? { border:'rgba(248,113,113,0.3)', bg:'rgba(248,113,113,0.04)', rankColor:'var(--red)' }
+        : (rankTheme[rank] || { border:'var(--theme-border)', bg:'var(--bg2)', rankColor:'var(--theme)' });
+
       // Award badges for face
       let awards = '';
+      if (!kickedOut) {
       for (let t = 0; t < (m.leagueTitles||0); t++) awards += '🥇';
       for (let t = 0; t < (m.leagueRunnerUp||0); t++) awards += '🥈';
       for (let t = 0; t < (m.s3rd||0); t++) awards += '🥉';
@@ -6618,15 +6629,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       for (let t = 0; t < (m.cupTitles||0); t++) awards += '🏆';
       for (let t = 0; t < (m.cupRunnerUp||0); t++) awards += '<svg width="14" height="14" viewBox="0 0 20 20" style="vertical-align:middle;display:inline-block;margin:0 1px;"><path d="M7 2 Q6 2 5.5 3.5 L5 9 Q4.8 11 6 12 L7 12.5 L7 14 L5 14.5 L5 16 L15 16 L15 14.5 L13 14 L13 12.5 L14 12 Q15.2 11 15 9 L14.5 3.5 Q14 2 13 2 Z" fill="url(#silver-grad)" stroke="#999" stroke-width="0.3"/><path d="M5.5 4 Q2 4 2 8 Q2 11 5.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><path d="M14.5 4 Q18 4 18 8 Q18 11 14.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><rect x="8.5" y="14" width="3" height="1.5" fill="#999" rx="0.3"/><rect x="6.5" y="15.5" width="7" height="1.5" fill="#888" rx="0.5"/></svg>';
       for (let t = 0; t < (m.kluisTitles||0); t++) awards += '🎬';
+      }
 
-      html += '<div class="s-card at-card" data-manager-id="' + esc(m.name) + '" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.3);">';
+      html += '<div class="s-card at-card" data-manager-id="' + esc(m.name) + '" style="background:' + theme.bg + ';border:1px solid ' + theme.border + ';border-radius:16px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.3);">';
 
       // Top row: rank + name + earned
       html += '<div style="display:flex;align-items:center;gap:10px;">';
-      html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:var(--theme);min-width:28px;align-self:center;">' + rank + '</span>';
+      html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:' + theme.rankColor + ';min-width:28px;align-self:center;">' + rank + '</span>';
       html += '<div style="flex:1;min-width:0;">';
-      html += '<div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(m.name) + (awards ? ' ' + awards : '') + '</div>';
-      html += '<div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);">' + m.seasons + ' season' + (m.seasons !== 1 ? 's' : '') + '</div>';
+      html += '<div style="font-weight:700;font-size:15px;color:' + (kickedOut ? 'var(--red)' : 'var(--text)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + (kickedOut ? 'opacity:0.6;' : '') + '">' + esc(m.name) + (kickedOut ? '&nbsp;<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);opacity:0.5;font-weight:400;">kicked</span>' : (awards ? ' ' + awards : '')) + '</div>';
+      html += '<div style="font-size:11px;color:' + (kickedOut ? 'var(--red)' : 'var(--theme)') + ';font-family:var(--font-mono);opacity:' + (kickedOut ? '0.6' : '1') + '">' + m.seasons + ' season' + (m.seasons !== 1 ? 's' : '') + '</div>';
       html += '</div>';
       html += '<div style="text-align:right;flex-shrink:0;align-self:center;">';
       html += '<div class="at-right-val" style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(2) + '</div>';
