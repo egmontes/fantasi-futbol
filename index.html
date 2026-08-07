@@ -6458,20 +6458,42 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     // All-time cards
     const atSortOptions = [
       { key: 'earned', label: '💰 Earned' },
-      { key: 's1st', label: '🥇 1st' },
-      { key: 'cupTitles', label: '🏆 Cup' },
       { key: 'last', label: '💀 Last' },
       { key: 'guinness', label: '🍺 Beers' },
       { key: 'missedBeers', label: '🍺❌ Missed' },
-      { key: 'kluisTitles', label: '🎬 Rolling Can' },
     ];
+
+    const silverTrophySmall = '<svg width="13" height="13" viewBox="0 0 20 20" style="vertical-align:middle;display:inline-block;"><defs><linearGradient id="svf" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e0e0e0"/><stop offset="50%" stop-color="#aaa"/><stop offset="100%" stop-color="#ccc"/></linearGradient></defs><path d="M7 2 Q6 2 5.5 3.5 L5 9 Q4.8 11 6 12 L7 12.5 L7 14 L5 14.5 L5 16 L15 16 L15 14.5 L13 14 L13 12.5 L14 12 Q15.2 11 15 9 L14.5 3.5 Q14 2 13 2 Z" fill="url(#svf)" stroke="#999" stroke-width="0.3"/><path d="M5.5 4 Q2 4 2 8 Q2 11 5.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><path d="M14.5 4 Q18 4 18 8 Q18 11 14.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><rect x="8.5" y="14" width="3" height="1.5" fill="#999" rx="0.3"/><rect x="6.5" y="15.5" width="7" height="1.5" fill="#888" rx="0.5"/></svg>';
+
+    const atFilterOptions = [
+      { key: 's1st', label: '🥇' },
+      { key: 's2nd', label: '🥈' },
+      { key: 's3rd', label: '🥉' },
+      { key: 's4th', label: '4️⃣' },
+      { key: 's5th', label: '5️⃣' },
+      { key: 'cupTitles', label: '🏆' },
+      { key: 'cupRunnerUp', label: silverTrophySmall },
+      { key: 'kluisTitles', label: '🎬' },
+    ];
+
     html += '<div class="alltime-cards" style="max-width:760px;margin:0 auto;">';
-    html += '<div id="at-sort-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">';
+
+    // Sort bar
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">';
     html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
     atSortOptions.forEach((opt, i) => {
       const isActive = i === 0;
       html += '<button onclick="window._sortATCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="font-size:11px;font-family:var(--font-mono);border-radius:20px;padding:4px 12px;border:1px solid ' + (isActive ? 'var(--theme)' : 'var(--border2)') + ';background:' + (isActive ? 'var(--theme-dim)' : 'none') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';cursor:pointer;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
     });
+    html += '</div>';
+
+    // Filter bar
+    html += '<div id="at-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">';
+    html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Filter:</span>';
+    atFilterOptions.forEach(opt => {
+      html += '<button onclick="window._toggleATFilter(\'' + opt.key + '\', this)" data-filter-key="' + opt.key + '" style="font-size:13px;border-radius:20px;padding:4px 10px;border:1px solid var(--border2);background:none;cursor:pointer;line-height:1;">' + opt.label + '</button>';
+    });
+    html += '<button onclick="window._clearATFilters()" style="font-size:10px;font-family:var(--font-mono);border-radius:20px;padding:4px 10px;border:1px solid var(--border2);background:none;color:var(--text3);cursor:pointer;">Clear</button>';
     html += '</div>';
 
     const atChip = (label, value, activeColor, activeBg, active) => {
@@ -6510,8 +6532,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       html += '<div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);">' + m.seasons + ' season' + (m.seasons !== 1 ? 's' : '') + '</div>';
       html += '</div>';
       html += '<div style="text-align:right;flex-shrink:0;align-self:center;">';
-      html += '<div style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(0) + '</div>';
-      html += '<div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">earned</div>';
+      html += '<div class="at-right-val" style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(0) + '</div>';
+      html += '<div class="at-right-label" style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">earned</div>';
       html += '</div>';
       html += '</div>'; // close top row
 
@@ -7119,17 +7141,79 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     }
   };
 
+  window._atActiveFilters = new Set();
+
+  window._toggleATFilter = function(key, btn) {
+    if (window._atActiveFilters.has(key)) {
+      window._atActiveFilters.delete(key);
+      btn.style.borderColor = 'var(--border2)';
+      btn.style.background = 'none';
+      btn.style.boxShadow = 'none';
+    } else {
+      window._atActiveFilters.add(key);
+      btn.style.borderColor = 'var(--theme)';
+      btn.style.background = 'var(--theme-dim)';
+      btn.style.boxShadow = '0 0 0 1px var(--theme-border)';
+    }
+    window._applyATFilters();
+  };
+
+  window._clearATFilters = function() {
+    window._atActiveFilters.clear();
+    document.querySelectorAll('#at-filter-bar button[data-filter-key]').forEach(b => {
+      b.style.borderColor = 'var(--border2)';
+      b.style.background = 'none';
+      b.style.boxShadow = 'none';
+    });
+    window._applyATFilters();
+  };
+
+  window._applyATFilters = function() {
+    const filters = window._atActiveFilters;
+    document.querySelectorAll('.at-card').forEach(card => {
+      if (filters.size === 0) {
+        card.style.display = '';
+        return;
+      }
+      const name = card.dataset.managerId;
+      const d = window._atCardDataMap?.[name];
+      const matches = [...filters].some(key => (d?.[key] || 0) > 0);
+      card.style.display = matches ? '' : 'none';
+    });
+  };
+
   window._sortATCards = function(key, btn) {
     if (!window._atCardSort) window._atCardSort = { key: 'earned', dir: -1 };
     if (window._atCardSort.key === key) window._atCardSort.dir *= -1;
     else { window._atCardSort.key = key; window._atCardSort.dir = -1; }
-    document.querySelectorAll('#at-sort-bar button').forEach(b => {
+
+    document.querySelectorAll('.alltime-cards button[data-sort-key]').forEach(b => {
       const isActive = b.dataset.sortKey === key;
       b.style.borderColor = isActive ? 'var(--theme)' : 'var(--border2)';
       b.style.background = isActive ? 'var(--theme-dim)' : 'none';
       b.style.color = isActive ? 'var(--theme)' : 'var(--text3)';
       b.textContent = isActive ? b.dataset.label + ' ' + (window._atCardSort.dir === -1 ? '↓' : '↑') : b.dataset.label;
     });
+
+    // Update right side of each card to show sort value
+    const sortMeta = {
+      earned:      { label: 'earned',  fmt: v => '$' + Math.round(v), color: v => v > 0 ? 'var(--green)' : 'var(--text3)' },
+      last:        { label: 'last',    fmt: v => v ? (+v).toFixed(1) + 'x' : '—', color: () => 'var(--red)' },
+      guinness:    { label: 'beers',   fmt: v => v || '—', color: v => v > 0 ? 'var(--amber)' : 'var(--text3)' },
+      missedBeers: { label: 'missed',  fmt: v => v || '—', color: v => v > 0 ? 'var(--red)' : 'var(--text3)' },
+    };
+    const meta = sortMeta[key] || sortMeta.earned;
+
+    document.querySelectorAll('.at-card').forEach(card => {
+      const d = window._atCardDataMap?.[card.dataset.managerId];
+      if (!d) return;
+      const val = d[key] || 0;
+      const rightVal = card.querySelector('.at-right-val');
+      const rightLabel = card.querySelector('.at-right-label');
+      if (rightVal) { rightVal.textContent = meta.fmt(val); rightVal.style.color = meta.color(val); }
+      if (rightLabel) rightLabel.textContent = meta.label;
+    });
+
     const container = document.querySelector('.alltime-cards');
     if (!container) return;
     const cards = [...container.querySelectorAll('.at-card')];
@@ -7138,8 +7222,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const db = window._atCardDataMap?.[b.dataset.managerId];
       return window._atCardSort.dir * ((da?.[key] || 0) - (db?.[key] || 0));
     });
-    const sortBar = document.getElementById('at-sort-bar');
     cards.forEach(c => container.appendChild(c));
+    window._applyATFilters();
   };
 
   window._ssHistory = () => showLeagueHistory();
