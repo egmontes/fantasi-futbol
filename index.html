@@ -372,7 +372,7 @@
     .table-outer thead th {
       background: var(--bg2);
     }
-    #floating-header { pointer-events: none; display: none; }
+    #floating-header { display: none !important; pointer-events: none; }
     #floating-header.visible { display: block; pointer-events: auto; }
     #floating-header th {
       font-size: 11px;
@@ -662,13 +662,21 @@
       .tab-btn { padding: 10px 12px; font-size: 13px; }
     .tab-btn, .tab-btn-dropdown .tab-btn { justify-content: center; text-align: center; }
       .stat-card .s-value { font-size: 26px; }
-      /* Tighter manager column on mobile — only truncate if it genuinely overflows */
       .m-name { font-size: 12px; }
       .m-team { font-size: 10px; }
       .table-outer td:nth-child(2), .table-outer th:nth-child(2) { max-width: 38vw; overflow: hidden; }
       .table-outer td:nth-child(2) .m-name,
       .table-outer td:nth-child(2) .m-team { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     }
+    /* Standings card layout — replaces table visually */
+    #tab-standings .standings-cards { display: block !important; }
+    #tab-standings .table-scroll-wrap { visibility: hidden; height: 0; overflow: hidden; position: absolute; pointer-events: none; }
+    /* Weekly GW card layout */
+    #tab-weekly .weekly-cards { display: block !important; }
+    #tab-weekly .table-outer { visibility: hidden; height: 0; overflow: hidden; position: absolute; pointer-events: none; }
+    .standings-cards, .weekly-cards { max-width: 760px; margin: 0 auto; }
+    .s-card { transition: border-color 0.2s, box-shadow 0.2s; }
+    .s-card:hover { border-color: var(--theme) !important; box-shadow: 0 0 0 1px var(--theme-border); }
   
       font-size: 11px;
       color: var(--text3);
@@ -2185,7 +2193,7 @@ async function init() {
           : m.gmisses === 1
             ? '<span style="color:var(--red);font-size:12px;font-family:var(--font-mono);">1</span>'
             : '<span class="badge-zero">—</span>';
-      html += '<tr class="' + rowCls + '">' +
+      html += '<tr class="' + rowCls + '" data-id="' + m.id + '">' +
         '<td>' + (() => {
           const rank = seasonRankMap[m.id] || pos;
           const change = rankChangeMap[m.id];
@@ -2276,7 +2284,85 @@ async function init() {
         '</tr>';
     });
 
-    html += '</tbody></table></div></div>';
+    html += '</tbody></table></div></div></div>'; // close table-wrap, table-outer, table-scroll-wrap
+
+    // Build mobile card list
+    const sortOptions = [
+      { key: 'pts', label: 'Points' },
+      { key: 'earned', label: 'Earned' },
+      { key: 'top4', label: 'Top 4' },
+      { key: 'bottom2', label: 'Bot 2' },
+      { key: 'gmisses', label: 'Owes 🍺' },
+      { key: 'totalG', label: 'Total 🍺' },
+    ];
+    html += '<div class="standings-cards">';
+    html += '<div id="cards-sort-bar" style="position:sticky;top:var(--sticky-toggle-top,150px);z-index:12;background:var(--bg);padding:8px 0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--border);">';
+    html += '<span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
+    sortOptions.forEach((opt, i) => {
+      const isActive = i === 0;
+      html += '<button onclick="window._sortCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="font-size:11px;font-family:var(--font-mono);border-radius:4px;padding:3px 8px;border:1px solid ' + (isActive ? 'var(--theme)' : 'var(--border2)') + ';background:' + (isActive ? 'var(--theme-dim)' : 'none') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';cursor:pointer;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
+    });
+    html += '</div>';
+    rows.forEach((m, idx) => {
+      const pos = idx + 1;
+      const sRank = seasonRankMap[m.id];
+      const SEASON_PRIZES = {1:550,2:275,3:175,4:100,5:20};
+      const sp = isSeasonOver ? (SEASON_PRIZES[sRank]||0) : 0;
+      const cupFinal = (window._allCupMatches||[]).filter(c=>c.winner).sort((a,b)=>b.event-a.event)[0];
+      const cp = isSeasonOver && cupFinal ? (cupFinal.winner===m.id?225:(cupFinal.entry_1_entry===cupFinal.winner?cupFinal.entry_2_entry:cupFinal.entry_1_entry)===m.id?125:0) : 0;
+      const kluis = m.name==='Jack Bernatchez'?50:0;
+      const earned = m.earned + sp + cp + kluis;
+      const rankMedal = sRank===1?'🥇':sRank===2?'🥈':sRank===3?'🥉':'';
+      const rankColor = pos===1?'var(--theme)':pos===2?'var(--silver)':pos===3?'var(--amber)':'var(--text3)';
+
+      html += '<div class="s-card" data-manager-id="' + m.id + '" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;">';
+
+      // Top row: rank + name + pts
+      html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
+      html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:var(--theme);min-width:28px;align-self:center;">' + pos + '</span>';
+      html += '<div style="flex:1;min-width:0;">';
+      html += '<div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (rankMedal ? rankMedal + ' ' : '') + esc(m.name) + '</div>';
+      html += '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">' + esc(m.team) + '</div>';
+      // Stats chips left-aligned under name
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
+      if (earned >= 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + (earned > 0 ? 'var(--green)' : 'var(--text3)') + ';background:' + (earned > 0 ? 'var(--green-dim)' : 'var(--bg3)') + ';border-radius:4px;padding:2px 6px;">$' + earned.toFixed(0) + '</span>';
+      if (!isSeasonOver && m.gwLatestPts !== null) {
+        const gwColor = gwRankMap[m.id] <= 4 ? 'var(--theme)' : 'var(--text2)';
+        html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + gwColor + ';background:var(--bg3);border-radius:4px;padding:2px 6px;">GW ' + (m.gwRawPts||0) + 'pts</span>';
+      }
+      if (!isSeasonOver && m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--text2);background:var(--bg3);border-radius:4px;padding:2px 6px;">©' + esc(m.captain.name) + '</span>';
+      if (state.historyLoaded) {
+        const chip = (label, value, activeColor, activeBg, active) => {
+          const bg = active ? activeBg : 'var(--bg3)';
+          const labelColor = active ? activeColor : 'var(--theme)';
+          const valColor = active ? 'var(--text)' : 'var(--text3)';
+          return '<span style="font-size:11px;font-family:var(--font-mono);background:' + bg + ';border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;">'
+            + '<span style="color:' + labelColor + ';">' + label + '</span>'
+            + '<span style="color:' + valColor + ';">' + value + '</span>'
+            + '</span>';
+        };
+        html += chip('Top 4:', m.top4, 'var(--green)', 'var(--green-dim)', m.top4 > 0);
+        html += chip('Bot 2:', m.bottom2, 'var(--red)', 'var(--red-dim)', m.bottom2 > 0);
+        html += chip('Total 🍺:', m.totalG, 'var(--amber)', 'var(--bg3)', m.totalG > 0);
+        html += '<span style="font-size:11px;font-family:var(--font-mono);background:' + (m.gmisses > 0 ? 'var(--red-dim)' : 'var(--bg3)') + ';border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;">'
+          + (m.gmisses > 0 ? '<span>⚠️</span>' : '')
+          + '<span style="color:' + (m.gmisses > 0 ? 'var(--red)' : 'var(--theme)') + ';">Owes:</span>'
+          + '<span style="color:' + (m.gmisses > 0 ? 'var(--text)' : 'var(--text3)') + ';">' + m.gmisses + '</span>'
+          + '</span>';
+        html += chip('Missed:', m.missedG, 'var(--red)', 'var(--red-dim)', m.missedG > 0);
+      }
+      html += '</div>'; // close chips
+      html += '</div>'; // close name+chips column
+      html += '<div style="text-align:right;flex-shrink:0;align-self:center;">';
+      html += '<div style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:var(--text);">' + m.total + '</div>';
+      html += '<div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">pts</div>';
+      html += '</div>';
+      html += '</div>'; // close top row
+      html += '<div class="s-card-drawer" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;"></div>';
+      html += '</div>';
+    });
+    html += '</div>';
+
     // Save ticker offset before re-render
     const savedTickerOffset = window.__fantasiTickerOffset || 0;
     document.getElementById('standings-content').innerHTML = html;
@@ -2317,7 +2403,6 @@ async function init() {
     }
     requestAnimationFrame(() => {
       updateStickyOffsets();
-      initFloatingHeader('standings-table');
     });
 
     // Scroll hint — update gradient visibility and column peek on scroll
@@ -2344,8 +2429,83 @@ async function init() {
       requestAnimationFrame(updateScrollHint);
     }
 
-    // Row click — expand drawer
-    initDrawer('standings-table', currentGW);
+    // Store card data for sorting
+    window._cardData = rows.map((m, idx) => {
+      const sRank = seasonRankMap[m.id];
+      const SEASON_PRIZES = {1:550,2:275,3:175,4:100,5:20};
+      const sp = isSeasonOver ? (SEASON_PRIZES[sRank]||0) : 0;
+      const cupFinal = (window._allCupMatches||[]).filter(c=>c.winner).sort((a,b)=>b.event-a.event)[0];
+      const cp = isSeasonOver && cupFinal ? (cupFinal.winner===m.id?225:(cupFinal.entry_1_entry===cupFinal.winner?cupFinal.entry_2_entry:cupFinal.entry_1_entry)===m.id?125:0) : 0;
+      const kluis = m.name==='Jack Bernatchez'?50:0;
+      return {
+        id: m.id,
+        pts: m.total,
+        earned: m.earned + sp + cp + kluis,
+        top4: m.top4,
+        bottom2: m.bottom2,
+        gmisses: m.gmisses,
+        totalG: m.totalG
+      };
+    });
+    window._cardSortDir = -1;
+    window._cardSortKey = null;
+
+    window._sortCards = function(key, btn) {
+      // Toggle direction if same key
+      if (window._cardSortKey === key) window._cardSortDir *= -1;
+      else { window._cardSortKey = key; window._cardSortDir = -1; }
+
+      // Update button styles and arrow
+      document.querySelectorAll('#cards-sort-bar button').forEach(b => {
+        const isActive = b.dataset.sortKey === key;
+        b.style.borderColor = isActive ? 'var(--theme)' : 'var(--border2)';
+        b.style.background = isActive ? 'var(--theme-dim)' : 'none';
+        b.style.color = isActive ? 'var(--theme)' : 'var(--text3)';
+        const baseLabel = b.dataset.label;
+        if (isActive) {
+          b.textContent = baseLabel + ' ' + (window._cardSortDir === -1 ? '↓' : '↑');
+        } else {
+          b.textContent = baseLabel;
+        }
+      });
+
+      // Sort and reorder cards
+      const container = document.querySelector('.standings-cards');
+      if (!container) return;
+      const cards = [...container.querySelectorAll('.s-card')];
+      cards.sort((a, b) => {
+        const da = window._cardData.find(d => d.id === parseInt(a.dataset.managerId));
+        const db = window._cardData.find(d => d.id === parseInt(b.dataset.managerId));
+        return window._cardSortDir * ((da?.[key] || 0) - (db?.[key] || 0));
+      });
+      // Close all drawers
+      container.querySelectorAll('.s-card-drawer').forEach(d => d.style.display = 'none');
+      container.querySelectorAll('.s-card').forEach(c => { c.style.borderColor = 'var(--theme-border)'; c.style.boxShadow = 'none'; });
+      // Reinsert sorted (after sort bar)
+      const sortBar = document.getElementById('cards-sort-bar');
+      cards.forEach(c => container.appendChild(c));
+    };
+    document.querySelectorAll('.s-card').forEach(card => {
+      card.addEventListener('click', async () => {
+        const managerId = parseInt(card.dataset.managerId);
+        const drawer = card.querySelector('.s-card-drawer');
+        if (!drawer) return;
+        const isOpen = drawer.style.display !== 'none';
+        document.querySelectorAll('.s-card-drawer').forEach(d => d.style.display = 'none');
+        document.querySelectorAll('.s-card').forEach(c => {
+          c.style.borderColor = 'var(--theme-border)';
+          c.style.boxShadow = 'none';
+        });
+        if (isOpen) return;
+        card.style.borderColor = 'var(--theme)';
+        card.style.boxShadow = '0 0 0 1px var(--theme-border), 0 4px 20px rgba(85,226,233,0.1)';
+        drawer.style.display = 'block';
+        drawer.innerHTML = '<div style="color:var(--text3);font-size:13px;display:flex;gap:8px;align-items:center;padding:8px 0;"><span class="spinner"></span>Loading...</div>';
+        const manager = state.managers.find(m => m.id === managerId);
+        const drawerGW = state.isLive ? state.liveGW : state.latestGW;
+        await window._fillDrawer(managerId, manager?.name || '', drawerGW, 'standings-table', drawer, () => {});
+      });
+    });
 
     // Background fetch for transfer data if not cached yet — updates ticker after load
     if (needsTransferFetch) {
@@ -2522,8 +2682,6 @@ async function init() {
         const colCount = tr.querySelectorAll('td').length;
         const drawer = document.createElement('tr');
         drawer.className = 'manager-drawer';
-
-        // Build drawer content async
         const drawerTd = document.createElement('td');
         drawerTd.setAttribute('colspan', colCount);
         drawerTd.innerHTML = '<div class="manager-drawer-inner"><span class="spinner"></span><span>Loading...</span></div>';
@@ -2532,11 +2690,15 @@ async function init() {
         tr.classList.add('drawer-open');
         _openDrawerRow = tr;
         requestAnimationFrame(syncDrawerScroll);
+        window._fillDrawer(managerId, managerName, drawerGW, tableId, drawerTd, syncDrawerScroll);
+      });
+    });
+  }
 
-        // Fetch picks + live/historical scores (use cache if available)
-        const _tableId = tableId;
-        (async () => {
-          try {
+  window._fillDrawer = async function(managerId, managerName, drawerGW, _tableId, drawerTd, syncDrawerScroll) {
+    if (!syncDrawerScroll) syncDrawerScroll = () => {};
+    const manager = state.managers.find(m => m.id === managerId);
+    try {
             const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
             // Season-over standings view: show season summary instead of GW picks
             if (!state.isLive && state.latestGW >= 38 && drawerGW === state.latestGW && _tableId === 'standings-table') {
@@ -2561,28 +2723,26 @@ async function init() {
               const gwFinishes = { 1:[], 2:[], 3:[], 4:[], secondLast:[], last:[] };
               const n = state.managers.length;
               for (let gw = 1; gw <= 38; gw++) {
-                const gwRankings = state.managers.map(m => {
-                  const entry = (state.gwHistory[m.id]||[]).find(e=>e.event===gw);
-                  return { id: m.id, pts: entry?.points || 0 };
-                }).sort((a,b) => b.pts - a.pts);
-                const pos = gwRankings.findIndex(m=>m.id===managerId) + 1;
+                const ranked = getWeeklyRankings(gw);
+                const prizes = computeWeeklyPrizes(ranked);
+                const pos = ranked.findIndex(m=>m.id===managerId) + 1;
                 if (pos === 1) gwFinishes[1].push(gw);
                 else if (pos === 2) gwFinishes[2].push(gw);
                 else if (pos === 3) gwFinishes[3].push(gw);
                 else if (pos === 4) gwFinishes[4].push(gw);
-                else if (pos === n - 1) gwFinishes.secondLast.push(gw);
-                else if (pos === n) gwFinishes.last.push(gw);
+                if (prizes[managerId]?.shotgun) {
+                  const n = ranked.length;
+                  const myPts = ranked.find(m=>m.id===managerId)?.gwPoints || 0;
+                  const lastPts = ranked[n-1]?.gwPoints;
+                  if (myPts === lastPts) gwFinishes.last.push(gw);
+                  else gwFinishes.secondLast.push(gw);
+                }
               }
 
               const gwList = (gws) => gws.length ? gws.map(g=>'GW'+g).join(', ') : '—';
 
               let html = '<div class="manager-drawer-inner" style="flex-direction:column;align-items:stretch;padding:0.75rem 1.5rem;gap:10px;">';
-              html += '<div style="font-weight:700;font-size:15px;color:var(--text);">' + esc(managerName) + ' — 2025/26 Season</div>';
-              html += '<div style="display:flex;gap:16px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px solid var(--border);">';
-              html += '<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">FINAL RANK</div><div style="font-size:18px;font-weight:700;color:var(--theme);">' + (sRank||'—') + (sRank===1?' 🥇':sRank===2?' 🥈':sRank===3?' 🥉':'') + '</div></div>';
-              html += '<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">TOTAL PTS</div><div style="font-size:18px;font-weight:700;color:var(--text);">' + total + '</div></div>';
-              html += '<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">EARNED</div><div style="font-size:18px;font-weight:700;color:var(--green);">$' + totalEarned.toFixed(0) + '</div></div>';
-              html += '</div>';
+              html += '<div style="font-weight:700;font-size:13px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;">GW Finishes</div>';
 
               const row = (label, color, gws) => gws.length === 0 ? '' :
                 '<div style="font-size:12px;font-family:var(--font-mono);"><span style="color:' + color + ';font-weight:600;">' + label + '</span> <span style="color:var(--text3);">' + gwList(gws) + '</span></div>';
@@ -2632,7 +2792,7 @@ async function init() {
               html += '<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">AVG BENCH PTS</div><div style="font-size:16px;font-weight:700;color:var(--text3);">' + avgBenchPts + '</div></div>';
               if (topCaptain) html += '<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">FAV CAPTAIN</div><div style="font-size:14px;font-weight:700;color:var(--text);">' + esc(topCaptain[0]) + ' <span style="font-size:11px;color:var(--text3);">×' + topCaptain[1] + '</span></div></div>';
               html += '</div>';
-              html += '</div></div>';
+              html += '</div>';
 
               drawerTd.innerHTML = html;
               requestAnimationFrame(syncDrawerScroll);
@@ -2832,10 +2992,7 @@ async function init() {
             console.error('Drawer error:', e.message, e.stack);
             drawerTd.innerHTML = '<div class="manager-drawer-inner"><span style="color:var(--red);">Failed to load picks: ' + e.message + '</span></div>';
           }
-        })();
-      });
-    });
-  }
+  };
 
   function fitStatCards(container) {
     const root = container || document;
@@ -3267,7 +3424,7 @@ async function init() {
 
         html += '</tbody></table></div></div>';
         document.getElementById('weekly-content').innerHTML = html;
-        requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('live-table'); });
+        requestAnimationFrame(() => { updateStickyOffsets(); });
 
         // Wire up sortable headers
         document.querySelectorAll('#live-table thead th[data-col]').forEach(th => {
@@ -3617,9 +3774,125 @@ async function init() {
       });
 
       html += '</tbody></table></div></div>';
+
+      // Build GW card list
+      const gwSortOptions = [
+        { key: 'gwPoints', label: 'GW Pts' },
+        { key: '_prize', label: 'Earned' },
+        { key: 'gwTotal', label: 'Total' },
+        { key: 'benchPoints', label: 'Bench' },
+        { key: 'transferCost', label: 'Hits' },
+      ];
+      html += '<div class="weekly-cards">';
+      html += '<div id="gw-cards-sort-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">';
+      html += '<span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
+      gwSortOptions.forEach((opt, i) => {
+        const isActive = i === 0;
+        html += '<button onclick="window._sortGWCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="font-size:11px;font-family:var(--font-mono);border-radius:4px;padding:3px 8px;border:1px solid ' + (isActive ? 'var(--theme)' : 'var(--border2)') + ';background:' + (isActive ? 'var(--theme-dim)' : 'none') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';cursor:pointer;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
+      });
+      html += '</div>';
+
+      enriched.forEach((m, idx) => {
+        const rank = m._displayRank;
+        const rankColor = 'var(--theme)';
+        const rankMedal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank===4?'4️⃣':'';
+        const captain = (_captainCache[gw]||{})[m.id];
+        const capStr = captain ? (captain.isVC ? captain.name + ' (vc)' : captain.name) : null;
+        const chipHtml = buildChipBadges(m.id, m.chip, gw);
+
+        html += '<div class="s-card gw-card" data-manager-id="' + m.id + '" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;">';
+
+        // Top row: rank + name + gw pts
+        html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
+        html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:' + rankColor + ';min-width:28px;align-self:center;">' + rank + '</span>';
+        html += '<div style="flex:1;min-width:0;">';
+        html += '<div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (rankMedal ? rankMedal + ' ' : '') + esc(m.name) + '</div>';
+        html += '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">' + esc(m.team) + (chipHtml ? ' · ' + chipHtml.replace(/<[^>]+>/g,'').trim() : '') + '</div>';
+
+        // Chips row
+        html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
+        if (m._prize > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:4px;padding:2px 6px;">$' + m._prize.toFixed(0) + '</span>';
+        if (m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:4px;padding:2px 6px;">🍺 Shotgun</span>';
+        if (capStr) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:4px;padding:2px 6px;">© ' + esc(capStr) + '</span>';
+        html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;"><span style="color:var(--theme);">Total:</span><span style="color:var(--text);">' + m.gwTotal + '</span></span>';
+        if (m.transferCost > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:4px;padding:2px 6px;">-' + m.transferCost + ' hit</span>';
+        if (m.benchPoints > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;"><span style="color:var(--theme);">Bench:</span><span style="color:var(--text);">' + m.benchPoints + '</span></span>';
+        const cardOwed = getGuinnessOwedAtGW(m.name, gw);
+        const cardMissed = didMissGW(m.name, gw);
+        if (cardOwed > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:4px;padding:2px 6px;">🍺 Owes: ' + cardOwed + '</span>';
+        if (cardMissed) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:4px;padding:2px 6px;">❌ Missed</span>';
+        html += '</div>';
+
+        html += '</div>'; // close name col
+        html += '<div style="text-align:right;flex-shrink:0;align-self:center;">';
+        html += '<div style="font-size:22px;font-weight:700;font-family:var(--font-mono);color:var(--text);">' + m.gwPoints + '</div>';
+        html += '<div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">pts</div>';
+        html += '</div>';
+        html += '</div>'; // close top row
+
+        html += '<div class="s-card-drawer" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;"></div>';
+        html += '</div>';
+      });
+      html += '</div>';
+
       document.getElementById('weekly-content').innerHTML = html;
-      requestAnimationFrame(() => { updateStickyOffsets(); initFloatingHeader('weekly-table'); });
+
+      // GW card sort data
+      window._gwCardData = enriched.map(m => ({
+        id: m.id,
+        gwPoints: m.gwPoints,
+        _prize: m._prize || 0,
+        gwTotal: m.gwTotal || 0,
+        benchPoints: m.benchPoints || 0,
+        transferCost: m.transferCost || 0,
+      }));
+      window._gwCardSortDir = -1;
+      window._gwCardSortKey = null;
+
+      window._sortGWCards = function(key, btn) {
+        if (window._gwCardSortKey === key) window._gwCardSortDir *= -1;
+        else { window._gwCardSortKey = key; window._gwCardSortDir = -1; }
+        document.querySelectorAll('#gw-cards-sort-bar button').forEach(b => {
+          const isActive = b.dataset.sortKey === key;
+          b.style.borderColor = isActive ? 'var(--theme)' : 'var(--border2)';
+          b.style.background = isActive ? 'var(--theme-dim)' : 'none';
+          b.style.color = isActive ? 'var(--theme)' : 'var(--text3)';
+          b.textContent = isActive ? b.dataset.label + ' ' + (window._gwCardSortDir === -1 ? '↓' : '↑') : b.dataset.label;
+        });
+        const container = document.querySelector('.weekly-cards');
+        if (!container) return;
+        const cards = [...container.querySelectorAll('.gw-card')];
+        cards.sort((a, b) => {
+          const da = window._gwCardData.find(d => d.id === parseInt(a.dataset.managerId));
+          const db = window._gwCardData.find(d => d.id === parseInt(b.dataset.managerId));
+          return window._gwCardSortDir * ((da?.[key] || 0) - (db?.[key] || 0));
+        });
+        container.querySelectorAll('.s-card-drawer').forEach(d => d.style.display = 'none');
+        container.querySelectorAll('.gw-card').forEach(c => { c.style.borderColor = 'var(--theme-border)'; c.style.boxShadow = 'none'; });
+        cards.forEach(c => container.appendChild(c));
+      };
+
+      requestAnimationFrame(() => { updateStickyOffsets(); });
       initDrawer('weekly-table', gw);
+
+      // Wire up GW card taps
+      document.querySelectorAll('.gw-card').forEach(card => {
+        card.addEventListener('click', async () => {
+          const managerId = parseInt(card.dataset.managerId);
+          const drawer = card.querySelector('.s-card-drawer');
+          if (!drawer) return;
+          const isOpen = drawer.style.display !== 'none';
+          document.querySelectorAll('.gw-card .s-card-drawer').forEach(d => d.style.display = 'none');
+          document.querySelectorAll('.gw-card').forEach(c => { c.style.borderColor = 'var(--theme-border)'; c.style.boxShadow = 'none'; });
+          if (isOpen) return;
+          drawer.style.display = 'block';
+          drawer.innerHTML = '<div style="color:var(--text3);font-size:13px;display:flex;gap:8px;align-items:center;padding:8px 0;"><span class="spinner"></span>Loading...</div>';
+          card.style.borderColor = 'var(--theme)';
+          card.style.boxShadow = '0 0 0 1px var(--theme-border), 0 4px 20px rgba(85,226,233,0.1)';
+          const manager = state.managers.find(m => m.id === managerId);
+          await window._fillDrawer(managerId, manager?.name || '', gw, 'weekly-table', drawer, () => {});
+        });
+      });
 
       // Attach sort handlers
       document.querySelectorAll('#weekly-table th.sortable').forEach(th => {
@@ -4967,7 +5240,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('weekly-tab-btn').classList.add('active');
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      document.getElementById('floating-header').classList.remove('visible');
       const gwBarEl = document.querySelector('.gw-bar');
       const toggleBarStandings = document.getElementById('standings-toggle-bar');
       const weeklyToggleEl = document.getElementById('weekly-toggle-bar');
@@ -5002,7 +5274,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         if (seasonToggleBarSV) seasonToggleBarSV.style.display = isSeasonOver ? 'flex' : 'none';
         updateStickyOffsets();
         requestAnimationFrame(() => {
-          initFloatingHeader('standings-table');
           const tickerEl = document.querySelector('.stat-ticker:not(#history-ticker)');
           if (tickerEl) {
             makeTickerInteractive(tickerEl, window.__fantasiTickerOffset || 0);
@@ -5052,7 +5323,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
           document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
           btn.classList.add('active');
-          document.getElementById('floating-header').classList.remove('visible');
 
           // Restore last GW view if one was selected, otherwise go to standings
           const lastView = window.__lastWeeklyView || 'standings';
@@ -5096,7 +5366,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
             updateExportBtn(state.isLive ? state.liveGW : state.latestGW);
             updateStickyOffsets();
             requestAnimationFrame(() => {
-              initFloatingHeader('standings-table');
               const tickerEl = document.querySelector('.stat-ticker');
               if (tickerEl) makeTickerInteractive(tickerEl, window.__fantasiTickerOffset || 0);
             });
@@ -5124,7 +5393,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const tab = btn.dataset.tab;
       document.getElementById('tab-' + tab).classList.add('active');
       setHashState(tab);
-      document.getElementById('floating-header').classList.remove('visible');
       // Hide gw-bar on standings tab, show toggle bar instead
       const gwBarEl = document.querySelector('.gw-bar');
       const toggleBarEl = document.getElementById('standings-toggle-bar');
@@ -5141,7 +5409,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Re-init floating header for the active tab's table
       if (tab === 'standings') {
         requestAnimationFrame(() => {
-          initFloatingHeader('standings-table');
           const tickerEl = document.querySelector('.stat-ticker');
           if (tickerEl) {
             const savedOffset = window.__fantasiTickerOffset || 0;
@@ -6047,7 +6314,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._historySort = { col: 'earned', dir: -1 };
       el.innerHTML = renderLeagueHistory(seasonData, labels);
       requestAnimationFrame(() => {
-        initFloatingHeader('history-table');
         const histTableOuter = document.querySelector('#history-table')?.closest('.table-outer');
         const histScrollWrap = document.querySelector('#history-table')?.closest('.table-scroll-wrap');
         if (histTableOuter && histScrollWrap) {
@@ -6250,7 +6516,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         window.scrollTo(0, savedScrollY);
         const newTableOuter = document.querySelector('#history-table')?.closest('.table-outer');
         if (newTableOuter) newTableOuter.scrollLeft = savedScrollX;
-        initFloatingHeader('history-table');
         const histScrollWrap = document.querySelector('#history-table')?.closest('.table-scroll-wrap');
         if (newTableOuter && histScrollWrap) {
           const updateHistScroll = () => {
@@ -7054,7 +7319,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._histSort = { col: 'earned', dir: -1 }; // reset sort on season change
       el.innerHTML = renderHistoricalSeason(data);
       requestAnimationFrame(() => {
-        initFloatingHeader('historical-table');
         const histOuter = document.querySelector('#historical-table')?.closest('.table-outer');
         const histWrap = document.querySelector('#historical-table')?.closest('.table-scroll-wrap');
         if (histOuter && histWrap) {
@@ -7218,7 +7482,6 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         window.scrollTo(0, savedScrollY);
         const newOuter = document.querySelector('#historical-table')?.closest('.table-outer');
         if (newOuter) newOuter.scrollLeft = savedScrollX;
-        initFloatingHeader('historical-table');
         const newWrap = document.querySelector('#historical-table')?.closest('.table-scroll-wrap');
         if (newOuter && newWrap) {
           const updateScroll = () => {
