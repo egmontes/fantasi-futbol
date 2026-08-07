@@ -668,7 +668,11 @@
       .table-outer td:nth-child(2) .m-name,
       .table-outer td:nth-child(2) .m-team { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     }
-    /* Standings card layout — replaces table visually */
+    /* Sort/filter bars - hide scrollbar */
+    #cards-sort-bar::-webkit-scrollbar,
+    #gw-cards-sort-bar::-webkit-scrollbar,
+    #at-filter-bar::-webkit-scrollbar,
+    .alltime-cards > div::-webkit-scrollbar { display: none; }
     #tab-standings .standings-cards { display: block !important; }
     #tab-standings .table-scroll-wrap { visibility: hidden; height: 0; overflow: hidden; position: absolute; pointer-events: none; }
     /* Weekly GW card layout */
@@ -2297,7 +2301,7 @@ async function init() {
       { key: 'totalG', label: 'Total 🍺' },
     ];
     html += '<div class="standings-cards">';
-    html += '<div id="cards-sort-bar" style="position:sticky;top:var(--sticky-toggle-top,150px);z-index:12;background:var(--bg);padding:8px 0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--border);">';
+    html += '<div id="cards-sort-bar" style="position:sticky;top:var(--sticky-toggle-top,150px);z-index:12;background:var(--bg);padding:8px 0;display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;border-bottom:1px solid var(--border);">';
     html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
     sortOptions.forEach((opt, i) => {
       const isActive = i === 0;
@@ -3784,7 +3788,7 @@ async function init() {
         { key: 'transferCost', label: 'Hits' },
       ];
       html += '<div class="weekly-cards">';
-      html += '<div id="gw-cards-sort-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">';
+      html += '<div id="gw-cards-sort-bar" style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;">';
       html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
       gwSortOptions.forEach((opt, i) => {
         const isActive = i === 0;
@@ -6479,7 +6483,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     html += '<div class="alltime-cards" style="max-width:760px;margin:0 auto;">';
 
     // Sort bar
-    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">';
+    html += '<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;">';
     html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
     atSortOptions.forEach((opt, i) => {
       const isActive = i === 0;
@@ -6488,7 +6492,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     html += '</div>';
 
     // Filter bar
-    html += '<div id="at-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">';
+    html += '<div id="at-filter-bar" style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;">';
     html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Filter:</span>';
     atFilterOptions.forEach(opt => {
       html += '<button onclick="window._toggleATFilter(\'' + opt.key + '\', this)" data-filter-key="' + opt.key + '" style="font-size:13px;border-radius:20px;padding:4px 10px;border:1px solid var(--border2);background:none;cursor:pointer;line-height:1;">' + opt.label + '</button>';
