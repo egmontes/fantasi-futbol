@@ -7520,19 +7520,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._histData = data;
       window._histSort = { col: 'earned', dir: -1 }; // reset sort on season change
       el.innerHTML = renderHistoricalSeason(data);
-      requestAnimationFrame(() => {
-        const histOuter = document.querySelector('#historical-table')?.closest('.table-outer');
-        const histWrap = document.querySelector('#historical-table')?.closest('.table-scroll-wrap');
-        if (histOuter && histWrap) {
-          const updateScroll = () => {
-            const { scrollLeft, scrollWidth, clientWidth } = histOuter;
-            histWrap.classList.toggle('scroll-at-start', scrollLeft <= 2);
-            histWrap.classList.toggle('scroll-at-end', scrollLeft + clientWidth >= scrollWidth - 2);
-          };
-          histOuter.addEventListener('scroll', updateScroll, { passive: true });
-          requestAnimationFrame(updateScroll);
-        }
-      });
+      requestAnimationFrame(() => updateStickyOffsets());
     } catch(e) {
       console.error('Historical load error:', e.message, e.stack);
       el.innerHTML = '<div class="loading-state" style="color:var(--red);">Failed to load season data: ' + e.message + '</div>';
@@ -7602,28 +7590,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     }
     html += '</div>';
 
-    // Table
-    html += '<div class="table-scroll-wrap scroll-at-start"><div class="table-outer"><div class="table-wrap"><table id="historical-table" style="width:100%;border-collapse:separate;border-spacing:0;font-size:13px;">';
-    html += '<thead><tr style="border-bottom:1px solid var(--border);">';
-    html += '<th style="width:40px;padding:8px 6px;text-align:center;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;z-index:2;">#</th>';
-    html += '<th style="padding:8px 10px;text-align:left;color:var(--theme);font-weight:600;font-family:var(--font-mono);font-size:11px;">Manager</th>';
-    html += th('earned', '💰 Earned', '70px');
-    if (has4) {
-      html += th('top1', '🥇 1st', '55px');
-      html += th('top2', '🥈 2nd', '55px');
-      html += th('top3', '🥉 3rd', '55px');
-      html += th('top4', '4th', '55px');
-    } else {
-      html += th('top1', '🥇 1st', '55px');
-      html += th('top2', '🥈 2nd', '55px');
-    }
-    if (has4) html += th('second_last', '2nd Last', '60px');
-    html += th('last', '💀 Last', '55px');
-    html += th('guinness', '🍺 Owed', '60px');
-    html += '</tr></thead><tbody>';
-
-    // Build lookup maps for league top5 and cup podium
-    // Handle both old (string) and new (array) formats
+    // Build lookup maps
     const leaguePositions = {};
     [toArr(league.winner), toArr(league.runner_up), toArr(league.third), toArr(league.fourth), toArr(league.fifth)].forEach((names, pos) => {
       names.forEach(n => { if (n) leaguePositions[n] = pos; });
@@ -7632,35 +7599,65 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     [toArr(cup.winner), toArr(cup.runner_up), toArr(cup.third)].forEach((names, pos) => {
       names.forEach(n => { if (n) cupPositions[n] = pos; });
     });
-
     const leagueEmoji = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+    const leagueBadgeClass = ['badge-1','badge-2','badge-3','badge-4','badge-5'];
 
+    // Sort options
+    const histSortOptions = [
+      { key: 'earned', label: 'Earned' },
+      { key: 'top1', label: '🥇 1st' },
+      { key: 'last', label: '💀 Last' },
+      { key: 'guinness', label: '🍺 Beers' },
+    ];
+
+    html += '<div id="hist-sort-bar" style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;">';
+    html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);flex-shrink:0;">Sort:</span>';
+    histSortOptions.forEach((opt, i) => {
+      const isActive = (window._histSort?.col || 'earned') === opt.key;
+      html += '<button onclick="window._histSortBy(\'' + opt.key + '\')" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="font-size:11px;font-family:var(--font-mono);border-radius:20px;padding:4px 12px;border:1px solid ' + (isActive ? 'var(--theme)' : 'var(--border2)') + ';background:' + (isActive ? 'var(--theme-dim)' : 'none') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';cursor:pointer;white-space:nowrap;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
+    });
+    html += '</div>';
+
+    html += '<div class="hist-cards">';
     sortedManagers.forEach((m, i) => {
       const lPos = leaguePositions[m.name];
       const cPos = cupPositions[m.name];
-      const lBadge = lPos !== undefined ? ' ' + leagueEmoji[lPos] : '';
-      const bg = i % 2 === 0 ? '' : 'background:var(--bg2);';
-      html += '<tr style="' + bg + 'border-bottom:1px solid var(--border);">';
-      html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:700;color:var(--theme);">' + (i+1) + '</td>';
-      const kluisBadge = kluis.winner === m.name ? ' 🍺🎬' : '';
-      html += '<td style="padding:8px 10px;"><div style="font-weight:600;color:var(--text);">' + esc(m.name) + lBadge + kluisBadge + '</div></td>';
-      html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);font-weight:600;color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(2) + '</td>';
-      if (has4) {
-        html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top1 || '—') + '</td>';
-        html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top2 || '—') + '</td>';
-        html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top3 || '—') + '</td>';
-        html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top4 || '—') + '</td>';
-        html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:' + (m.second_last > 0 ? 'var(--amber)' : 'var(--text3)') + ';">' + (m.second_last || '—') + '</td>';
-      } else {
-        html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top1 || '—') + '</td>';
-        html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:var(--text2);">' + (m.top2 || '—') + '</td>';
-      }
-      html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:' + (m.last > 0 ? 'var(--red)' : 'var(--text3)') + ';">' + (m.last || '—') + '</td>';
-      html += '<td style="padding:8px 6px;text-align:center;font-family:var(--font-mono);color:' + (m.guinness > 0 ? 'var(--amber)' : 'var(--text3)') + ';">' + (m.guinness || '—') + '</td>';
-      html += '</tr>';
-    });
+      const isKluis = kluis.winner === m.name;
 
-    html += '</tbody></table></div></div></div>';
+      // Awards next to name
+      let awards = '';
+      if (lPos !== undefined) awards += leagueEmoji[lPos];
+      if (cPos === 0) awards += '🏆';
+      if (isKluis) awards += '🎬';
+
+      html += '<div class="s-card" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:16px 18px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,0.3);">';
+      // Top row
+      html += '<div style="display:flex;align-items:center;gap:10px;">';
+      html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:var(--theme);min-width:28px;align-self:center;">' + (i+1) + '</span>';
+      html += '<div style="flex:1;min-width:0;">';
+      html += '<div style="font-weight:700;font-size:15px;color:var(--text);display:flex;align-items:center;gap:5px;overflow:hidden;">';
+      html += '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(m.name) + '</span>';
+      if (awards) html += '<span style="flex-shrink:0;">' + awards + '</span>';
+      html += '</div>';
+      // Chips
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
+      if (m.earned > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;">$' + m.earned.toFixed(2) + '</span>';
+      if (m.top1 > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--theme-dim);border-radius:6px;padding:3px 8px;">🥇 ' + m.top1 + '</span>';
+      if (m.top2 > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--text2);background:var(--bg3);border-radius:6px;padding:3px 8px;">🥈 ' + m.top2 + '</span>';
+      if (has4 && m.top3 > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--text2);background:var(--bg3);border-radius:6px;padding:3px 8px;">🥉 ' + m.top3 + '</span>';
+      if (has4 && m.second_last > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;">2nd Last: ' + m.second_last + '</span>';
+      if (m.last > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;">💀 ' + m.last + '</span>';
+      if (m.guinness > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;">🍺 ' + m.guinness + '</span>';
+      html += '</div>';
+      html += '</div>';
+      html += '<div style="text-align:right;flex-shrink:0;align-self:center;">';
+      html += '<div class="hist-right-val" style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + m.earned.toFixed(2) + '</div>';
+      html += '<div class="hist-right-label" style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">earned</div>';
+      html += '</div>';
+      html += '</div>'; // close top row
+      html += '</div>'; // close card
+    });
+    html += '</div>';
     html += '</div>';
     return html;
   }
@@ -7674,27 +7671,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._histSort.dir = col === 'name' ? 1 : -1;
     }
     if (window._histData) {
-      const tableOuter = document.querySelector('#historical-table')?.closest('.table-outer');
-      const savedScrollX = tableOuter?.scrollLeft || 0;
       const savedScrollY = window.scrollY;
-
       document.getElementById('historical-content').innerHTML = renderHistoricalSeason(window._histData);
-
-      requestAnimationFrame(() => {
-        window.scrollTo(0, savedScrollY);
-        const newOuter = document.querySelector('#historical-table')?.closest('.table-outer');
-        if (newOuter) newOuter.scrollLeft = savedScrollX;
-        const newWrap = document.querySelector('#historical-table')?.closest('.table-scroll-wrap');
-        if (newOuter && newWrap) {
-          const updateScroll = () => {
-            const { scrollLeft, scrollWidth, clientWidth } = newOuter;
-            newWrap.classList.toggle('scroll-at-start', scrollLeft <= 2);
-            newWrap.classList.toggle('scroll-at-end', scrollLeft + clientWidth >= scrollWidth - 2);
-          };
-          newOuter.addEventListener('scroll', updateScroll, { passive: true });
-          requestAnimationFrame(updateScroll);
-        }
-      });
+      requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
     }
   };
 
