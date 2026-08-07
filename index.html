@@ -271,18 +271,18 @@
     .stat-ticker.is-dragging { cursor: grabbing; }
     .stat-card {
       background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px 18px;
+      border: 1px solid var(--theme-border);
+      border-radius: 12px;
+      padding: 10px 12px;
       flex-shrink: 0;
-      min-width: 110px;
+      min-width: 80px;
       width: max-content;
       height: auto;
       display: flex;
       flex-direction: column;
       align-items: center;
       overflow: visible;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       transition: border-color 0.2s, box-shadow 0.2s;
     }
     .stat-card:hover { border-color: var(--theme-border); box-shadow: 0 4px 20px rgba(85,226,233,0.1); }
@@ -298,10 +298,10 @@
     .stat-card.stat-card-guinness { border-color: rgba(212,175,55,0.25); background: rgba(212,175,55,0.05); }
     .stat-card.stat-card-guinness .s-label { color: #d4af37; }
     .stat-card.stat-card-guinness .s-value { color: #d4af37; }
-    .stat-card .s-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); line-height: 1.2; margin-bottom: 10px; align-self: flex-start; }
+    .stat-card .s-label { font-size: 8px; color: var(--theme); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); line-height: 1.2; margin-bottom: 4px; align-self: flex-start; }
     .stat-card .s-value {
       font-family: var(--font-display);
-      font-size: clamp(36px, 6vw, 52px);
+      font-size: clamp(20px, 4vw, 30px);
       line-height: 1;
       white-space: nowrap;
       display: block;
@@ -309,8 +309,9 @@
       letter-spacing: -0.02em;
       text-align: center;
       width: 100%;
+      color: var(--theme);
     }
-    .stat-card .s-value.single-line { font-size: clamp(36px, 6vw, 52px); letter-spacing: -0.03em; }
+    .stat-card .s-value.single-line { font-size: clamp(20px, 4vw, 30px); letter-spacing: -0.03em; }
 
     /* TABLE */
     .table-outer { overflow-x: auto; }
