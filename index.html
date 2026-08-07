@@ -6984,8 +6984,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (cupBtn && !window._allCupMatches?.length && !window.__viewingSeason) {
       cupBtn.style.display = 'none';
     }
+    // Check URL hash for deep linking
+    const hash = window.location.hash.toLowerCase();
     if (sessionStorage.getItem('ff_skipAllTime')) {
       sessionStorage.removeItem('ff_skipAllTime');
+      updateBottomNav('current');
+    } else if (hash === '#rules') {
+      window._bnavRules();
+    } else if (hash === '#seasons') {
+      window._bnavSeasons();
+    } else if (hash === '#current') {
       updateBottomNav('current');
     } else {
       window._ssHistory();
@@ -7321,7 +7329,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     window._applyATFilters();
   };
 
-  window._ssHistory = () => showLeagueHistory();
+  window._ssHistory = () => { history.replaceState(null,'','#alltime'); showLeagueHistory(); };
   function updateSeasonLabel(text, isLive) {
     const label = document.getElementById('season-label');
     if (!label) return;
@@ -7335,6 +7343,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   // Bottom nav
   window._bnavSeasons = () => {
+    history.replaceState(null, '', '#seasons');
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById('tab-seasons').classList.add('active');
     document.getElementById('standings-toggle-bar').style.display = 'none';
@@ -7362,7 +7371,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     });
   }
 
-  window._bnavRules = () => {
+  window._bnavRules = () => { history.replaceState(null,'','#rules');
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById('tab-rules').classList.add('active');
     document.getElementById('standings-toggle-bar').style.display = 'none';
