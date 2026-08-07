@@ -252,7 +252,7 @@
       content: '';
       position: absolute;
       top: 0; bottom: 0;
-      width: 40px;
+      width: 60px;
       z-index: 2;
       pointer-events: none;
     }
@@ -260,7 +260,7 @@
     .stat-ticker-wrap::after  { right: 0; background: linear-gradient(to left, var(--bg), transparent); }
     .stat-ticker {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       width: max-content;
       will-change: transform;
       cursor: grab;
@@ -268,70 +268,49 @@
       user-select: none;
       transform: translateX(0);
     }
-    .stat-ticker.is-dragging {
-      cursor: grabbing;
-    }
+    .stat-ticker.is-dragging { cursor: grabbing; }
     .stat-card {
       background: var(--bg2);
-      border: 2px solid var(--theme-border);
-      border-radius: 8px;
-      padding: 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px 18px;
       flex-shrink: 0;
       min-width: 110px;
       width: max-content;
-      height: 110px;
+      height: auto;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+      align-items: center;
       overflow: visible;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .stat-card.stat-card-green {
-      background: var(--bg2);
-      border-color: var(--theme-border);
-    }
-    .stat-card.stat-card-green .s-label,
-    .stat-card.stat-card-green .s-value {
-      color: var(--green);
-    }
-    .stat-card.stat-card-red {
-      background: var(--bg2);
-      border-color: var(--theme-border);
-    }
-    .stat-card.stat-card-red .s-label,
-    .stat-card.stat-card-red .s-value {
-      color: #f8c4c8;
-    }
-    .stat-card.stat-card-gold {
-      background: var(--bg2);
-      border-color: var(--theme-border);
-    }
-    .stat-card.stat-card-gold .s-label,
-    .stat-card.stat-card-gold .s-value {
-      color: var(--amber);
-    }
-    .stat-card.stat-card-guinness {
-      background: var(--bg2);
-      border-color: var(--theme-border);
-    }
-    .stat-card.stat-card-guinness .s-label,
-    .stat-card.stat-card-guinness .s-value {
-      color: #d4af37;
-    }
-    .stat-card .s-label { font-size: 9px; color: var(--text); text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-mono); margin-bottom: 5px; line-height: 1.2; }
+    .stat-card:hover { border-color: var(--theme-border); box-shadow: 0 4px 20px rgba(85,226,233,0.1); }
+    .stat-card.stat-card-green { border-color: rgba(52,211,153,0.25); background: rgba(52,211,153,0.05); }
+    .stat-card.stat-card-green .s-label { color: var(--green); }
+    .stat-card.stat-card-green .s-value { color: var(--green); }
+    .stat-card.stat-card-red { border-color: rgba(248,113,113,0.25); background: rgba(248,113,113,0.05); }
+    .stat-card.stat-card-red .s-label { color: #f8c4c8; }
+    .stat-card.stat-card-red .s-value { color: #f8c4c8; }
+    .stat-card.stat-card-gold { border-color: rgba(251,191,36,0.25); background: rgba(251,191,36,0.05); }
+    .stat-card.stat-card-gold .s-label { color: var(--amber); }
+    .stat-card.stat-card-gold .s-value { color: var(--amber); }
+    .stat-card.stat-card-guinness { border-color: rgba(212,175,55,0.25); background: rgba(212,175,55,0.05); }
+    .stat-card.stat-card-guinness .s-label { color: #d4af37; }
+    .stat-card.stat-card-guinness .s-value { color: #d4af37; }
+    .stat-card .s-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); line-height: 1.2; margin-bottom: 10px; align-self: flex-start; }
     .stat-card .s-value {
       font-family: var(--font-display);
-      font-size: clamp(18px, 3.5vw, 36px);
-      color: var(--text);
-      line-height: 1.1;
+      font-size: clamp(36px, 6vw, 52px);
+      line-height: 1;
       white-space: nowrap;
       display: block;
       overflow: hidden;
+      letter-spacing: -0.02em;
+      text-align: center;
+      width: 100%;
     }
-    .stat-card .s-value.single-line {
-      font-size: 42px;
-      letter-spacing: -0.03em;
-    }
-    .stat-card .s-value { font-size: clamp(20px, 4vw, 38px); }
+    .stat-card .s-value.single-line { font-size: clamp(36px, 6vw, 52px); letter-spacing: -0.03em; }
 
     /* TABLE */
     .table-outer { overflow-x: auto; }
@@ -662,7 +641,6 @@
       .container { padding: 1.5rem 1rem 3rem; }
       .tab-btn { padding: 10px 12px; font-size: 13px; }
     .tab-btn, .tab-btn-dropdown .tab-btn { justify-content: center; text-align: center; }
-      .stat-card .s-value { font-size: 26px; }
       .m-name { font-size: 12px; }
       .m-team { font-size: 10px; }
       .table-outer td:nth-child(2), .table-outer th:nth-child(2) { max-width: 38vw; overflow: hidden; }
@@ -6499,11 +6477,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     let cards = '';
     if (byEarned) cards += statCard('💰 All-Time Earner', namesStr(byEarned.names) + '<br>$' + byEarned.value.toFixed(2), 'stat-card-green');
-    if (byTitles) cards += statCard('🥇 Most Titles', namesStr(byTitles.names) + '<br>' + byTitles.value + 'x');
-    if (byCups)   cards += statCard('🏆 Most Cups', namesStr(byCups.names) + '<br>' + byCups.value + 'x', 'stat-card-gold');
+    if (byTitles) cards += statCard('🥇 Most Titles', namesStr(byTitles.names) + '<br>' + byTitles.value + '');
+    if (byCups)   cards += statCard('🏆 Most Cups', namesStr(byCups.names) + '<br>' + byCups.value + '', 'stat-card-gold');
     if (byBeers)  cards += statCard('🍺 Most Beers', namesStr(byBeers.names) + '<br>' + byBeers.value);
-    if (byKluis)  cards += statCard('🎬 Most Kluis Rolling Can Awards', namesStr(byKluis.names) + '<br>' + byKluis.value + 'x', 'stat-card-gold');
-    if (byLast)   cards += statCard('💀 Most Last Place', namesStr(byLast.names) + '<br>' + byLast.value.toFixed(1) + 'x', 'stat-card-red');
+    if (byKluis)  cards += statCard('🎬 Most Kluis Rolling Can Awards', namesStr(byKluis.names) + '<br>' + byKluis.value + '', 'stat-card-gold');
+    if (byLast)   cards += statCard('💀 Most Last Place', namesStr(byLast.names) + '<br>' + byLast.value.toFixed(1) + '', 'stat-card-red');
     cards += statCard('⌛ Seasons', seasonLabels.length + '');
     cards += statCard('👥 All-Time Managers', Object.keys(managers).length + '');
 
