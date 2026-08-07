@@ -2370,17 +2370,26 @@ async function init() {
       const kluis = m.name==='Jack Bernatchez'?50:0;
       const earned = m.earned + sp + cp + kluis;
       const rankMedal = sRank===1?'🥇':sRank===2?'🥈':sRank===3?'🥉':'';
-      const rankColor = pos===1?'var(--theme)':pos===2?'var(--silver)':pos===3?'var(--amber)':'var(--text3)';
+      const kickedCard = isKickedOut(m.name);
+      const sCardTheme = isSeasonOver ? {
+        1: { border:'rgba(255,215,0,0.4)', bg:'rgba(255,215,0,0.05)', rankColor:'#FFD700' },
+        2: { border:'rgba(192,192,192,0.4)', bg:'rgba(192,192,192,0.05)', rankColor:'#C0C0C0' },
+        3: { border:'rgba(205,127,50,0.4)', bg:'rgba(205,127,50,0.05)', rankColor:'#CD7F32' },
+      }[sRank] : null;
+      const cardBorder = kickedCard ? 'rgba(248,113,113,0.3)' : (sCardTheme ? sCardTheme.border : 'var(--theme-border)');
+      const cardBg = kickedCard ? 'rgba(248,113,113,0.04)' : (sCardTheme ? sCardTheme.bg : 'var(--bg2)');
+      const cardRankColor = kickedCard ? 'var(--red)' : (sCardTheme ? sCardTheme.rankColor : 'var(--theme)');
 
-      html += '<div class="s-card" data-manager-id="' + m.id + '" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.3);">';
+      html += '<div class="s-card" data-manager-id="' + m.id + '" style="background:' + cardBg + ';border:1px solid ' + cardBorder + ';border-radius:16px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.3);">';
 
       // Top row: rank + name + pts
       html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
-      html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:var(--theme);min-width:28px;align-self:center;">' + pos + '</span>';
+      html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:' + cardRankColor + ';min-width:28px;align-self:center;">' + pos + '</span>';
       html += '<div style="flex:1;min-width:0;">';
-      html += '<div style="font-weight:700;font-size:15px;color:var(--text);display:flex;align-items:center;gap:5px;overflow:hidden;">';
+      html += '<div style="font-weight:700;font-size:15px;color:' + (kickedCard ? 'var(--red)' : 'var(--text)') + ';display:flex;align-items:center;gap:5px;overflow:hidden;' + (kickedCard ? 'opacity:0.7;' : '') + '">';
       html += '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (rankMedal ? rankMedal + ' ' : '') + esc(m.name) + '</span>';
-      if (isSeasonOver) {
+      if (kickedCard) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);opacity:0.5;font-weight:400;flex-shrink:0;">kicked</span>';
+      else if (isSeasonOver) {
         const BADGE_MAP = {1:['badge-1','🥇','$550'],2:['badge-2','🥈','$275'],3:['badge-3','🥉','$175'],4:['badge-4','4️⃣','$100'],5:['badge-5','5️⃣','$20']};
         const bd = BADGE_MAP[sRank];
         if (bd) html += '<span class="badge ' + bd[0] + '" style="display:inline-flex;flex-direction:column;align-items:center;padding:2px 5px;line-height:1.3;flex-shrink:0;"><span style="font-size:11px;">' + bd[1] + '</span><span style="font-size:9px;">' + bd[2] + '</span></span>';
@@ -7716,14 +7725,25 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       if (cPos === 0) awards += '🏆';
       if (isKluis) awards += '🎬';
 
-      html += '<div class="s-card" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:16px 18px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,0.3);">';
+      const isKickedOut = ['marcus williams','ben boldt','kemdi','tom raggio'].some(n => m.name.toLowerCase().includes(n));
+      const histRankTheme = {
+        1: { border:'rgba(255,215,0,0.4)', bg:'rgba(255,215,0,0.05)', rankColor:'#FFD700' },
+        2: { border:'rgba(192,192,192,0.4)', bg:'rgba(192,192,192,0.05)', rankColor:'#C0C0C0' },
+        3: { border:'rgba(205,127,50,0.4)', bg:'rgba(205,127,50,0.05)', rankColor:'#CD7F32' },
+      };
+      const histTheme = isKickedOut
+        ? { border:'rgba(248,113,113,0.3)', bg:'rgba(248,113,113,0.04)', rankColor:'var(--red)' }
+        : (histRankTheme[i+1] || { border:'var(--theme-border)', bg:'var(--bg2)', rankColor:'var(--theme)' });
+
+      html += '<div class="s-card" style="background:' + histTheme.bg + ';border:1px solid ' + histTheme.border + ';border-radius:16px;padding:16px 18px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,0.3);">';
       // Top row
       html += '<div style="display:flex;align-items:center;gap:10px;">';
-      html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:var(--theme);min-width:28px;align-self:center;">' + (i+1) + '</span>';
+      html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:' + histTheme.rankColor + ';min-width:28px;align-self:center;">' + (i+1) + '</span>';
       html += '<div style="flex:1;min-width:0;">';
-      html += '<div style="font-weight:700;font-size:15px;color:var(--text);display:flex;align-items:center;gap:5px;overflow:hidden;">';
+      html += '<div style="font-weight:700;font-size:15px;color:' + (isKickedOut ? 'var(--red)' : 'var(--text)') + ';display:flex;align-items:center;gap:5px;overflow:hidden;' + (isKickedOut ? 'opacity:0.7;' : '') + '">';
       html += '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(m.name) + '</span>';
-      if (awards) html += '<span style="flex-shrink:0;">' + awards + '</span>';
+      if (isKickedOut) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);opacity:0.5;font-weight:400;flex-shrink:0;">kicked</span>';
+      else if (awards) html += '<span style="flex-shrink:0;">' + awards + '</span>';
       html += '</div>';
       // Chips
       html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
