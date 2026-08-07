@@ -2369,8 +2369,8 @@ async function init() {
       html += '</div>'; // close chips
       html += '</div>'; // close name+chips column
       html += '<div style="text-align:right;flex-shrink:0;align-self:center;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">';
-      html += '<div style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:var(--text);">' + m.total + '</div>';
-      html += '<div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">pts</div>';
+      html += '<div class="sc-right-val" style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:var(--text);">' + m.total + '</div>';
+      html += '<div class="sc-right-label" style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">pts</div>';
       html += '</div>';
       html += '</div>'; // close top row
       html += '<div class="s-card-drawer" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;"></div>';
@@ -2482,6 +2482,26 @@ async function init() {
         } else {
           b.textContent = baseLabel;
         }
+      });
+
+      // Update right side of each card to show sort value
+      const scMeta = {
+        pts:     { label: 'pts',    fmt: v => v, color: () => 'var(--text)' },
+        earned:  { label: 'earned', fmt: v => '$' + (+v).toFixed(2), color: v => v > 0 ? 'var(--green)' : 'var(--text3)' },
+        top4:    { label: 'top 4',  fmt: v => v || '0', color: v => v > 0 ? 'var(--green)' : 'var(--text3)' },
+        bottom2: { label: 'bot 2',  fmt: v => v || '0', color: v => v > 0 ? 'var(--red)' : 'var(--text3)' },
+        totalG:  { label: '🍺 total', fmt: v => v || '0', color: v => v > 0 ? 'var(--amber)' : 'var(--text3)' },
+      };
+      const scm = scMeta[key] || scMeta.pts;
+      document.querySelectorAll('.standings-cards .s-card').forEach(card => {
+        const id = parseInt(card.dataset.managerId);
+        const d = window._cardData?.find(x => x.id === id);
+        if (!d) return;
+        const val = d[key] ?? 0;
+        const rv = card.querySelector('.sc-right-val');
+        const rl = card.querySelector('.sc-right-label');
+        if (rv) { rv.textContent = scm.fmt(val); rv.style.color = scm.color(val); }
+        if (rl) rl.textContent = scm.label;
       });
 
       // Sort and reorder cards
@@ -5078,13 +5098,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       _selectedCupRound = roundEvents[roundEvents.length - 1];
     }
 
-    // Check for winner
-    let cupWinner = null;
+    // Check for winner and runner-up
+    let cupWinner = null, cupRunnerUp = null;
     const lastRoundMatches = rounds[roundEvents[roundEvents.length - 1]] || [];
     lastRoundMatches.forEach(m => {
       if (m.winner) {
         const wm = state.managers.find(mgr => mgr.id === m.winner);
         if (wm) cupWinner = wm;
+        const loserId = m.winner === m.entry_1_entry ? m.entry_2_entry : m.entry_1_entry;
+        const lm = state.managers.find(mgr => mgr.id === loserId);
+        if (lm) cupRunnerUp = lm;
       }
     });
 
@@ -5092,20 +5115,32 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const totalRounds = displayRounds.length;
 
     // Build round selector badges
+    const silverSvg = '<svg width="28" height="28" viewBox="0 0 20 20" style="vertical-align:middle;display:inline-block;"><defs><linearGradient id="sve" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e0e0e0"/><stop offset="50%" stop-color="#aaa"/><stop offset="100%" stop-color="#ccc"/></linearGradient></defs><path d="M7 2 Q6 2 5.5 3.5 L5 9 Q4.8 11 6 12 L7 12.5 L7 14 L5 14.5 L5 16 L15 16 L15 14.5 L13 14 L13 12.5 L14 12 Q15.2 11 15 9 L14.5 3.5 Q14 2 13 2 Z" fill="url(#sve)" stroke="#999" stroke-width="0.3"/><path d="M5.5 4 Q2 4 2 8 Q2 11 5.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><path d="M14.5 4 Q18 4 18 8 Q18 11 14.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><rect x="8.5" y="14" width="3" height="1.5" fill="#999" rx="0.3"/><rect x="6.5" y="15.5" width="7" height="1.5" fill="#888" rx="0.5"/></svg>';
     let html = '';
 
-    if (cupWinner) {
-      html += '<div class="cup-winner-card">' +
-        '<div class="cup-trophy">🏆</div>' +
-        '<div class="cup-winner-name">' + esc(cupWinner.name) + '</div>' +
-        '<div class="cup-winner-team">' + esc(cupWinner.team) + ' — Cup Champion</div>' +
-        '</div>';
+    if (cupWinner || cupRunnerUp) {
+      html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:1rem;">';
+      if (cupWinner) {
+        html += '<div class="cup-winner-card" style="flex:1;min-width:140px;">' +
+          '<div class="cup-trophy">🏆</div>' +
+          '<div class="cup-winner-name">' + esc(cupWinner.name) + '</div>' +
+          '<div class="cup-winner-team">' + esc(cupWinner.team) + ' — Cup Champion</div>' +
+          '</div>';
+      }
+      if (cupRunnerUp) {
+        html += '<div class="cup-winner-card" style="flex:1;min-width:140px;background:rgba(180,180,180,0.06);border-color:rgba(180,180,180,0.2);">' +
+          '<div class="cup-trophy">' + silverSvg + '</div>' +
+          '<div class="cup-winner-name" style="color:#ccc;">' + esc(cupRunnerUp.name) + '</div>' +
+          '<div class="cup-winner-team">' + esc(cupRunnerUp.team) + ' — Runner-Up</div>' +
+          '</div>';
+      }
+      html += '</div>';
     }
 
     html += '<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:1rem;">' +
       '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Prize Pool:</span>' +
       '<span class="badge" style="background:rgba(255,215,0,0.12);color:#FFD700;border:1px solid rgba(255,215,0,0.3);display:inline-flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🏆</span><span style="font-size:10px;">$225</span></span>' +
-      '<span class="badge" style="background:rgba(255,215,0,0.06);color:#c0c0c0;border:1px solid rgba(192,192,192,0.3);display:inline-flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🏆🥈</span><span style="font-size:10px;">$125</span></span>' +
+      '<span class="badge" style="background:rgba(180,180,180,0.1);border:1px solid rgba(180,180,180,0.3);display:inline-flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><svg width="13" height="13" viewBox="0 0 20 20" style="vertical-align:middle;display:inline-block;"><defs><linearGradient id="svd" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e0e0e0"/><stop offset="50%" stop-color="#aaa"/><stop offset="100%" stop-color="#ccc"/></linearGradient></defs><path d="M7 2 Q6 2 5.5 3.5 L5 9 Q4.8 11 6 12 L7 12.5 L7 14 L5 14.5 L5 16 L15 16 L15 14.5 L13 14 L13 12.5 L14 12 Q15.2 11 15 9 L14.5 3.5 Q14 2 13 2 Z" fill="url(#svd)" stroke="#999" stroke-width="0.3"/><path d="M5.5 4 Q2 4 2 8 Q2 11 5.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><path d="M14.5 4 Q18 4 18 8 Q18 11 14.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><rect x="8.5" y="14" width="3" height="1.5" fill="#999" rx="0.3"/><rect x="6.5" y="15.5" width="7" height="1.5" fill="#888" rx="0.5"/></svg><span style="font-size:10px;color:#aaa;">$125</span></span>' +
       '</div>';
 
     html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem;">';
