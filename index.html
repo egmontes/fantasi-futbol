@@ -6527,9 +6527,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     html += '<div id="at-filter-bar" style="display:flex;gap:0;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:4px 0;width:100%;">';
     html += '';
     atFilterOptions.forEach(opt => {
-      html += '<button onclick="window._toggleATFilter(\'' + opt.key + '\', this)" data-filter-key="' + opt.key + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + '</button>';
+      html += '<button onclick="window._toggleATFilter(\'' + opt.key + '\', this)" data-filter-key="' + opt.key + '" style="border-radius:20px;border:1px solid var(--border2);font-size:13px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);padding:5px 10px;white-space:nowrap;text-align:center;">' + opt.label + '</button>';
     });
-    html += '<button onclick="window._clearATFilters()" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);padding:6px 14px;white-space:nowrap;text-align:center;">Clear</button>';
+    html += '<button onclick="window._clearATFilters()" style="border-radius:20px;border:1px solid var(--border2);font-size:11px;font-family:var(--font-mono);padding:5px 10px;background:transparent;color:var(--text3);cursor:pointer;white-space:nowrap;">Clear</button>';
     html += '</div>';
 
     const atChip = (label, value, activeColor, activeBg, active) => {
@@ -7183,13 +7183,13 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (window._atActiveFilters.has(key)) {
       window._atActiveFilters.delete(key);
       btn.style.borderColor = 'var(--border2)';
-      btn.style.background = 'none';
-      btn.style.boxShadow = 'none';
+      btn.style.background = 'transparent';
+      btn.style.color = 'var(--text3)';
     } else {
       window._atActiveFilters.add(key);
       btn.style.borderColor = 'var(--theme)';
       btn.style.background = 'var(--theme-dim)';
-      btn.style.boxShadow = '0 0 0 1px var(--theme-border)';
+      btn.style.color = 'var(--theme)';
     }
     window._applyATFilters();
   };
@@ -7198,8 +7198,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     window._atActiveFilters.clear();
     document.querySelectorAll('#at-filter-bar button[data-filter-key]').forEach(b => {
       b.style.borderColor = 'var(--border2)';
-      b.style.background = 'none';
-      b.style.boxShadow = 'none';
+      b.style.background = 'transparent';
+      b.style.color = 'var(--text3)';
     });
     window._applyATFilters();
   };
