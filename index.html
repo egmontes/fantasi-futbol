@@ -2342,15 +2342,14 @@ async function init() {
             + '<span style="color:' + valColor + ';">' + value + '</span>'
             + '</span>';
         };
-        html += chip('Top 4:', m.top4, 'var(--green)', 'var(--green-dim)', m.top4 > 0);
-        html += chip('Bot 2:', m.bottom2, 'var(--red)', 'var(--red-dim)', m.bottom2 > 0);
-        html += chip('Total 🍺:', m.totalG, 'var(--amber)', 'var(--bg3)', m.totalG > 0);
-        html += '<span style="font-size:11px;font-family:var(--font-mono);background:' + (m.gmisses > 0 ? 'var(--red-dim)' : 'var(--bg3)') + ';border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;">'
-          + (m.gmisses > 0 ? '<span>⚠️</span>' : '')
-          + '<span style="color:' + (m.gmisses > 0 ? 'var(--red)' : 'var(--text3)') + ';">Owes:</span>'
-          + '<span style="color:' + (m.gmisses > 0 ? 'var(--text)' : 'var(--text3)') + ';">' + m.gmisses + '</span>'
+        if (m.top4 > 0) html += chip('Top 4:', m.top4, 'var(--green)', 'var(--green-dim)', true);
+        if (m.bottom2 > 0) html += chip('Bot 2:', m.bottom2, 'var(--red)', 'var(--red-dim)', true);
+        if (m.totalG > 0) html += chip('Total 🍺:', m.totalG, 'var(--amber)', 'var(--bg3)', true);
+        if (m.gmisses > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;">'
+          + '<span style="color:var(--red);">⚠️ Owes:</span>'
+          + '<span style="color:var(--text);">' + m.gmisses + '</span>'
           + '</span>';
-        html += chip('Missed:', m.missedG, 'var(--red)', 'var(--red-dim)', m.missedG > 0);
+        if (m.missedG > 0) html += chip('Missed:', m.missedG, 'var(--red)', 'var(--red-dim)', true);
       }
       html += '</div>'; // close chips
       html += '</div>'; // close name+chips column
