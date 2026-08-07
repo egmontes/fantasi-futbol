@@ -2336,7 +2336,7 @@ async function init() {
       if (state.historyLoaded) {
         const chip = (label, value, activeColor, activeBg, active) => {
           const bg = active ? activeBg : 'var(--bg3)';
-          const labelColor = active ? activeColor : 'var(--theme)';
+          const labelColor = active ? activeColor : 'var(--text3)';
           const valColor = active ? 'var(--text)' : 'var(--text3)';
           return '<span style="font-size:11px;font-family:var(--font-mono);background:' + bg + ';border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;">'
             + '<span style="color:' + labelColor + ';">' + label + '</span>'
@@ -2348,7 +2348,7 @@ async function init() {
         html += chip('Total 🍺:', m.totalG, 'var(--amber)', 'var(--bg3)', m.totalG > 0);
         html += '<span style="font-size:11px;font-family:var(--font-mono);background:' + (m.gmisses > 0 ? 'var(--red-dim)' : 'var(--bg3)') + ';border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;">'
           + (m.gmisses > 0 ? '<span>⚠️</span>' : '')
-          + '<span style="color:' + (m.gmisses > 0 ? 'var(--red)' : 'var(--theme)') + ';">Owes:</span>'
+          + '<span style="color:' + (m.gmisses > 0 ? 'var(--red)' : 'var(--text3)') + ';">Owes:</span>'
           + '<span style="color:' + (m.gmisses > 0 ? 'var(--text)' : 'var(--text3)') + ';">' + m.gmisses + '</span>'
           + '</span>';
         html += chip('Missed:', m.missedG, 'var(--red)', 'var(--red-dim)', m.missedG > 0);
@@ -3816,7 +3816,7 @@ async function init() {
         if (m._prize > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:4px;padding:2px 6px;">$' + m._prize.toFixed(0) + '</span>';
         if (m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:4px;padding:2px 6px;">🍺 Shotgun</span>';
         if (capStr) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:4px;padding:2px 6px;">© ' + esc(capStr) + '</span>';
-        html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;"><span style="color:var(--theme);">Total:</span><span style="color:var(--text);">' + m.gwTotal + '</span></span>';
+        html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;"><span style="color:' + (m.gwTotal > 0 ? 'var(--theme)' : 'var(--text3)') + ';">Total:</span><span style="color:' + (m.gwTotal > 0 ? 'var(--text)' : 'var(--text3)') + ';">' + m.gwTotal + '</span></span>';
         if (m.transferCost > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:4px;padding:2px 6px;">-' + m.transferCost + ' hit</span>';
         if (m.benchPoints > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;"><span style="color:var(--theme);">Bench:</span><span style="color:var(--text);">' + m.benchPoints + '</span></span>';
         const cardOwed = getGuinnessOwedAtGW(m.name, gw);
@@ -6478,7 +6478,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     const atChip = (label, value, activeColor, activeBg, active) => {
       const bg = active ? activeBg : 'var(--bg3)';
-      const lc = active ? activeColor : 'var(--theme)';
+      const lc = active ? activeColor : 'var(--text3)';
       const vc = active ? 'var(--text)' : 'var(--text3)';
       return '<span style="font-size:11px;font-family:var(--font-mono);background:' + bg + ';border-radius:4px;padding:2px 6px;display:inline-flex;gap:2px;">'
         + '<span style="color:' + lc + ';">' + label + '</span>'
@@ -6519,18 +6519,25 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
       // Drawer with all stats
       html += '<div class="at-card-drawer" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">';
+      // Row 1: League
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">';
+      html += atChip('🥇', m.s1st || 0, 'var(--theme)', 'var(--theme-dim)', m.s1st > 0);
+      html += atChip('🥈', m.s2nd || 0, 'var(--text2)', 'var(--bg3)', m.s2nd > 0);
+      html += atChip('🥉', m.s3rd || 0, 'var(--text2)', 'var(--bg3)', m.s3rd > 0);
+      html += atChip('4️⃣', m.s4th || 0, 'var(--text2)', 'var(--bg3)', m.s4th > 0);
+      html += atChip('5️⃣', m.s5th || 0, 'var(--text2)', 'var(--bg3)', m.s5th > 0);
+      html += '</div>';
+      // Row 2: Cup
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">';
+      html += atChip('🏆', m.cupTitles || 0, '#FFD700', 'rgba(255,215,0,0.1)', m.cupTitles > 0);
+      html += atChip('<svg width="12" height="12" viewBox="0 0 20 20" style="vertical-align:middle;display:inline-block;margin:0 1px;"><defs><linearGradient id="sv3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e0e0e0"/><stop offset="50%" stop-color="#aaa"/><stop offset="100%" stop-color="#ccc"/></linearGradient></defs><path d="M7 2 Q6 2 5.5 3.5 L5 9 Q4.8 11 6 12 L7 12.5 L7 14 L5 14.5 L5 16 L15 16 L15 14.5 L13 14 L13 12.5 L14 12 Q15.2 11 15 9 L14.5 3.5 Q14 2 13 2 Z" fill="url(#sv3)" stroke="#999" stroke-width="0.3"/><path d="M5.5 4 Q2 4 2 8 Q2 11 5.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><path d="M14.5 4 Q18 4 18 8 Q18 11 14.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><rect x="8.5" y="14" width="3" height="1.5" fill="#999" rx="0.3"/><rect x="6.5" y="15.5" width="7" height="1.5" fill="#888" rx="0.5"/></svg>', m.cupRunnerUp || 0, 'var(--text2)', 'var(--bg3)', m.cupRunnerUp > 0);
+      html += '</div>';
+      // Row 3: Last, beers, rolling can
       html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">';
-      html += atChip('🥇 League:', m.s1st || 0, 'var(--theme)', 'var(--theme-dim)', m.s1st > 0);
-      html += atChip('🥈 League:', m.s2nd || 0, 'var(--text2)', 'var(--bg3)', m.s2nd > 0);
-      html += atChip('🥉 League:', m.s3rd || 0, 'var(--text2)', 'var(--bg3)', m.s3rd > 0);
-      html += atChip('4️⃣ League:', m.s4th || 0, 'var(--text2)', 'var(--bg3)', m.s4th > 0);
-      html += atChip('5️⃣ League:', m.s5th || 0, 'var(--text2)', 'var(--bg3)', m.s5th > 0);
-      html += atChip('🏆 Cup:', m.cupTitles || 0, '#FFD700', 'rgba(255,215,0,0.1)', m.cupTitles > 0);
-      html += atChip('🥈 Cup:', m.cupRunnerUp || 0, 'var(--text2)', 'var(--bg3)', m.cupRunnerUp > 0);
-      html += atChip('🎬 Rolling Can:', m.kluisTitles || 0, '#FFD700', 'rgba(255,215,0,0.1)', m.kluisTitles > 0);
-      html += atChip('💀 Last:', m.last ? m.last.toFixed(1) : 0, 'var(--red)', 'var(--red-dim)', m.last > 0);
-      html += atChip('🍺 Beers:', m.guinness || 0, 'var(--amber)', 'var(--amber-dim)', m.guinness > 0);
-      html += atChip('🍺❌ Missed:', m.missedBeers || 0, 'var(--red)', 'var(--red-dim)', m.missedBeers > 0);
+      html += atChip('💀', m.last ? m.last.toFixed(1) : 0, 'var(--red)', 'var(--red-dim)', m.last > 0);
+      html += atChip('🍺', m.guinness || 0, 'var(--amber)', 'var(--amber-dim)', m.guinness > 0);
+      html += atChip('🍺❌', m.missedBeers || 0, 'var(--red)', 'var(--red-dim)', m.missedBeers > 0);
+      html += atChip('🎬', m.kluisTitles || 0, '#FFD700', 'rgba(255,215,0,0.1)', m.kluisTitles > 0);
       html += '</div>';
       html += '</div>'; // close drawer
 
@@ -7579,7 +7586,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   });
 </script>
 <!-- Bottom Nav -->
-<nav id="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(13,15,14,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;align-items:stretch;height:56px;padding-bottom:env(safe-area-inset-bottom);">
+<nav id="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(20,24,22,0.98);backdrop-filter:blur(16px);border-top:1px solid var(--theme-border);box-shadow:0 -2px 20px rgba(85,226,233,0.15);display:flex;align-items:stretch;height:56px;padding-bottom:env(safe-area-inset-bottom);">
   <button id="bnav-current" onclick="window._ssLive()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 4px;border-top:2px solid transparent;font-family:var(--font-body);">
     <span style="font-size:18px;">⚽</span>
     <span class="bnav-label" style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">2026/27</span>
