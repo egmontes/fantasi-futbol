@@ -7396,6 +7396,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (cupBtn && !window._allCupMatches?.length) cupBtn.style.display = 'none';
     updateBottomNav('current');
     sessionStorage.setItem('ff_skipAllTime', '1');
+    history.replaceState(null, '', '#current');
     window.location.reload();
   };
   window._ss2025 = async function(silent = false) {
