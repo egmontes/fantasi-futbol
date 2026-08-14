@@ -34,7 +34,7 @@
       "pts": 0
     },
     "17": {
-      "name": "Ødegaard",
+      "name": "\u00d8degaard",
       "team": 1,
       "type": 3,
       "pts": 1
@@ -88,7 +88,7 @@
       "pts": 2
     },
     "67": {
-      "name": "Petrović",
+      "name": "Petrovi\u0107",
       "team": 4,
       "type": 1,
       "pts": 2
@@ -172,7 +172,7 @@
       "pts": 0
     },
     "191": {
-      "name": "Estève",
+      "name": "Est\u00e8ve",
       "team": 3,
       "type": 2,
       "pts": 4
@@ -196,7 +196,7 @@
       "pts": 0
     },
     "220": {
-      "name": "Sánchez",
+      "name": "S\u00e1nchez",
       "team": 7,
       "type": 1,
       "pts": 2
@@ -244,7 +244,7 @@
       "pts": 2
     },
     "249": {
-      "name": "João Pedro",
+      "name": "Jo\u00e3o Pedro",
       "team": 7,
       "type": 4,
       "pts": 7
@@ -262,13 +262,13 @@
       "pts": 6
     },
     "256": {
-      "name": "Muñoz",
+      "name": "Mu\u00f1oz",
       "team": 8,
       "type": 2,
       "pts": 5
     },
     "260": {
-      "name": "Guéhi",
+      "name": "Gu\u00e9hi",
       "team": 13,
       "type": 2,
       "pts": 6
@@ -340,7 +340,7 @@
       "pts": 1
     },
     "337": {
-      "name": "Raúl",
+      "name": "Ra\u00fal",
       "team": 10,
       "type": 4,
       "pts": 1
@@ -418,7 +418,7 @@
       "pts": 3
     },
     "402": {
-      "name": "Aït-Nouri",
+      "name": "A\u00eft-Nouri",
       "team": 13,
       "type": 2,
       "pts": 0
@@ -484,7 +484,7 @@
       "pts": 1
     },
     "470": {
-      "name": "Dúbravka",
+      "name": "D\u00fabravka",
       "team": 3,
       "type": 1,
       "pts": 3
@@ -538,7 +538,7 @@
       "pts": 1
     },
     "505": {
-      "name": "Milenković",
+      "name": "Milenkovi\u0107",
       "team": 16,
       "type": 2,
       "pts": 1
@@ -676,7 +676,7 @@
       "pts": 0
     },
     "612": {
-      "name": "L.Paquetá",
+      "name": "L.Paquet\u00e1",
       "team": 19,
       "type": 3,
       "pts": 2
@@ -694,13 +694,13 @@
       "pts": 2
     },
     "625": {
-      "name": "Füllkrug",
+      "name": "F\u00fcllkrug",
       "team": 19,
       "type": 4,
       "pts": 0
     },
     "628": {
-      "name": "José Sá",
+      "name": "Jos\u00e9 S\u00e1",
       "team": 20,
       "type": 1,
       "pts": 0
@@ -724,13 +724,13 @@
       "pts": 0
     },
     "661": {
-      "name": "Ekitiké",
+      "name": "Ekitik\u00e9",
       "team": 12,
       "type": 4,
       "pts": 2
     },
     "666": {
-      "name": "Gyökeres",
+      "name": "Gy\u00f6keres",
       "team": 1,
       "type": 4,
       "pts": 6
@@ -1061,7 +1061,7 @@
     {
       "id": 1365008,
       "name": "Eddy Garcia-Montes",
-      "team": "Schäring is Cäring",
+      "team": "Sch\u00e4ring is C\u00e4ring",
       "history": {
         "points": 81,
         "total_points": 229,
@@ -1199,7 +1199,7 @@
       "transfers": [
         {
           "element_in": 612,
-          "element_in_name": "L.Paquetá",
+          "element_in_name": "L.Paquet\u00e1",
           "element_out": 242,
           "element_out_name": "Dewsbury-Hall",
           "element_in_pts": 2,
@@ -1209,7 +1209,7 @@
           "element_in": 311,
           "element_in_name": "Beto",
           "element_out": 666,
-          "element_out_name": "Gyökeres",
+          "element_out_name": "Gy\u00f6keres",
           "element_in_pts": 2,
           "element_out_pts": 6
         },
@@ -1239,7 +1239,7 @@
         },
         {
           "element_in": 666,
-          "element_in_name": "Gyökeres",
+          "element_in_name": "Gy\u00f6keres",
           "element_out": 217,
           "element_out_name": "Foster",
           "element_in_pts": 6,
@@ -1249,7 +1249,7 @@
           "element_in": 261,
           "element_in_name": "Richards",
           "element_out": 260,
-          "element_out_name": "Guéhi",
+          "element_out_name": "Gu\u00e9hi",
           "element_in_pts": 6,
           "element_out_pts": 6
         },
@@ -1279,9 +1279,9 @@
         },
         {
           "element_in": 67,
-          "element_in_name": "Petrović",
+          "element_in_name": "Petrovi\u0107",
           "element_out": 470,
-          "element_out_name": "Dúbravka",
+          "element_out_name": "D\u00fabravka",
           "element_in_pts": 2,
           "element_out_pts": 3
         },
@@ -1329,7 +1329,7 @@
           "element_in": 217,
           "element_in_name": "Foster",
           "element_out": 661,
-          "element_out_name": "Ekitiké",
+          "element_out_name": "Ekitik\u00e9",
           "element_in_pts": 2,
           "element_out_pts": 2
         },
@@ -1361,13 +1361,13 @@
           "element_in": 72,
           "element_in_name": "Senesi",
           "element_out": 402,
-          "element_out_name": "Aït-Nouri",
+          "element_out_name": "A\u00eft-Nouri",
           "element_in_pts": 3,
           "element_out_pts": 0
         },
         {
           "element_in": 260,
-          "element_in_name": "Guéhi",
+          "element_in_name": "Gu\u00e9hi",
           "element_out": 43,
           "element_out_name": "Alex Moreno",
           "element_in_pts": 6,
@@ -1383,7 +1383,7 @@
         },
         {
           "element_in": 661,
-          "element_in_name": "Ekitiké",
+          "element_in_name": "Ekitik\u00e9",
           "element_out": 252,
           "element_out_name": "Marc Guiu",
           "element_in_pts": 2,
@@ -1402,7 +1402,7 @@
     {
       "id": 4133987,
       "name": "Gabriel Costa",
-      "team": "Los Miracúlos",
+      "team": "Los Mirac\u00falos",
       "history": {
         "points": 79,
         "total_points": 234,
@@ -1700,7 +1700,7 @@
         "points_on_bench": 8
       },
       "captain": {
-        "name": "Ekitiké",
+        "name": "Ekitik\u00e9",
         "isVC": false
       },
       "chip": null,
@@ -1837,7 +1837,7 @@
         },
         {
           "element_in": 249,
-          "element_in_name": "João Pedro",
+          "element_in_name": "Jo\u00e3o Pedro",
           "element_out": 252,
           "element_out_name": "Marc Guiu",
           "element_in_pts": 7,
@@ -2135,7 +2135,7 @@
       "transfers": [
         {
           "element_in": 249,
-          "element_in_name": "João Pedro",
+          "element_in_name": "Jo\u00e3o Pedro",
           "element_out": 654,
           "element_out_name": "Strand Larsen",
           "element_in_pts": 7,
@@ -2199,9 +2199,9 @@
         },
         {
           "element_in": 256,
-          "element_in_name": "Muñoz",
+          "element_in_name": "Mu\u00f1oz",
           "element_out": 374,
-          "element_out_name": "Konaté",
+          "element_out_name": "Konat\u00e9",
           "element_in_pts": 5,
           "element_out_pts": 9
         },
@@ -2521,7 +2521,7 @@
         },
         {
           "element_in": 661,
-          "element_in_name": "Ekitiké",
+          "element_in_name": "Ekitik\u00e9",
           "element_out": 64,
           "element_out_name": "Watkins",
           "element_in_pts": 2,
@@ -2670,9 +2670,9 @@
       "transfers": [
         {
           "element_in": 470,
-          "element_in_name": "Dúbravka",
+          "element_in_name": "D\u00fabravka",
           "element_out": 628,
-          "element_out_name": "José Sá",
+          "element_out_name": "Jos\u00e9 S\u00e1",
           "element_in_pts": 3,
           "element_out_pts": 0
         },
@@ -2829,7 +2829,7 @@
     {
       "id": 5020903,
       "name": "Tommy Harris",
-      "team": "Slot’s Sloots",
+      "team": "Slot\u2019s Sloots",
       "history": {
         "points": 72,
         "total_points": 205,
@@ -2977,7 +2977,7 @@
           "element_in": 378,
           "element_in_name": "Nallo",
           "element_out": 191,
-          "element_out_name": "Estève",
+          "element_out_name": "Est\u00e8ve",
           "element_in_pts": 0,
           "element_out_pts": 4
         },
@@ -3007,7 +3007,7 @@
         },
         {
           "element_in": 256,
-          "element_in_name": "Muñoz",
+          "element_in_name": "Mu\u00f1oz",
           "element_out": 507,
           "element_out_name": "Aina",
           "element_in_pts": 5,
@@ -3049,13 +3049,13 @@
           "element_in": 283,
           "element_in_name": "Mateta",
           "element_out": 661,
-          "element_out_name": "Ekitiké",
+          "element_out_name": "Ekitik\u00e9",
           "element_in_pts": 2,
           "element_out_pts": 2
         },
         {
           "element_in": 249,
-          "element_in_name": "João Pedro",
+          "element_in_name": "Jo\u00e3o Pedro",
           "element_out": 64,
           "element_out_name": "Watkins",
           "element_in_pts": 7,
@@ -3670,7 +3670,7 @@
         "points_on_bench": 3
       },
       "captain": {
-        "name": "Gyökeres",
+        "name": "Gy\u00f6keres",
         "isVC": false
       },
       "chip": null,
@@ -3810,7 +3810,7 @@
         "points_on_bench": 2
       },
       "captain": {
-        "name": "João Pedro",
+        "name": "Jo\u00e3o Pedro",
         "isVC": false
       },
       "chip": null,
@@ -4263,7 +4263,7 @@
     {
       "id": 1886122,
       "name": "Aidan White",
-      "team": "Ha’Cunha Mateta",
+      "team": "Ha\u2019Cunha Mateta",
       "history": {
         "points": 62,
         "total_points": 233,
@@ -4412,7 +4412,7 @@
     {
       "id": 4244968,
       "name": "John Morcos",
-      "team": "North Gyökeres 4Ever",
+      "team": "North Gy\u00f6keres 4Ever",
       "history": {
         "points": 62,
         "total_points": 201,
@@ -4698,7 +4698,7 @@
         },
         {
           "element_in": 249,
-          "element_in_name": "João Pedro",
+          "element_in_name": "Jo\u00e3o Pedro",
           "element_out": 64,
           "element_out_name": "Watkins",
           "element_in_pts": 7,
@@ -4718,7 +4718,7 @@
         "points_on_bench": 8
       },
       "captain": {
-        "name": "Ekitiké",
+        "name": "Ekitik\u00e9",
         "isVC": false
       },
       "chip": null,
@@ -4867,7 +4867,7 @@
         "points_on_bench": 2
       },
       "captain": {
-        "name": "Sánchez",
+        "name": "S\u00e1nchez",
         "isVC": true
       },
       "chip": null,
@@ -5305,7 +5305,7 @@
         "points_on_bench": 3
       },
       "captain": {
-        "name": "Ødegaard",
+        "name": "\u00d8degaard",
         "isVC": false
       },
       "chip": null,
@@ -5436,7 +5436,7 @@
     {
       "id": 4512625,
       "name": "Michael Legaz",
-      "team": "Legačić",
+      "team": "Lega\u010di\u0107",
       "history": {
         "points": 57,
         "total_points": 208,
@@ -5714,7 +5714,7 @@
       "transfers": [
         {
           "element_in": 249,
-          "element_in_name": "João Pedro",
+          "element_in_name": "Jo\u00e3o Pedro",
           "element_out": 252,
           "element_out_name": "Marc Guiu",
           "element_in_pts": 7,
@@ -5882,7 +5882,7 @@
         "points_on_bench": 6
       },
       "captain": {
-        "name": "João Pedro",
+        "name": "Jo\u00e3o Pedro",
         "isVC": false
       },
       "chip": null,
@@ -6291,7 +6291,7 @@
       "transfers": [
         {
           "element_in": 256,
-          "element_in_name": "Muñoz",
+          "element_in_name": "Mu\u00f1oz",
           "element_out": 43,
           "element_out_name": "Alex Moreno",
           "element_in_pts": 5,
@@ -6586,6 +6586,25 @@
           "element_type": 2
         }
       ],
+      "transfers": []
+    },
+    {
+      "id": 9999999,
+      "name": "Jeff Wright",
+      "team": "Jeff's Team",
+      "history": {
+        "points": 48,
+        "total_points": 74,
+        "event_transfers": 0,
+        "event_transfers_cost": 0,
+        "points_on_bench": 0
+      },
+      "captain": {
+        "name": null,
+        "isVC": false
+      },
+      "chip": null,
+      "picks": [],
       "transfers": []
     }
   ]
