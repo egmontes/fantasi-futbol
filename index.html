@@ -6282,10 +6282,23 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const seasonData = {};
       const labels = [];
 
-      // Load historical seasons from summary JSONs
+      // Load historical seasons from summary JSONs (top1-4 are weekly finishes)
       await Promise.all(SEASON_FILES.map(async s => {
         const res = await fetch('data/seasons/' + s.file + '.json?nocache=' + Date.now());
-        if (res.ok) { seasonData[s.label] = await res.json(); labels.push(s.label); }
+        if (!res.ok) return;
+        const data = await res.json();
+        // Map top1-4 (weekly finishes) to w1-4
+        if (data.managers) {
+          data.managers = data.managers.map(m => ({
+            ...m,
+            w1: m.top1 || 0,
+            w2: m.top2 || 0,
+            w3: m.top3 || 0,
+            w4: m.top4 || 0,
+          }));
+        }
+        seasonData[s.label] = data;
+        labels.push(s.label);
       }));
       // Sort labels chronologically
       labels.sort();
@@ -6318,6 +6331,23 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           ).map((m,i) => ({ id:m.id, name:m.name, team:m.team, total:m.history?.total_points||0, rank:i+1 }));
 
           await loadHistoryFromGWFiles('2025-2026');
+
+          // Compute weekly finishes for 2025/26
+          const weeklyFinishes2025 = {};
+          const allGWs = [...new Set(Object.values(state.gwHistory).flatMap(h => h.map(e => e.event)))];
+          allGWs.forEach(gw => {
+            const gwRanked = state.managers
+              .map(m => ({ id: m.id, name: m.name, pts: (state.gwHistory[m.id]||[]).find(h=>h.event===gw)?.points || 0 }))
+              .filter(m => m.pts > 0)
+              .sort((a,b) => b.pts - a.pts);
+            gwRanked.forEach((m, i) => {
+              if (!weeklyFinishes2025[m.name]) weeklyFinishes2025[m.name] = { w1:0, w2:0, w3:0, w4:0 };
+              if (i === 0) weeklyFinishes2025[m.name].w1++;
+              else if (i === 1) weeklyFinishes2025[m.name].w2++;
+              else if (i === 2) weeklyFinishes2025[m.name].w3++;
+              else if (i === 3) weeklyFinishes2025[m.name].w4++;
+            });
+          });
 
           // Load cup data
           try {
@@ -6360,6 +6390,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
                   guinness: getTotalGuinnesses(m.name, s.bottom2||0),
                   missedBeers: (state.guinnessDebts?.[m.name]?.missed_gws||[]).length,
                   top1:0, top2:0, top3:0, top4:0, last:0,
+                  w1: weeklyFinishes2025[m.name]?.w1 || 0,
+                  w2: weeklyFinishes2025[m.name]?.w2 || 0,
+                  w3: weeklyFinishes2025[m.name]?.w3 || 0,
+                  w4: weeklyFinishes2025[m.name]?.w4 || 0,
                 };
               }),
               // Hardcode kicked mid-season managers
@@ -6515,6 +6549,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           leagueTitles: 0, leagueRunnerUp: 0, cupTitles: 0, cupRunnerUp: 0,
           kluisTitles: 0,
           s1st: 0, s2nd: 0, s3rd: 0, s4th: 0, s5th: 0,
+          w1: 0, w2: 0, w3: 0, w4: 0,
           seasonResults: {}
         };
         const s = managers[name];
@@ -6522,6 +6557,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         s.missedBeers += m.missedBeers||0;
         s.top1 += m.top1||0; s.top2 += m.top2||0; s.top3 += m.top3||0;
         s.top4 += m.top4||0; s.last += m.last||0;
+        s.w1 += m.w1||0; s.w2 += m.w2||0; s.w3 += m.w3||0; s.w4 += m.w4||0;
         let badge = '';
         if (normName(league.winner) === name) { badge += '🥇'; s.leagueTitles++; s.s1st++; }
         else if (toArr(league.runner_up).map(normName).includes(name)) { badge += '🥈'; s.leagueRunnerUp++; s.s2nd++; }
@@ -6704,6 +6740,14 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       html += atChip('🥉', m.s3rd || 0, 'var(--text2)', 'var(--bg3)', m.s3rd > 0);
       html += atChip('4️⃣', m.s4th || 0, 'var(--text2)', 'var(--bg3)', m.s4th > 0);
       html += atChip('5️⃣', m.s5th || 0, 'var(--text2)', 'var(--bg3)', m.s5th > 0);
+      html += '</div>';
+      // Row 2: Weekly
+      html += '<div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Weekly</div>';
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">';
+      html += atChip('🥇', m.w1 || 0, 'var(--theme)', 'var(--theme-dim)', m.w1 > 0);
+      html += atChip('🥈', m.w2 || 0, 'var(--text2)', 'var(--bg3)', m.w2 > 0);
+      html += atChip('🥉', m.w3 || 0, 'var(--text2)', 'var(--bg3)', m.w3 > 0);
+      html += atChip('4️⃣', m.w4 || 0, 'var(--text2)', 'var(--bg3)', m.w4 > 0);
       html += '</div>';
       // Row 2: Cups
       html += '<div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Cups</div>';
