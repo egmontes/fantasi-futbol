@@ -6696,20 +6696,23 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
       // Drawer with all stats
       html += '<div class="at-card-drawer" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">';
-      // Row 1: League
-      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">';
+      // Row 1: Seasons
+      html += '<div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Seasons</div>';
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">';
       html += atChip('🥇', m.s1st || 0, 'var(--theme)', 'var(--theme-dim)', m.s1st > 0);
       html += atChip('🥈', m.s2nd || 0, 'var(--text2)', 'var(--bg3)', m.s2nd > 0);
       html += atChip('🥉', m.s3rd || 0, 'var(--text2)', 'var(--bg3)', m.s3rd > 0);
       html += atChip('4️⃣', m.s4th || 0, 'var(--text2)', 'var(--bg3)', m.s4th > 0);
       html += atChip('5️⃣', m.s5th || 0, 'var(--text2)', 'var(--bg3)', m.s5th > 0);
       html += '</div>';
-      // Row 2: Cup
-      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">';
+      // Row 2: Cups
+      html += '<div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Cups</div>';
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">';
       html += atChip('🏆', m.cupTitles || 0, '#FFD700', 'rgba(255,215,0,0.1)', m.cupTitles > 0);
       html += atChip('<svg width="12" height="12" viewBox="0 0 20 20" style="vertical-align:middle;display:inline-block;margin:0 1px;"><path d="M7 2 Q6 2 5.5 3.5 L5 9 Q4.8 11 6 12 L7 12.5 L7 14 L5 14.5 L5 16 L15 16 L15 14.5 L13 14 L13 12.5 L14 12 Q15.2 11 15 9 L14.5 3.5 Q14 2 13 2 Z" fill="url(#silver-grad)" stroke="#999" stroke-width="0.3"/><path d="M5.5 4 Q2 4 2 8 Q2 11 5.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><path d="M14.5 4 Q18 4 18 8 Q18 11 14.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><rect x="8.5" y="14" width="3" height="1.5" fill="#999" rx="0.3"/><rect x="6.5" y="15.5" width="7" height="1.5" fill="#888" rx="0.5"/></svg>', m.cupRunnerUp || 0, 'var(--text2)', 'var(--bg3)', m.cupRunnerUp > 0);
       html += '</div>';
-      // Row 3: Last, beers, rolling can
+      // Row 3: Guinness
+      html += '<div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Guinness</div>';
       html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">';
       html += atChip('💀', m.last ? m.last.toFixed(1) : 0, 'var(--red)', 'var(--red-dim)', m.last > 0);
       html += atChip('🍺', m.guinness || 0, 'var(--amber)', 'var(--amber-dim)', m.guinness > 0);
