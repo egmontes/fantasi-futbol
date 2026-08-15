@@ -31,7 +31,7 @@
       "name": "James McMullen",
       "earned": 112.5,
       "guinness": 1,
-      "top1": 1.5,
+      "top1": 2.0,
       "top2": 7.0,
       "last": 1.0
     },
@@ -39,15 +39,15 @@
       "name": "Mitch Maisel",
       "earned": 89.25,
       "guinness": 2,
-      "top1": 4.5,
-      "top2": 1.5,
+      "top1": 5.0,
+      "top2": 2.0,
       "last": 2.0
     },
     {
       "name": "Liam Kelly",
       "earned": 66.0,
       "guinness": 1,
-      "top1": 4.5,
+      "top1": 5.0,
       "top2": 2.0,
       "last": 1.0
     },
@@ -55,7 +55,7 @@
       "name": "Tyler Wasser",
       "earned": 34.0,
       "guinness": 5,
-      "top1": 2.5,
+      "top1": 3.0,
       "top2": 4.0,
       "last": 5.0
     },
@@ -111,7 +111,7 @@
       "name": "Richard Katz",
       "earned": 16.5,
       "guinness": 5,
-      "top1": 1.5,
+      "top1": 2.0,
       "top2": 1.0,
       "last": 5.0
     },
@@ -120,14 +120,14 @@
       "earned": 16.5,
       "guinness": 6,
       "top1": 2.0,
-      "top2": 0.5,
+      "top2": 1.0,
       "last": 6.0
     },
     {
       "name": "Matt Nicolai",
       "earned": 13.5,
       "guinness": 3,
-      "top1": 2.5,
+      "top1": 3.0,
       "top2": 2.0,
       "last": 3.0
     },
@@ -135,7 +135,7 @@
       "name": "Liam Cashman",
       "earned": 13.5,
       "guinness": 3,
-      "top1": 2.5,
+      "top1": 3.0,
       "top2": 2.0,
       "last": 3.0
     }
