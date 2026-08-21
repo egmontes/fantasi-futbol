@@ -869,7 +869,7 @@
       <div style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,0.25);">
         <div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">🍺🔫 Guinness Shotgun Rules</div>
         <ul style="margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:8px;">
-          <li style="font-size:14px;color:var(--text);line-height:1.6;">Shotguns are assigned to the lowest-scoring team(s) each gameweek — typically 5–8% of the league.</li>
+          <li style="font-size:14px;color:var(--text);line-height:1.6;">Shotguns are assigned to the <strong style="color:var(--text);">4 lowest-scoring teams</strong> each gameweek.</li>
           <li style="font-size:14px;color:var(--text);line-height:1.6;">Must use a standard <strong style="color:var(--text);">14.9 oz (440ml) or larger</strong> Guinness can.</li>
           <li style="font-size:14px;color:var(--text);line-height:1.6;">Video must be sent between <strong style="color:var(--text);">6:00–7:30 AM</strong> in your local timezone, on the assigned Saturday (typically the first Saturday of the following gameweek).</li>
         </ul>
@@ -1546,7 +1546,7 @@ async function init() {
   async function loadLeague() {
     const CACHE_KEY = 'ff_managers';
     const CACHE_TS_KEY = 'ff_managers_ts';
-    const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+    const CACHE_TTL = 60 * 60 * 1000; // 1 hour — refresh frequently so new managers show up
 
     let staticManagers = null;
 
@@ -1577,8 +1577,7 @@ async function init() {
         const managers = JSON.parse(cached);
         if (managers.length > 0) {
           state.managers = managers;
-          console.log('Loaded', managers.length, 'managers from cache — fetching fresh in background');
-          // Refresh in background so cache stays fresh
+          console.log('Loaded', managers.length, 'managers from cache — fetching fresh in background');          // Refresh in background so cache stays fresh
           fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=1`).then(async data => {
             let entries = [...data.standings.results];
             let page = 2;
@@ -1750,7 +1749,7 @@ async function init() {
   }
 
   // Given sorted ranked rows, compute prize and shotgun assignments with tie splitting
-  function computeWeeklyPrizes(ranked) {
+  function computeWeeklyPrizes(ranked, season) {
     const n = ranked.length;
     const prizes = {}; // managerId -> { prize, shotgun, ineligible }
     ranked.forEach(m => { prizes[m.id] = { prize: 0, shotgun: false, ineligible: false }; });
@@ -1763,9 +1762,12 @@ async function init() {
       }
     });
 
+    const is2025 = (season || window.__viewingSeason) === '2025-2026';
     // --- TOP prizes — awarded normally regardless of eligibility ---
-    const PRIZE_SLOTS = [1, 2, 3, 4];
-    const PRIZE_AMOUNTS = { 1: 30, 2: 15, 3: 10, 4: 5 };
+    const PRIZE_SLOTS = is2025 ? [1, 2, 3, 4] : [1, 2, 3, 4, 5, 6];
+    const PRIZE_AMOUNTS = is2025
+      ? { 1: 30, 2: 15, 3: 10, 4: 5 }
+      : { 1: 25, 2: 15, 3: 10, 4: 7.50, 5: 5, 6: 2.50 };
 
     let i = 0;
     while (i < n) {
@@ -1793,20 +1795,22 @@ async function init() {
         prizes[m.id].shotgun = true;
       }
     });
-    const secondLastScore = ranked[n - 2].gwPoints;
-    let shotgunStart = n - 2;
-    while (shotgunStart > 0 && ranked[shotgunStart - 1].gwPoints === ranked[shotgunStart].gwPoints) {
-      shotgunStart--;
-    }
-    let shotgunEnd = n - 1;
-    for (let k = shotgunStart; k <= shotgunEnd; k++) {
+    // Shotgun: bottom ~6% of managers (min 2, rounded)
+    const numShotguns = is2025 ? 2 : Math.min(4, Math.max(2, Math.round(n * 0.06)));
+    // Find the score cutoff — expand to include ties
+    const cutoffScore = ranked[n - numShotguns].gwPoints;
+    let shotgunStart = n - numShotguns;
+    // Expand upward to include ties at cutoff score
+    while (shotgunStart > 0 && ranked[shotgunStart - 1].gwPoints === cutoffScore) shotgunStart--;
+    // Mark all from shotgunStart to end
+    for (let k = shotgunStart; k < n; k++) {
       prizes[ranked[k].id].shotgun = true;
     }
 
     return prizes;
   }
 
-  function computeSeasonStats(maxGW) {
+  function computeSeasonStats(maxGW, season) {
     const upTo = maxGW !== undefined ? maxGW : state.latestGW;
     const stats = {};
     state.managers.forEach(m => {
@@ -1815,7 +1819,7 @@ async function init() {
     for (let gw = 1; gw <= upTo; gw++) {
       const ranked = getWeeklyRankings(gw);
       if (ranked.length < 2) continue;
-      const prizes = computeWeeklyPrizes(ranked);
+      const prizes = computeWeeklyPrizes(ranked, season);
       ranked.forEach(m => {
         const p = prizes[m.id];
         if (p.prize > 0) {
@@ -2198,16 +2202,17 @@ async function init() {
       '<div class="stat-card"><div class="s-label">👑 Biggest Win Margin</div><div class="s-value">' + esc(tickerInsights.biggestMargin.manager) + '<br>GW' + tickerInsights.biggestMargin.gw + ' · ' + tickerInsights.biggestMargin.margin + ' pts' + '</div></div>' +
       '<div class="stat-card"><div class="s-label">💰 Top Weekly Earner</div><div class="s-value">' + (topMoney ? esc(topMoney.name) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') : '—') + '</div></div>' +
       (isSeasonOver ? '<div class="stat-card stat-card-gold"><div class="s-label">🍺🎬 Rolling Can Rolling Can Award</div><div class="s-value">Jack Bernatchez<br>$50</div></div>' : '');
+    const isCurrent2025 = window.__viewingSeason === '2025-2026' || (isSeasonOver && !window.__viewingSeason);
+    const prizePool = isCurrent2025
+      ? [['badge-1','🥇','$550'],['badge-2','🥈','$275'],['badge-3','🥉','$175'],['badge-4','4️⃣','$100'],['badge-5','5️⃣','$20']]
+      : [['badge-1','🥇','$750'],['badge-2','🥈','$500'],['badge-3','🥉','$300'],['badge-4','4️⃣','$225'],['badge-5','5️⃣','$175'],['badge-4','6️⃣','$125'],['badge-4','7️⃣','$100'],['badge-5','8️⃣','$5']];
+    const kluisPrizeDisplay = isCurrent2025 ? '$50' : '$100';
     let html = (state.historyLoaded ? '<div class="stat-ticker-wrap"><div class="stat-ticker">' + cards + cards + '</div></div>' : '') +
       // Season prizes section
-      '<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:8px;">' +
-      '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Prize Pool:</span>' +
-      '<span class="badge badge-1" style="display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🥇</span><span style="font-size:10px;">$550</span></span>' +
-      '<span class="badge badge-2" style="display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🥈</span><span style="font-size:10px;">$275</span></span>' +
-      '<span class="badge badge-3" style="display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🥉</span><span style="font-size:10px;">$175</span></span>' +
-      '<span class="badge badge-4" style="display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">4️⃣</span><span style="font-size:10px;">$100</span></span>' +
-      '<span class="badge" style="background:rgba(255,182,193,0.2);color:#ffb6c1;border:1px solid rgba(255,182,193,0.4);display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">5️⃣</span><span style="font-size:10px;">$20</span></span>' +
-      '<span class="badge" style="background:rgba(255,215,0,0.1);color:#FFD700;border:1px solid rgba(255,215,0,0.3);display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🍺🎬</span><span style="font-size:10px;">$50</span></span>' +
+      '<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:8px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;padding:4px 0;">' +
+      '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;flex-shrink:0;">Prize Pool:</span>' +
+      prizePool.map(([cls, emoji, amt]) => `<span class="badge ${cls}" style="display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;flex-shrink:0;"><span style="font-size:13px;">${emoji}</span><span style="font-size:10px;">${amt}</span></span>`).join('') +
+      `<span class="badge" style="background:rgba(255,215,0,0.1);color:#FFD700;border:1px solid rgba(255,215,0,0.3);display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;flex-shrink:0;"><span style="font-size:13px;">🎬</span><span style="font-size:10px;">${kluisPrizeDisplay}</span></span>` +
       '</div>' +
       '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:left;">' +
         (state.isLive
@@ -2254,7 +2259,8 @@ async function init() {
     if (!allGWZero && n >= 2) {
       const scores = gwRanked.map(m => m.gwLatestPts);
       const uniqueScores = [...new Set(scores)].sort((a, b) => a - b);
-      const bottom2Scores = new Set(uniqueScores.slice(0, 2));
+      const numBottom = window.__viewingSeason === '2025-2026' ? 2 : 4;
+      const bottom2Scores = new Set(uniqueScores.slice(0, numBottom));
       gwRanked.forEach(m => {
         if (bottom2Scores.has(m.gwLatestPts)) gwBottomMap[m.id] = true;
       });
@@ -2409,11 +2415,15 @@ async function init() {
       html += '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (rankMedal ? rankMedal + ' ' : '') + esc(m.name) + '</span>';
       if (kickedCard) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);opacity:0.5;font-weight:400;flex-shrink:0;">kicked</span>';
       else if (isSeasonOver) {
-        const BADGE_MAP = {1:['badge-1','🥇','$550'],2:['badge-2','🥈','$275'],3:['badge-3','🥉','$175'],4:['badge-4','4️⃣','$100'],5:['badge-5','5️⃣','$20']};
+        const BADGE_MAP = isSeasonOver && window.__viewingSeason === '2025-2026'
+          ? {1:['badge-1','🥇','$550'],2:['badge-2','🥈','$275'],3:['badge-3','🥉','$175'],4:['badge-4','4️⃣','$100'],5:['badge-5','5️⃣','$20']}
+          : {1:['badge-1','🥇','$750'],2:['badge-2','🥈','$500'],3:['badge-3','🥉','$300'],4:['badge-4','4️⃣','$225'],5:['badge-5','5️⃣','$175'],6:['badge-4','6️⃣','$125'],7:['badge-4','7️⃣','$100'],8:['badge-5','8️⃣','$5']};
         const bd = BADGE_MAP[sRank];
         if (bd) html += '<span class="badge ' + bd[0] + '" style="display:inline-flex;flex-direction:column;align-items:center;padding:2px 5px;line-height:1.3;flex-shrink:0;"><span style="font-size:11px;">' + bd[1] + '</span><span style="font-size:9px;">' + bd[2] + '</span></span>';
         if (cp === 225) html += '<span class="badge badge-shot" style="display:inline-flex;flex-direction:column;align-items:center;padding:2px 5px;line-height:1.3;flex-shrink:0;"><span style="font-size:11px;">🏆</span><span style="font-size:9px;">$225</span></span>';
+        if (cp === 300) html += '<span class="badge badge-shot" style="display:inline-flex;flex-direction:column;align-items:center;padding:2px 5px;line-height:1.3;flex-shrink:0;"><span style="font-size:11px;">🏆</span><span style="font-size:9px;">$300</span></span>';
         if (cp === 125) html += '<span class="badge" style="background:rgba(180,180,180,0.1);border:1px solid rgba(180,180,180,0.3);display:inline-flex;flex-direction:column;align-items:center;padding:2px 5px;line-height:1.3;flex-shrink:0;"><svg width="11" height="11" viewBox="0 0 20 20" style="vertical-align:middle;display:inline-block;"><path d="M7 2 Q6 2 5.5 3.5 L5 9 Q4.8 11 6 12 L7 12.5 L7 14 L5 14.5 L5 16 L15 16 L15 14.5 L13 14 L13 12.5 L14 12 Q15.2 11 15 9 L14.5 3.5 Q14 2 13 2 Z" fill="url(#silver-grad)" stroke="#999" stroke-width="0.3"/><path d="M5.5 4 Q2 4 2 8 Q2 11 5.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><path d="M14.5 4 Q18 4 18 8 Q18 11 14.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><rect x="8.5" y="14" width="3" height="1.5" fill="#999" rx="0.3"/><rect x="6.5" y="15.5" width="7" height="1.5" fill="#888" rx="0.5"/></svg><span style="font-size:9px;color:#aaa;">$125</span></span>';
+        if (cp === 150) html += '<span class="badge" style="background:rgba(180,180,180,0.1);border:1px solid rgba(180,180,180,0.3);display:inline-flex;flex-direction:column;align-items:center;padding:2px 5px;line-height:1.3;flex-shrink:0;"><svg width="11" height="11" viewBox="0 0 20 20" style="vertical-align:middle;display:inline-block;"><path d="M7 2 Q6 2 5.5 3.5 L5 9 Q4.8 11 6 12 L7 12.5 L7 14 L5 14.5 L5 16 L15 16 L15 14.5 L13 14 L13 12.5 L14 12 Q15.2 11 15 9 L14.5 3.5 Q14 2 13 2 Z" fill="url(#silver-grad)" stroke="#999" stroke-width="0.3"/><path d="M5.5 4 Q2 4 2 8 Q2 11 5.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><path d="M14.5 4 Q18 4 18 8 Q18 11 14.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><rect x="8.5" y="14" width="3" height="1.5" fill="#999" rx="0.3"/><rect x="6.5" y="15.5" width="7" height="1.5" fill="#888" rx="0.5"/></svg><span style="font-size:9px;color:#aaa;">$150</span></span>';
         if (kluis > 0) html += '<span class="badge" style="background:rgba(255,215,0,0.12);color:#FFD700;border:1px solid rgba(255,215,0,0.3);display:inline-flex;flex-direction:column;align-items:center;padding:2px 5px;line-height:1.3;flex-shrink:0;"><span style="font-size:11px;">🎬</span><span style="font-size:9px;">$' + kluis + '</span></span>';
       }
       html += '</div>';
@@ -5246,7 +5256,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     html += '<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:1rem;">' +
       '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Prize Pool:</span>' +
-      '<span class="badge" style="background:rgba(255,215,0,0.12);color:#FFD700;border:1px solid rgba(255,215,0,0.3);display:inline-flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🏆</span><span style="font-size:10px;">$225</span></span>' +
+      '<span class="badge" style="background:rgba(255,215,0,0.12);color:#FFD700;border:1px solid rgba(255,215,0,0.3);display:inline-flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><span style="font-size:13px;">🏆</span><span style="font-size:10px;">$300</span></span>' +
       '<span class="badge" style="background:rgba(180,180,180,0.1);border:1px solid rgba(180,180,180,0.3);display:inline-flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;"><svg width="13" height="13" viewBox="0 0 20 20" style="vertical-align:middle;display:inline-block;"><path d="M7 2 Q6 2 5.5 3.5 L5 9 Q4.8 11 6 12 L7 12.5 L7 14 L5 14.5 L5 16 L15 16 L15 14.5 L13 14 L13 12.5 L14 12 Q15.2 11 15 9 L14.5 3.5 Q14 2 13 2 Z" fill="url(#silver-grad)" stroke="#999" stroke-width="0.3"/><path d="M5.5 4 Q2 4 2 8 Q2 11 5.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><path d="M14.5 4 Q18 4 18 8 Q18 11 14.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><rect x="8.5" y="14" width="3" height="1.5" fill="#999" rx="0.3"/><rect x="6.5" y="15.5" width="7" height="1.5" fill="#888" rx="0.5"/></svg><span style="font-size:10px;color:#aaa;">$125</span></span>' +
       '</div>';
 
@@ -6344,7 +6354,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           const hb = (state.gwHistory[b.id]||[]).sort((x,y)=>y.event-x.event)[0];
           return (hb?.total_points||0) - (ha?.total_points||0);
         });
-        const PRIZES_S = {1:550,2:275,3:175,4:100,5:20};
+        const PRIZES_S = {1:750,2:500,3:300,4:225,5:175,6:125,7:100,8:5};
         const cupFinalS = (window._allCupMatches||[]).filter(m=>m.winner).sort((a,b)=>b.event-a.event)[0];
         const cwIdS = cupFinalS?.winner;
         const crIdS = cupFinalS ? (cupFinalS.entry_1_entry===cwIdS?cupFinalS.entry_2_entry:cupFinalS.entry_1_entry) : null;
@@ -6353,7 +6363,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           managers: liveRanked.map((m,i) => {
             const s = liveStats[m.id] || {};
             const sp = PRIZES_S[i+1]||0;
-            const cp = m.id===cwIdS ? 225 : m.id===crIdS ? 125 : 0;
+            const cp = m.id===cwIdS ? 300 : m.id===crIdS ? 150 : 0;
             const kluis = m.name==='Jack Bernatchez' ? 50 : 0;
             return { name:m.name, earned:(s.moneyWon||0)+sp+cp+kluis, guinness:0, missedBeers:0, top1:0,top2:0,top3:0,top4:0,last:0,w1:0,w2:0,w3:0,w4:0 };
           }),
@@ -6421,7 +6431,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           else state.guinnessDebts = {};
         } catch(e) { state.guinnessDebts = {}; }
 
-        const stats2025 = computeSeasonStats(38);
+        const stats2025 = computeSeasonStats(38, '2025-2026');
           const guinness2025 = { ...state.guinnessDebts }; // capture before state restore
           const seasonRanked2025 = [...state.managers].sort((a,b) => {
             const ha = (state.gwHistory[a.id]||[]).sort((x,y)=>y.event-x.event)[0];
@@ -6442,7 +6452,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
                 const s = stats2025[m.id] || {};
                 const sp = PRIZES_2025[i+1] || 0;
                 const cp = m.id===cwId ? CUP_2025.winner : m.id===crId ? CUP_2025.runnerUp : 0;
-                const kluis = m.name === 'Jack Bernatchez' ? 50 : 0;
+                const kluis = m.name === 'Jack Bernatchez' ? 100 : 0;
                 return {
                   name: m.name,
                   earned: (s.moneyWon||0) + sp + cp + kluis,
@@ -6487,7 +6497,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
       // Build current season data from live state
       const currentLabel = CURRENT_SEASON_SHORT;
-      const currentStats = computeSeasonStats(state.latestGW);
+      const currentStats = computeSeasonStats(state.latestGW, '2025-2026');
 
       // Get season standings (by total points)
       const seasonRanked = state.managers.map(m => {
@@ -7157,7 +7167,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   // Export a season summary JSON for the historical page
   window._exportSeasonSummary = function() {
     const SEASON_PRIZES = {1:550,2:275,3:175,4:100,5:20};
-    const CUP_PRIZES = {winner:225,runnerUp:125};
+    const CUP_PRIZES = {winner:300,runnerUp:150};
     const stats = computeSeasonStats(state.latestGW);
     const cupFinal = (window._allCupMatches||[]).filter(m=>m.winner).sort((a,b)=>b.event-a.event)[0];
     const cupWinnerId = cupFinal?.winner;
