@@ -821,6 +821,24 @@
       </div>
     </div>
   </div>
+  <div id="tab-stats" class="section">
+    <div style="padding:0 0 4rem 0;max-width:680px;margin:0 auto;">
+      <div style="font-family:var(--font-display);font-size:32px;color:var(--text);letter-spacing:1px;margin-bottom:4px;">Stats <span style="color:var(--theme);">Hub</span></div>
+      <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:1.5rem;">Select a manager to explore their history</div>
+
+      <!-- Search bar -->
+      <div style="position:relative;margin-bottom:16px;">
+        <input id="stats-search" type="text" placeholder="Search managers..." oninput="window._filterStatsManagers(this.value)"
+          style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--theme-border);border-radius:12px;padding:12px 16px 12px 40px;font-size:14px;font-family:var(--font-mono);color:var(--text);outline:none;transition:border-color 0.2s;"
+          onfocus="this.style.borderColor='var(--theme)'" onblur="this.style.borderColor='var(--theme-border)'">
+        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
+      </div>
+
+      <!-- Manager list -->
+      <div id="stats-manager-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+  </div>
+
   <div id="tab-rules" class="section">
     <div style="padding:0 0 4rem 0;max-width:680px;margin:0 auto;">
 
@@ -6245,7 +6263,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     return loaded;
   }
   // ── END LOAD HISTORY FROM GW CACHE FILES ────────────────────────────────
-  async function showLeagueHistory() {
+  async function showLeagueHistory(silent = false) {
+    const el = document.getElementById('history-content');
+
+    if (!silent) {
     updateSeasonLabel('All Time', false);
     window.__viewingSeason = 'all-time';
     resetWeeklyRecap();
@@ -6271,6 +6292,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     const el = document.getElementById('history-content');
     el.innerHTML = '<div class="loading-state"><span class="spinner"></span>Loading league history...</div>';
+    } // end !silent
 
     try {
       const SEASON_FILES = [
@@ -6303,9 +6325,46 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       // Sort labels chronologically
       labels.sort();
 
-      // Load 2025/2026 — always load GW history for accurate weekly earnings
-      try {
-        // Save current state to restore after
+      // Load 2025/2026 — skip when silent to avoid conflicting with init
+      if (silent) {
+        // If state.managers is empty (pre-GW1), load from managers.json
+        let liveManagers = state.managers;
+        if (!liveManagers.length) {
+          try {
+            const mRes = await fetch('data/2025-2026/managers.json');
+            if (mRes.ok) {
+              const mData = await mRes.json();
+              liveManagers = mData.map(m => ({ id: m.id, name: m.name, team: m.team, total: 0 }));
+            }
+          } catch(e) {}
+        }
+        const liveStats = liveManagers.length ? computeSeasonStats(state.latestGW) : {};
+        const liveRanked = [...liveManagers].sort((a,b) => {
+          const ha = (state.gwHistory[a.id]||[]).sort((x,y)=>y.event-x.event)[0];
+          const hb = (state.gwHistory[b.id]||[]).sort((x,y)=>y.event-x.event)[0];
+          return (hb?.total_points||0) - (ha?.total_points||0);
+        });
+        const PRIZES_S = {1:550,2:275,3:175,4:100,5:20};
+        const cupFinalS = (window._allCupMatches||[]).filter(m=>m.winner).sort((a,b)=>b.event-a.event)[0];
+        const cwIdS = cupFinalS?.winner;
+        const crIdS = cupFinalS ? (cupFinalS.entry_1_entry===cwIdS?cupFinalS.entry_2_entry:cupFinalS.entry_1_entry) : null;
+        seasonData['2025/26'] = {
+          season: '2025/2026',
+          managers: liveRanked.map((m,i) => {
+            const s = liveStats[m.id] || {};
+            const sp = PRIZES_S[i+1]||0;
+            const cp = m.id===cwIdS ? 225 : m.id===crIdS ? 125 : 0;
+            const kluis = m.name==='Jack Bernatchez' ? 50 : 0;
+            return { name:m.name, earned:(s.moneyWon||0)+sp+cp+kluis, guinness:0, missedBeers:0, top1:0,top2:0,top3:0,top4:0,last:0,w1:0,w2:0,w3:0,w4:0 };
+          }),
+          awards: {
+            League: { winner:liveRanked[0]?.name, runner_up:liveRanked[1]?.name, third:liveRanked[2]?.name, fourth:liveRanked[3]?.name, fifth:liveRanked[4]?.name },
+            Cup: { winner:liveManagers.find(m=>m.id===cwIdS)?.name, runner_up:liveManagers.find(m=>m.id===crIdS)?.name },
+            Kluis: { winner:'Jack Bernatchez' }
+          }
+        };
+        labels.push('2025/26');
+      } else if (!silent) try {        // Save current state to restore after
         const savedManagers = state.managers;
         const savedHistory = state.gwHistory;
         const savedChips = state.chipsHistory;
@@ -6424,7 +6483,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         state.latestGW = savedLatestGW;
         state.historyLoaded = savedHistLoaded;
 
-      } catch(e) { console.warn('2025/2026 history load error:', e.message); }
+      } catch(e) { console.warn('2025/2026 history load error:', e.message); } // end if (!silent) try
 
       // Build current season data from live state
       const currentLabel = CURRENT_SEASON_SHORT;
@@ -6489,6 +6548,44 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       }
       window._historyData = { seasonData, labels };
       window._historySort = { col: 'earned', dir: -1 };
+
+      // Pre-build _atCardDataMap so Stats Hub works without rendering
+      if (!window._atCardDataMap || !Object.keys(window._atCardDataMap).length) {
+        // Run same aggregation as renderLeagueHistory
+        const NAME_MAP_H = {
+          'Eddy GM':'Eddy Garcia-Montes','Mike Delaus':'Michael DeLaus',
+          'Dave Bambrick':'David Bambrick','Rob Disanto':'Rob DiSanto',
+          'Zach Duguid':'Zachary Duguid','Harry Wang':'Harrison Wang',
+          'Mitch Pattullo':'Mitchel Pattullo','JCarr Gamble':'J. Carr Gamble',
+          'Tommy Mayer':'Thomas Mayer','Andrew Denucci':'Andrew DeNucci',
+        };
+        const normH = n => NAME_MAP_H[n] || n;
+        const toArrH = v => !v ? [] : Array.isArray(v) ? v : [v];
+        const mgrs = {};
+        Object.entries(seasonData).forEach(([slabel, sdata]) => {
+          (sdata.managers||[]).forEach(m => {
+            const name = normH(m.name);
+            if (!mgrs[name]) mgrs[name] = { name, seasons:0, earned:0, guinness:0, missedBeers:0, s1st:0, s2nd:0, s3rd:0, s4th:0, s5th:0, cupTitles:0, cupRunnerUp:0, kluisTitles:0, leagueTitles:0, leagueRunnerUp:0, last:0, w1:0, w2:0, w3:0, w4:0 };
+            const s = mgrs[name];
+            s.seasons++; s.earned += m.earned||0; s.guinness += m.guinness||0; s.missedBeers += m.missedBeers||0;
+            s.w1 += m.w1||0; s.w2 += m.w2||0; s.w3 += m.w3||0; s.w4 += m.w4||0;
+            const la = sdata.awards?.League || {};
+            if (toArrH(la.winner).map(normH).includes(name)) { s.s1st++; s.leagueTitles++; }
+            else if (toArrH(la.runner_up).map(normH).includes(name)) { s.s2nd++; s.leagueRunnerUp++; }
+            else if (toArrH(la.third).map(normH).includes(name)) s.s3rd++;
+            else if (toArrH(la.fourth).map(normH).includes(name)) s.s4th++;
+            else if (toArrH(la.fifth).map(normH).includes(name)) s.s5th++;
+            const ca = sdata.awards?.Cup || {};
+            if (toArrH(ca.winner).map(normH).includes(name)) s.cupTitles++;
+            else if (toArrH(ca.runner_up).map(normH).includes(name)) s.cupRunnerUp++;
+            const kla = sdata.awards?.Kluis || {};
+            if (toArrH(kla.winner).map(normH).includes(name)) s.kluisTitles++;
+          });
+        });
+        window._atCardDataMap = mgrs;
+      }
+
+      if (silent) return; // data loaded, skip DOM render
       el.innerHTML = renderLeagueHistory(seasonData, labels);
       requestAnimationFrame(() => {
         const tickerEl = document.getElementById('history-ticker');
@@ -6509,7 +6606,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         });
       });
     } catch(e) {
-      el.innerHTML = '<div class="loading-state" style="color:var(--red);">Failed to load history: ' + e.message + '</div>';
+      const el = document.getElementById('history-content');
+      if (el && !silent) el.innerHTML = '<div class="loading-state" style="color:var(--red);">Failed to load history: ' + e.message + '</div>';
     }
   }
 
@@ -7088,6 +7186,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   };
 
   init().then(() => {
+    window._initComplete = true;
     initPullToRefresh();
     const cupBtn = document.getElementById('cup-tab-btn');
     if (cupBtn && !window._allCupMatches?.length && !window.__viewingSeason) {
@@ -7102,6 +7201,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._bnavRules();
     } else if (hash === '#seasons') {
       window._bnavSeasons();
+    } else if (hash === '#stats') {
+      window._bnavStats();
     } else if (hash === '#current') {
       updateBottomNav('current');
     } else {
@@ -7446,6 +7547,228 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     window._applyATFilters();
   };
 
+  window._bnavStats = async () => {
+    history.replaceState(null, '', '#stats');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('tab-stats').classList.add('active');
+    document.getElementById('standings-toggle-bar').style.display = 'none';
+    document.getElementById('weekly-toggle-bar').style.display = 'none';
+    document.getElementById('season-toggle-bar').style.display = 'none';
+    document.getElementById('gw-callout').style.display = 'none';
+    document.getElementById('main-tabs').style.visibility = 'hidden';
+    document.getElementById('main-tabs').style.height = '0';
+    document.getElementById('main-tabs').style.padding = '0';
+    document.getElementById('main-tabs').style.borderBottom = 'none';
+    updateSeasonLabel('Stats Hub', false);
+    window.__viewingSeason = 'stats-page';
+    updateBottomNav('stats');
+    updateStickyOffsets();
+
+    // Show loading state
+    const el = document.getElementById('stats-manager-list');
+    if (el) el.innerHTML = '<div style="color:var(--text3);font-family:var(--font-mono);font-size:13px;padding:20px 0;text-align:center;"><span class="spinner"></span> Loading...</div>';
+
+    // Wait for init to complete if needed
+    if (!window._initComplete) {
+      await new Promise(resolve => {
+        const check = setInterval(() => {
+          if (window._initComplete) { clearInterval(check); resolve(); }
+        }, 100);
+      });
+    }
+
+    // Load all-time data if not yet available
+    if (!window._atCardDataMap || !Object.keys(window._atCardDataMap).length) {
+      await showLeagueHistory(true);
+    }
+    window._renderStatsManagerList(document.getElementById('stats-search')?.value || '');
+  };
+
+  window._renderStatsManagerList = function(filter) {
+    const el = document.getElementById('stats-manager-list');
+    if (!el) return;
+    const allManagers = window._atCardDataMap
+      ? Object.values(window._atCardDataMap).sort((a,b) => b.earned - a.earned)
+      : [];
+    const q = filter.toLowerCase().trim();
+    const filtered = q ? allManagers.filter(m => m.name.toLowerCase().includes(q)) : allManagers;
+    if (!filtered.length) {
+      el.innerHTML = '<div style="color:var(--text3);font-family:var(--font-mono);font-size:13px;padding:20px 0;text-align:center;">No managers found</div>';
+      return;
+    }
+    el.innerHTML = filtered.map(m => {
+      const kickedOut = ['marcus williams','ben boldt','kemdi','tom raggio','jeff wright'].some(n => m.name.toLowerCase().includes(n));
+      return '<button onclick="window._selectStatManager(\'' + esc(m.name) + '\')" style="display:flex;align-items:center;gap:12px;width:100%;background:' + (kickedOut ? 'rgba(248,113,113,0.04)' : 'var(--bg2)') + ';border:1px solid ' + (kickedOut ? 'rgba(248,113,113,0.3)' : 'var(--theme-border)') + ';border-radius:12px;padding:14px 16px;cursor:pointer;text-align:left;transition:border-color 0.2s,box-shadow 0.2s;" onmouseover="this.style.borderColor=\'var(--theme)\'" onmouseout="this.style.borderColor=\'' + (kickedOut ? 'rgba(248,113,113,0.3)' : 'var(--theme-border)') + '\'">'
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-weight:700;font-size:15px;color:' + (kickedOut ? 'var(--red)' : 'var(--text)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(m.name) + (kickedOut ? ' <span style="font-size:11px;font-family:var(--font-mono);color:var(--red);opacity:0.5;font-weight:400;">kicked</span>' : '') + '</div>'
+        + '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;">' + (m.seasons || 0) + ' season' + ((m.seasons||0) !== 1 ? 's' : '') + '</div>'
+        + '</div>'
+        + '<div style="text-align:right;flex-shrink:0;">'
+        + '<div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:' + (m.earned > 0 ? 'var(--green)' : 'var(--text3)') + ';">$' + (m.earned||0).toFixed(2) + '</div>'
+        + '<div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">earned</div>'
+        + '</div>'
+        + '<span style="color:var(--text3);font-size:14px;flex-shrink:0;">›</span>'
+        + '</button>';
+    }).join('');
+  };
+
+  window._statsBack = function() {
+    const container = document.getElementById('tab-stats').querySelector('div');
+    container.innerHTML = `
+      <div style="font-family:var(--font-display);font-size:32px;color:var(--text);letter-spacing:1px;margin-bottom:4px;">Stats <span style="color:var(--theme);">Hub</span></div>
+      <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:1.5rem;">Select a manager to explore their history</div>
+      <div style="position:relative;margin-bottom:16px;">
+        <input id="stats-search" type="text" placeholder="Search managers..." oninput="window._filterStatsManagers(this.value)"
+          style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--theme-border);border-radius:12px;padding:12px 16px 12px 40px;font-size:14px;font-family:var(--font-mono);color:var(--text);outline:none;transition:border-color 0.2s;"
+          onfocus="this.style.borderColor='var(--theme)'" onblur="this.style.borderColor='var(--theme-border)'">
+        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
+      </div>
+      <div id="stats-manager-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+    `;
+    window._renderStatsManagerList('');
+  };
+
+  window._filterStatsManagers = function(val) {
+    window._renderStatsManagerList(val);
+  };
+
+  window._selectStatManager = function(name) {
+    const el = document.getElementById('stats-manager-list');
+    const titleEl = document.querySelector('#tab-stats .stats-hub-title');
+    const m = window._atCardDataMap?.[name];
+    if (!m) return;
+
+    // Back button + title
+    const container = document.getElementById('tab-stats').querySelector('div');
+    container.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+        <button onclick="window._statsBack()" style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;padding:6px 12px;color:var(--theme);font-family:var(--font-mono);font-size:12px;cursor:pointer;">← Back</button>
+        <div>
+          <div style="font-family:var(--font-display);font-size:24px;color:var(--text);">${esc(name)}</div>
+          <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">${m.seasons} season${m.seasons!==1?'s':''} · $${m.earned.toFixed(2)} earned</div>
+        </div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.25);">
+        <div style="font-size:9px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;">💰 Earnings Over Time</div>
+        <canvas id="earnings-chart" style="width:100%;height:200px;"></canvas>
+      </div>
+    `;
+
+    // Build earnings data from seasonResults
+    const SEASON_ORDER = ['2022/23','2023/24','2024/25','2025/26'];
+    const historyData = window._historyData?.seasonData;
+    if (!historyData) return;
+
+    // Reverse name map to find original season name from normalized name
+    const NAME_MAP = {
+      'Eddy GM':'Eddy Garcia-Montes','Mike Delaus':'Michael DeLaus',
+      'Dave Bambrick':'David Bambrick','Rob Disanto':'Rob DiSanto',
+      'Zach Duguid':'Zachary Duguid','Harry Wang':'Harrison Wang',
+      'Mitch Pattullo':'Mitchel Pattullo','JCarr Gamble':'J. Carr Gamble',
+      'Tommy Mayer':'Thomas Mayer','Andrew Denucci':'Andrew DeNucci',
+    };
+    const normName = n => NAME_MAP[n] || n;
+
+    const labels = [];
+    const data = [];
+    let cumulative = 0;
+    SEASON_ORDER.forEach(label => {
+      const season = historyData[label];
+      if (!season) return;
+      const mgr = season.managers?.find(mm => normName(mm.name) === name);
+      if (mgr !== undefined) {
+        cumulative += mgr ? mgr.earned : 0;
+        labels.push(label);
+        data.push(cumulative);
+      }
+    });
+
+    // Draw chart using Canvas
+    requestAnimationFrame(() => {
+      const canvas = document.getElementById('earnings-chart');
+      if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      const W = canvas.parentElement.clientWidth - 40;
+      const H = 200;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      const pad = { top: 20, right: 20, bottom: 30, left: 50 };
+      const cW = W - pad.left - pad.right;
+      const cH = H - pad.top - pad.bottom;
+      const maxVal = Math.max(...data, 100);
+      const theme = '#55e2e9';
+      const text3 = '#666';
+
+      // Grid lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 1;
+      [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+        const y = pad.top + cH * (1 - t);
+        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cW, y); ctx.stroke();
+        ctx.fillStyle = text3; ctx.font = '10px monospace'; ctx.textAlign = 'right';
+        ctx.fillText('$' + Math.round(maxVal * t), pad.left - 6, y + 4);
+      });
+
+      if (data.length < 2) {
+        ctx.fillStyle = text3; ctx.font = '12px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('Not enough seasons', W/2, H/2);
+        return;
+      }
+
+      // Points
+      const pts = data.map((v, i) => ({
+        x: pad.left + (i / (data.length - 1)) * cW,
+        y: pad.top + cH * (1 - v / maxVal)
+      }));
+
+      // Gradient fill
+      const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + cH);
+      grad.addColorStop(0, 'rgba(85,226,233,0.25)');
+      grad.addColorStop(1, 'rgba(85,226,233,0)');
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pad.top + cH);
+      pts.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.lineTo(pts[pts.length-1].x, pad.top + cH);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Line
+      ctx.beginPath();
+      ctx.strokeStyle = theme;
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+      pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+
+      // Dots + labels
+      pts.forEach((p, i) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = theme;
+        ctx.fill();
+        ctx.strokeStyle = 'var(--bg2)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Season label
+        ctx.fillStyle = text3; ctx.font = '10px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(labels[i], p.x, H - 6);
+
+        // Value label
+        if (data[i] > 0) {
+          ctx.fillStyle = theme; ctx.font = 'bold 10px monospace';
+          ctx.fillText('$' + data[i].toFixed(0), p.x, p.y - 10);
+        }
+      });
+    });
+  };
+
   window._ssHistory = () => { history.replaceState(null,'','#alltime'); showLeagueHistory(); };
   function updateSeasonLabel(text, isLive) {
     const label = document.getElementById('season-label');
@@ -7478,7 +7801,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   };
 
   function updateBottomNav(active) {
-    ['current', 'history', 'seasons', 'rules'].forEach(key => {
+    ['current', 'history', 'seasons', 'rules', 'stats'].forEach(key => {
       const btn = document.getElementById('bnav-' + key);
       if (!btn) return;
       const isActive = key === active;
@@ -7898,22 +8221,26 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   });
 </script>
 <!-- Bottom Nav -->
-<nav id="bottom-nav" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(20,24,22,0.97);backdrop-filter:blur(20px);border:1px solid var(--theme-border);border-radius:24px;box-shadow:0 -2px 20px rgba(85,226,233,0.15),0 8px 32px rgba(0,0,0,0.4);display:flex;align-items:stretch;height:56px;padding:0 8px;gap:4px;min-width:280px;">
-  <button id="bnav-current" onclick="window._ssLive()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 16px;border-top:none;border-radius:20px;font-family:var(--font-body);">
+<nav id="bottom-nav" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(20,24,22,0.97);backdrop-filter:blur(20px);border:1px solid var(--theme-border);border-radius:24px;box-shadow:0 -2px 20px rgba(85,226,233,0.15),0 8px 32px rgba(0,0,0,0.4);display:flex;align-items:stretch;height:56px;padding:0 4px;gap:2px;min-width:320px;max-width:95vw;">
+  <button id="bnav-current" onclick="window._ssLive()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 16px;border-top:none;border-radius:20px;font-family:var(--font-body);padding:6px 10px;">
     <span style="font-size:18px;">⚽</span>
     <span class="bnav-label" style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">2026/27</span>
   </button>
-  <button id="bnav-history" onclick="window._ssHistory()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 16px;border-top:none;border-radius:20px;font-family:var(--font-body);">
+  <button id="bnav-history" onclick="window._ssHistory()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 16px;border-top:none;border-radius:20px;font-family:var(--font-body);padding:6px 10px;">
     <span style="font-size:18px;">🏆</span>
     <span class="bnav-label" style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">All&nbsp;Time</span>
   </button>
-  <button id="bnav-seasons" onclick="window._bnavSeasons()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 16px;border-top:none;border-radius:20px;font-family:var(--font-body);">
+  <button id="bnav-seasons" onclick="window._bnavSeasons()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 16px;border-top:none;border-radius:20px;font-family:var(--font-body);padding:6px 10px;">
     <span style="font-size:18px;">📅</span>
     <span class="bnav-label" style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">Seasons</span>
   </button>
-  <button id="bnav-rules" onclick="window._bnavRules()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 16px;border-top:none;border-radius:20px;font-family:var(--font-body);">
+  <button id="bnav-rules" onclick="window._bnavRules()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 16px;border-top:none;border-radius:20px;font-family:var(--font-body);padding:6px 10px;">
     <span style="font-size:18px;">📜</span>
     <span class="bnav-label" style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">Rules</span>
+  </button>
+  <button id="bnav-stats" onclick="window._bnavStats()" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;padding:8px 16px;border-top:none;border-radius:20px;font-family:var(--font-body);padding:6px 10px;">
+    <span style="font-size:18px;">📊</span>
+    <span class="bnav-label" style="font-size:10px;font-family:var(--font-mono);color:var(--text3);">Stats</span>
   </button>
 </nav>
 
