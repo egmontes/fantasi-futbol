@@ -1790,14 +1790,6 @@ async function init() {
 
     // --- BOTTOM shotgun ---
     if (n < 2) return prizes; // need at least 2 managers for shotgun
-    const lastScore = ranked[n - 1].gwPoints;
-    const bottomScore2 = ranked[n - 2].gwPoints;
-    let shotgunCutoff = ranked[n - 2].gwPoints;
-    ranked.forEach(m => {
-      if (m.gwPoints <= shotgunCutoff && m.gwPoints <= ranked[n-1].gwPoints) {
-        prizes[m.id].shotgun = true;
-      }
-    });
     // Shotgun: bottom ~6% of managers (min 2, rounded)
     const numShotguns = is2025 ? 2 : Math.min(4, Math.max(2, Math.round(n * 0.06)));
     // Find the score cutoff — expand to include ties
@@ -1898,7 +1890,8 @@ async function init() {
       document.getElementById('weekly-toggle-bar').style.display = 'none';
       return;
     }
-    const stats = computeSeasonStats();
+    const completedGWs = state.isLive ? state.latestGW - 1 : state.latestGW;
+    const stats = completedGWs > 0 ? computeSeasonStats(completedGWs) : (() => { const s = {}; state.managers.forEach(m => { s[m.id] = { top4: 0, bottom2: 0, moneyWon: 0 }; }); return s; })();
     const weeklyPool = state.latestGW * 60;
     const SEASON_PRIZE_TOTAL = 550 + 275 + 175 + 100 + 20; // 1120
     const CUP_PRIZE_TOTAL = 225 + 125; // 350
@@ -2395,7 +2388,7 @@ async function init() {
       const sp = isSeasonOver ? (SEASON_PRIZES[sRank]||0) : 0;
       const cupFinal = (window._allCupMatches||[]).filter(c=>c.winner).sort((a,b)=>b.event-a.event)[0];
       const cp = isSeasonOver && cupFinal ? (cupFinal.winner===m.id?225:(cupFinal.entry_1_entry===cupFinal.winner?cupFinal.entry_2_entry:cupFinal.entry_1_entry)===m.id?125:0) : 0;
-      const kluis = m.name==='Jack Bernatchez'?50:0;
+      const kluis = isSeasonOver && m.name==='Jack Bernatchez'?50:0;
       const earned = m.earned + sp + cp + kluis;
       const rankMedal = sRank===1?'🥇':sRank===2?'🥈':sRank===3?'🥉':'';
       const kickedCard = isKickedOut(m.name);
@@ -2571,7 +2564,7 @@ async function init() {
       const sp = isSeasonOver ? (SEASON_PRIZES[sRank]||0) : 0;
       const cupFinal = (window._allCupMatches||[]).filter(c=>c.winner).sort((a,b)=>b.event-a.event)[0];
       const cp = isSeasonOver && cupFinal ? (cupFinal.winner===m.id?225:(cupFinal.entry_1_entry===cupFinal.winner?cupFinal.entry_2_entry:cupFinal.entry_1_entry)===m.id?125:0) : 0;
-      const kluis = m.name==='Jack Bernatchez'?50:0;
+      const kluis = isSeasonOver && m.name==='Jack Bernatchez'?50:0;
       return {
         id: m.id,
         pts: m.total,
