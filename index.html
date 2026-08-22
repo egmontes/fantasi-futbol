@@ -2130,12 +2130,20 @@ async function init() {
       _shotgun: liveProspective[m.id]?.shotgun || false,
     }));
     const hasLiveScores = state.isLive && Object.keys(liveScoreMap).length > 0;
+    const activeSortKey = window._cardSortKey || 'pts';
+    const activeSortDir = window._cardSortDir || -1;
     const rows2sorted = [...rows2].sort((a, b) => {
-      if (state.isLive && !hasLiveScores) {
-        // No live scores yet — sort by FPL rank to avoid misleading order
+      if (state.isLive && !hasLiveScores && activeSortKey === 'pts') {
         return (a.rank || 999) - (b.rank || 999);
       }
-      return b.total - a.total;
+      let va, vb;
+      if (activeSortKey === 'gwpts') { va = a.gwLatestPts || 0; vb = b.gwLatestPts || 0; }
+      else if (activeSortKey === 'earned') { va = a.earned || 0; vb = b.earned || 0; }
+      else if (activeSortKey === 'top4') { va = a.top4 || 0; vb = b.top4 || 0; }
+      else if (activeSortKey === 'bottom2') { va = a.bottom2 || 0; vb = b.bottom2 || 0; }
+      else if (activeSortKey === 'totalG') { va = a.totalG || 0; vb = b.totalG || 0; }
+      else { va = a.total || 0; vb = b.total || 0; }
+      return activeSortDir * (va - vb);
     });
     const rankChangeMap = {};
     if (currentGW > 1) {
@@ -2504,7 +2512,8 @@ async function init() {
 
     // Build mobile card list
     const sortOptions = [
-      { key: 'pts', label: 'Points' },
+      { key: 'pts', label: 'Total Pts' },
+      ...(!isSeasonOver ? [{ key: 'gwpts', label: 'GW Pts' }] : []),
       { key: 'earned', label: 'Earned' },
       { key: 'top4', label: 'Top 4' },
       { key: 'bottom2', label: 'Bot 2' },
@@ -2518,7 +2527,7 @@ async function init() {
     html += '';
     sortOptions.forEach((opt, i) => {
       const isActive = i === 0;
-      html += '<button onclick="window._sortCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
+      html += '<button onclick="window._sortCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:' + (isActive ? 'var(--theme-dim)' : 'transparent') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';font-weight:' + (isActive ? '600' : 'normal') + ';padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
     });
     html += '</div>';
     rows2sorted.forEach((m, idx) => {
@@ -2719,6 +2728,7 @@ async function init() {
       return {
         id: m.id,
         pts: m.total,
+        gwpts: m.gwLatestPts,
         earned: m.earned + sp + cp + kluis,
         top4: m.top4,
         bottom2: m.bottom2,
@@ -2751,6 +2761,7 @@ async function init() {
       // Update right side of each card to show sort value
       const scMeta = {
         pts:     { label: 'pts',    fmt: v => v, color: () => 'var(--text)' },
+        gwpts:   { label: 'gw pts', fmt: v => v !== null && v !== undefined ? v : '—', color: v => v > 0 ? 'var(--theme)' : 'var(--text3)' },
         earned:  { label: 'earned', fmt: v => '$' + (+v).toFixed(2), color: v => v > 0 ? 'var(--green)' : 'var(--text3)' },
         top4:    { label: 'top 4',  fmt: v => v || '0', color: v => v > 0 ? 'var(--green)' : 'var(--text3)' },
         bottom2: { label: 'bot 2',  fmt: v => v || '0', color: v => v > 0 ? 'var(--red)' : 'var(--text3)' },
@@ -2761,7 +2772,7 @@ async function init() {
         const id = parseInt(card.dataset.managerId);
         const d = window._cardData?.find(x => x.id === id);
         if (!d) return;
-        const val = d[key] ?? 0;
+        const val = key === 'gwpts' ? (d.gwpts ?? 0) : (d[key] ?? 0);
         const rv = card.querySelector('.sc-right-val');
         const rl = card.querySelector('.sc-right-label');
         if (rv) { rv.textContent = scm.fmt(val); rv.style.color = scm.color(val); }
@@ -2775,7 +2786,9 @@ async function init() {
       cards.sort((a, b) => {
         const da = window._cardData.find(d => d.id === parseInt(a.dataset.managerId));
         const db = window._cardData.find(d => d.id === parseInt(b.dataset.managerId));
-        return window._cardSortDir * ((da?.[key] || 0) - (db?.[key] || 0));
+        const va = key === 'gwpts' ? (da?.gwpts ?? 0) : (da?.[key] ?? 0);
+        const vb = key === 'gwpts' ? (db?.gwpts ?? 0) : (db?.[key] ?? 0);
+        return window._cardSortDir * (va - vb);
       });
       // Close all drawers
       container.querySelectorAll('.s-card-drawer').forEach(d => d.style.display = 'none');
