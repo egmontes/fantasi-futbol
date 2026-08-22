@@ -2009,6 +2009,16 @@ async function init() {
               });
               const hit = cached.entry_history?.event_transfers_cost || 0;
               tempMap[m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
+              // Populate captain + chip from cached picks
+              const capPick = cached.picks?.find(p => p.is_captain);
+              if (capPick && state.bootstrapPlayers[capPick.element]) {
+                if (!_captainCache[currentGW]) _captainCache[currentGW] = {};
+                if (!_captainCache[currentGW][m.id]) _captainCache[currentGW][m.id] = { name: state.bootstrapPlayers[capPick.element], isVC: false };
+              }
+              if (cached.active_chip) {
+                if (!_chipCache[currentGW]) _chipCache[currentGW] = {};
+                if (!_chipCache[currentGW][m.id]) _chipCache[currentGW][m.id] = cached.active_chip;
+              }
             } else {
               // No picks yet — estimate from total in gwHistory
               const hist = (state.gwHistory[m.id] || []).find(h => h.event === currentGW);
@@ -2036,6 +2046,17 @@ async function init() {
                       const picks = await fetchFPL('entry/' + m.id + '/event/' + currentGW + '/picks/');
                       if (!window._picksCache) window._picksCache = {};
                       window._picksCache[m.id + '_' + currentGW] = picks;
+                      // Update captain cache from picks
+                      const captainPick = picks.picks.find(p => p.is_captain);
+                      const vcPick = picks.picks.find(p => p.is_vice_captain);
+                      if (captainPick && state.bootstrapPlayers[captainPick.element]) {
+                        if (!_captainCache[currentGW]) _captainCache[currentGW] = {};
+                        _captainCache[currentGW][m.id] = { name: state.bootstrapPlayers[captainPick.element], isVC: false };
+                      }
+                      if (picks.active_chip) {
+                        if (!_chipCache[currentGW]) _chipCache[currentGW] = {};
+                        _chipCache[currentGW][m.id] = picks.active_chip;
+                      }
                       // Update tempMap with accurate data
                       let rawPts = 0, played = 0, remaining = 0;
                       const isBB = picks.active_chip === 'bboost';
