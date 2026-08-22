@@ -3735,7 +3735,15 @@ async function init() {
       const key = localStorage.key(i);
       if (key && key.startsWith('ff_chips_cache_')) {
         const gw = parseInt(key.replace('ff_chips_cache_', ''));
-        try { _chipCache[gw] = JSON.parse(localStorage.getItem(key)); } catch(e) {}
+        try {
+          const cached = JSON.parse(localStorage.getItem(key));
+          // Only use if it has actual data
+          if (cached && Object.keys(cached).length > 0) {
+            _chipCache[gw] = cached;
+          } else {
+            localStorage.removeItem(key); // clear stale empty cache
+          }
+        } catch(e) {}
       }
       if (key && key.startsWith('ff_captains_cache_')) {
         const gw = parseInt(key.replace('ff_captains_cache_', ''));
@@ -3745,6 +3753,7 @@ async function init() {
   })();
 
   async function fetchChipsForGW(gw) {
+    if (!state.managers.length) return {}; // don't cache if managers not loaded yet
     if (_chipCache[gw]) return _chipCache[gw];
     const chips = {};
     const captains = {};
