@@ -1886,6 +1886,16 @@ async function init() {
   const standingsSort = { col: 'pts', dir: 'desc' };
 
   async function renderStandings() {
+    if (window._renderStandingsInProgress) return;
+    window._renderStandingsInProgress = true;
+    try {
+    await _renderStandingsInner();
+    } finally {
+      window._renderStandingsInProgress = false;
+    }
+  }
+
+  async function _renderStandingsInner() {
     const currentGW = state.isLive ? state.liveGW : state.latestGW;
     const isSeasonOver = !state.isLive && state.latestGW >= 38;
 
@@ -1914,6 +1924,7 @@ async function init() {
     const totalShotguns = state.latestGW * 2;
     if (!_chipCache[currentGW]) {
       fetchChipsForGW(currentGW).then(() => {
+        window._renderStandingsInProgress = false;
         renderStandings();
       }).catch(() => {});
     }
@@ -1925,6 +1936,7 @@ async function init() {
         state.fixturesOngoing = fixtures.filter(f => f.started && !f.finished).length;
         state.fixturesRemaining = Math.max(0, total - fixtures.filter(f => f.finished).length - state.fixturesOngoing);
         state.fixturesTotal = total;
+        window._renderStandingsInProgress = false;
         renderStandings();
       }).catch(() => {});
     }
@@ -1995,6 +2007,7 @@ async function init() {
           try {
             localStorage.setItem('ff_live_scores_' + currentGW, JSON.stringify({ data: tempMap, ts: Date.now() }));
           } catch(e) {}
+          window._renderStandingsInProgress = false;
           renderStandings();
         } catch(e) { window._liveScoreFetchInProgress = false; }
       })();
