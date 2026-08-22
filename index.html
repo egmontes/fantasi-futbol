@@ -1548,6 +1548,8 @@ async function init() {
   }
 
   async function loadLeague() {
+    if (window._loadLeagueInProgress) return;
+    window._loadLeagueInProgress = true;
     const CACHE_KEY = 'ff_managers';
     const CACHE_TS_KEY = 'ff_managers_ts';
     const CACHE_TTL = 60 * 60 * 1000; // 1 hour — refresh frequently so new managers show up
@@ -1564,7 +1566,7 @@ async function init() {
           data = await fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=${page++}`);
           entries = entries.concat(data.standings.results);
         }
-        state.managers = entries.map(e => ({ id: e.entry, name: e.player_name, team: e.entry_name, total: e.total, rank: e.rank }));
+        { const raw = entries.map(e => ({ id: e.entry, name: e.player_name, team: e.entry_name, total: e.total, rank: e.rank })); const seen = new Set(); state.managers = raw.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; }); }
         try {
           localStorage.setItem(CACHE_KEY, JSON.stringify(state.managers));
           localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
@@ -1589,7 +1591,8 @@ async function init() {
               data = await fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=${page++}`);
               entries = entries.concat(data.standings.results);
             }
-            state.managers = entries.map(e => ({ id: e.entry, name: e.player_name, team: e.entry_name, total: e.total, rank: e.rank }));
+            { const raw = entries.map(e => ({ id: e.entry, name: e.player_name, team: e.entry_name, total: e.total, rank: e.rank })); const seen = new Set(); state.managers = raw.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; }); }
+      { const seen = new Set(); state.managers = state.managers.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; }); }
             localStorage.setItem(CACHE_KEY, JSON.stringify(state.managers));
             localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
           }).catch(() => {});
@@ -1607,7 +1610,7 @@ async function init() {
         if (!data.standings.has_next) break;
         page++;
       }
-      state.managers = entries.map(e => ({ id: e.entry, name: e.player_name, team: e.entry_name, total: e.total, rank: e.rank }));
+      { const raw = entries.map(e => ({ id: e.entry, name: e.player_name, team: e.entry_name, total: e.total, rank: e.rank })); const seen = new Set(); state.managers = raw.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; }); }
       try {
         localStorage.setItem(CACHE_KEY, JSON.stringify(state.managers));
         localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
@@ -1626,10 +1629,18 @@ async function init() {
       // Last resort — static managers file
       try {
         const res = await fetch(`data/${CURRENT_SEASON}/managers.json`);
-        if (res.ok) { state.managers = await res.json(); return; }
+        if (res.ok) { state.managers = await res.json(); }
       } catch(e3) {}
-      throw e;
     }
+    // Deduplicate by id just in case
+    if (state.managers.length) {
+      const seen = new Set();
+      state.managers = state.managers.filter(m => {
+        if (seen.has(m.id)) return false;
+        seen.add(m.id); return true;
+      });
+    }
+    window._loadLeagueInProgress = false;
   }
 
   async function loadAllHistory(forceRefresh = false) {
