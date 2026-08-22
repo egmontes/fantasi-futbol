@@ -7228,10 +7228,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._bnavSeasons();
     } else if (hash === '#stats') {
       window._bnavStats();
-    } else if (hash === '#current') {
-      updateBottomNav('current');
-    } else {
+    } else if (hash === '#alltime') {
       window._ssHistory();
+    } else {
+      // Default to current season
+      updateBottomNav('current');
     }
   });
 
