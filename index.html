@@ -2045,7 +2045,14 @@ async function init() {
       _prize: liveProspective[m.id]?.prize || 0,
       _shotgun: liveProspective[m.id]?.shotgun || false,
     }));
-    const rows2sorted = [...rows2].sort((a, b) => b.total - a.total);
+    const hasLiveScores = state.isLive && Object.keys(liveScoreMap).length > 0;
+    const rows2sorted = [...rows2].sort((a, b) => {
+      if (state.isLive && !hasLiveScores) {
+        // No live scores yet — sort by FPL rank to avoid misleading order
+        return (a.rank || 999) - (b.rank || 999);
+      }
+      return b.total - a.total;
+    });
     const rankChangeMap = {};
     if (currentGW > 1) {
       // Current rank: use m.total (FPL standings) when live since gwHistory won't have currentGW yet
@@ -2419,6 +2426,9 @@ async function init() {
       { key: 'bottom2', label: 'Bot 2' },
       { key: 'totalG', label: 'Total 🍺' },
     ];
+    if (state.isLive && !hasLiveScores) {
+      html += '<div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);text-align:center;padding:8px 0;margin-bottom:4px;opacity:0.7;"><span class="spinner" style="width:10px;height:10px;margin-right:6px;vertical-align:middle;"></span>Fetching live scores...</div>';
+    }
     html += '<div class="standings-cards">';
     html += '<div id="cards-sort-bar" style="position:sticky;top:var(--sticky-toggle-top,150px);z-index:12;background:var(--bg);padding:4px 0;display:flex;gap:0;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--border);width:100%;">';
     html += '';
