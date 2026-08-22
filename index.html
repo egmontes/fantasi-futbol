@@ -944,7 +944,10 @@
 
   async function loadGuinnessDebts() {
     try {
-      const url = `data/${window.__viewingSeason || CURRENT_SEASON}/guinness-misses.json?nocache=${Date.now()}`;
+      const season = (window.__viewingSeason && !['all-time','rules-page','stats-page'].includes(window.__viewingSeason))
+        ? window.__viewingSeason
+        : CURRENT_SEASON;
+      const url = `data/${season}/guinness-misses.json?nocache=${Date.now()}`;
       console.log('Fetching guinness debts from:', url);
       const res = await fetch(url);
       console.log('Guinness fetch status:', res.status);
@@ -1996,7 +1999,7 @@ async function init() {
       const prevHist = (state.gwHistory[m.id] || []).filter(h => h.event < currentGW).sort((a,b) => b.event - a.event)[0];
       // Use live score for total when available (covers live GW and post-GW stale history)
       const liveTotal = liveScore
-        ? (prevHist ? prevHist.total_points : m.total) + liveScore.netPts
+        ? (prevHist ? prevHist.total_points : 0) + liveScore.netPts
         : m.total;
       const chip = standingsChips[m.id] || null;
       const captain = standingsCaptains[m.id] || null;
