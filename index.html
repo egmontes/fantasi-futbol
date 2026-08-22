@@ -1961,7 +1961,11 @@ async function init() {
         try {
           const liveData = await fetchFPL('event/' + currentGW + '/live/');
           const playerPts = {};
-          liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; });
+          const playerMinutes = {};
+          liveData.elements.forEach(e => {
+            playerPts[e.id] = e.stats.total_points;
+            playerMinutes[e.id] = e.stats.minutes;
+          });
           const tempMap = {};
           const BATCH = 5;
           for (let i = 0; i < state.managers.length; i += BATCH) {
@@ -1970,9 +1974,19 @@ async function init() {
               try {
                 const picks = await fetchFPL('entry/' + m.id + '/event/' + currentGW + '/picks/');
                 let rawPts = 0;
-                picks.picks.forEach(p => { rawPts += (playerPts[p.element] || 0) * p.multiplier; });
+                let played = 0, remaining = 0;
+                const isBenchBoost = picks.active_chip === 'bboost';
+                const maxPos = isBenchBoost ? 15 : 11;
+                picks.picks.forEach(p => {
+                  if (p.position <= maxPos) {
+                    rawPts += (playerPts[p.element] || 0) * p.multiplier;
+                    const count = p.multiplier; // 1 for normal, 2 for captain, 3 for TC
+                    if ((playerMinutes[p.element] || 0) > 0) played += count;
+                    else remaining += count;
+                  }
+                });
                 const hit = picks.entry_history?.event_transfers_cost || 0;
-                tempMap[m.id] = { rawPts, netPts: rawPts - hit, hit };
+                tempMap[m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
               } catch(e) {}
             }));
           }
@@ -2005,10 +2019,13 @@ async function init() {
       // Use live score for total when available (covers live GW and post-GW stale history)
       const liveTotal = liveScore
         ? (prevHist ? prevHist.total_points : 0) + liveScore.netPts
-        : m.total;
+        : latestHist
+          ? latestHist.total_points - (latestHist.event_transfers_cost || 0)
+          : m.total;
       const chip = standingsChips[m.id] || null;
       const captain = standingsCaptains[m.id] || null;
-      return { ...m, total: liveTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, missedG, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain };
+      return { ...m, total: liveTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, missedG, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain,
+        played: liveScore?.played ?? null, remaining: liveScore?.remaining ?? null };
     });
 
     // Compute prospective prizes/shotguns based on current live scores
@@ -2028,6 +2045,7 @@ async function init() {
       _prize: liveProspective[m.id]?.prize || 0,
       _shotgun: liveProspective[m.id]?.shotgun || false,
     }));
+    const rows2sorted = [...rows2].sort((a, b) => b.total - a.total);
     const rankChangeMap = {};
     if (currentGW > 1) {
       // Current rank: use m.total (FPL standings) when live since gwHistory won't have currentGW yet
@@ -2290,7 +2308,7 @@ async function init() {
       });
     }
 
-    rows2.forEach((m, idx) => {
+    rows2sorted.forEach((m, idx) => {
       const pos = idx + 1;
       const rowCls = pos === 1 ? 'row-1' : pos === 2 ? 'row-2' : pos === 3 ? 'row-3' : '';
       const gmissCell = m.gmisses >= 3
@@ -2409,7 +2427,7 @@ async function init() {
       html += '<button onclick="window._sortCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
     });
     html += '</div>';
-    rows2.forEach((m, idx) => {
+    rows2sorted.forEach((m, idx) => {
       const pos = idx + 1;
       const sRank = seasonRankMap[m.id];
       const SEASON_PRIZES = {1:550,2:275,3:175,4:100,5:20};
@@ -2456,12 +2474,16 @@ async function init() {
       html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
       if (earned >= 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + (earned > 0 ? 'var(--green)' : 'var(--text3)') + ';background:' + (earned > 0 ? 'var(--green-dim)' : 'var(--bg3)') + ';border-radius:6px;padding:3px 8px;">$' + earned.toFixed(2) + '</span>';
       if (!isSeasonOver && m.gwLatestPts !== null) {
-        const gwColor = gwRankMap[m.id] <= 4 ? 'var(--theme)' : 'var(--text2)';
-        html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + gwColor + ';background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + (m.gwRawPts||0) + 'pts</span>';
+        html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + (m.gwRawPts||0) + 'pts</span>';
+        if (state.isLive && m.played !== null) {
+          const total = m.played + m.remaining;
+          const allPlayed = m.remaining === 0;
+          html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + (allPlayed ? 'var(--text3)' : 'var(--amber)') + ';background:var(--bg3);border-radius:6px;padding:3px 8px;">' + m.played + '/' + total + (allPlayed ? ' ✓' : '') + '</span>';
+        }
       }
       if (state.isLive && m._prize > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;">💰 $' + m._prize.toFixed(2) + '</span>';
       if (state.isLive && m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;">🍺 Shotgun</span>';
-      if (!isSeasonOver && m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--text2);background:var(--bg3);border-radius:6px;padding:3px 8px;">©' + esc(m.captain.name) + '</span>';
+      if (!isSeasonOver && m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">©' + esc(m.captain.name) + '</span>';
       if (state.historyLoaded) {
         const chip = (label, value, activeColor, activeBg, active) => {
           const bg = active ? activeBg : 'var(--bg3)';
@@ -2588,7 +2610,7 @@ async function init() {
     }
 
     // Store card data for sorting
-    window._cardData = rows2.map((m, idx) => {
+    window._cardData = rows2sorted.map((m, idx) => {
       const sRank = seasonRankMap[m.id];
       const SEASON_PRIZES = {1:550,2:275,3:175,4:100,5:20};
       const sp = isSeasonOver ? (SEASON_PRIZES[sRank]||0) : 0;
@@ -3107,17 +3129,21 @@ async function init() {
             // For past seasons, try to get GW points from cached GW file
             const gwCache = window._gwCacheLoaded?.[drawerGW] ? 
               await fetch(`data/${window.__viewingSeason || CURRENT_SEASON}/gw${String(drawerGW).padStart(2,'0')}.json`).then(r => r.ok ? r.json() : null).catch(() => null) : null;
-            // Populate playerPts from GW cache file if available
-            if (gwCacheFile?.players) {
+            // Populate playerPts from GW cache file only if we don't have live data
+            if (gwCacheFile?.players && Object.keys(playerPts).length === 0) {
               Object.entries(gwCacheFile.players).forEach(([id, p]) => {
                 if (p.pts !== undefined) playerPts[parseInt(id)] = p.pts;
               });
             }
             const cachedGWPts = cachedManager?.history?.points ?? null;
 
-            const totalPts = Object.keys(playerPts).length > 0
-              ? startingPicks.reduce((sum, p) => sum + (playerPts[p.element] ?? 0) * p.multiplier, 0)
-              : cachedGWPts ?? '—';
+            // Use live score from card if available (most up to date)
+            const liveManagerScore = state.isLive ? window._liveScoreCacheGW?.[drawerGW]?.[managerId] : null;
+            const totalPts = liveManagerScore
+              ? liveManagerScore.rawPts
+              : Object.keys(playerPts).length > 0
+                ? startingPicks.reduce((sum, p) => sum + (playerPts[p.element] ?? 0) * p.multiplier, 0)
+                : cachedGWPts ?? '—';
 
             let html = '<div class="manager-drawer-inner" style="flex-direction:column;align-items:stretch;padding:0.75rem 1.5rem;">';
             html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">';
