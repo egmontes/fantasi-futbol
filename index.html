@@ -1988,37 +1988,77 @@ async function init() {
             playerPts[e.id] = e.stats.total_points;
             playerMinutes[e.id] = e.stats.minutes;
           });
+          window._playerPtsCache = playerPts;
+          window._playerMinutesCache = playerMinutes;
+
+          // Phase 1: Compute points from cached picks (fast — no extra API calls)
           const tempMap = {};
-          const BATCH = 5;
-          for (let i = 0; i < state.managers.length; i += BATCH) {
-            const batch = state.managers.slice(i, i + BATCH);
-            await Promise.all(batch.map(async m => {
-              try {
-                const picks = await fetchFPL('entry/' + m.id + '/event/' + currentGW + '/picks/');
-                let rawPts = 0;
-                let played = 0, remaining = 0;
-                const isBenchBoost = picks.active_chip === 'bboost';
-                const maxPos = isBenchBoost ? 15 : 11;
-                picks.picks.forEach(p => {
-                  if (p.position <= maxPos) {
-                    rawPts += (playerPts[p.element] || 0) * p.multiplier;
-                    const count = p.multiplier; // 1 for normal, 2 for captain, 3 for TC
-                    if ((playerMinutes[p.element] || 0) > 0) played += count;
-                    else remaining += count;
-                  }
-                });
-                const hit = picks.entry_history?.event_transfers_cost || 0;
-                tempMap[m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
-              } catch(e) {}
-            }));
-          }
+          state.managers.forEach(m => {
+            const cached = window._picksCache?.[m.id + '_' + currentGW];
+            if (cached) {
+              let rawPts = 0, played = 0, remaining = 0;
+              const isBB = cached.active_chip === 'bboost';
+              const maxPos = isBB ? 15 : 11;
+              (cached.picks || []).forEach(p => {
+                if (p.position <= maxPos) {
+                  rawPts += (playerPts[p.element] || 0) * p.multiplier;
+                  const count = p.multiplier;
+                  if ((playerMinutes[p.element] || 0) > 0) played += count;
+                  else remaining += count;
+                }
+              });
+              const hit = cached.entry_history?.event_transfers_cost || 0;
+              tempMap[m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
+            } else {
+              // No picks yet — estimate from total in gwHistory
+              const hist = (state.gwHistory[m.id] || []).find(h => h.event === currentGW);
+              if (hist) tempMap[m.id] = { rawPts: hist.points, netPts: hist.points - (hist.event_transfers_cost||0), hit: hist.event_transfers_cost||0, played: null, remaining: null };
+            }
+          });
+
           window._liveScoreCacheGW[currentGW] = tempMap;
           window._liveScoreFetchInProgress = false;
-          try {
-            localStorage.setItem('ff_live_scores_' + currentGW, JSON.stringify({ data: tempMap, ts: Date.now() }));
-          } catch(e) {}
+          try { localStorage.setItem('ff_live_scores_' + currentGW, JSON.stringify({ data: tempMap, ts: Date.now() })); } catch(e) {}
           window._renderStandingsInProgress = false;
           renderStandings();
+
+          // Phase 2: Fetch picks in background for played/remaining counts
+          if (!window._picksFetchInProgress) {
+            window._picksFetchInProgress = true;
+            (async () => {
+              try {
+                const BATCH = 5;
+                for (let i = 0; i < state.managers.length; i += BATCH) {
+                  const batch = state.managers.slice(i, i + BATCH);
+                  await Promise.all(batch.map(async m => {
+                    if (window._picksCache?.[m.id + '_' + currentGW]) return; // already have it
+                    try {
+                      const picks = await fetchFPL('entry/' + m.id + '/event/' + currentGW + '/picks/');
+                      if (!window._picksCache) window._picksCache = {};
+                      window._picksCache[m.id + '_' + currentGW] = picks;
+                      // Update tempMap with accurate data
+                      let rawPts = 0, played = 0, remaining = 0;
+                      const isBB = picks.active_chip === 'bboost';
+                      const maxPos = isBB ? 15 : 11;
+                      picks.picks.forEach(p => {
+                        if (p.position <= maxPos) {
+                          rawPts += (playerPts[p.element] || 0) * p.multiplier;
+                          const count = p.multiplier;
+                          if ((playerMinutes[p.element] || 0) > 0) played += count;
+                          else remaining += count;
+                        }
+                      });
+                      const hit = picks.entry_history?.event_transfers_cost || 0;
+                      window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
+                    } catch(e) {}
+                  }));
+                }
+                // Final re-render with complete data
+                window._renderStandingsInProgress = false;
+                renderStandings();
+              } finally { window._picksFetchInProgress = false; }
+            })();
+          }
         } catch(e) { window._liveScoreFetchInProgress = false; }
       })();
     }
@@ -2045,7 +2085,7 @@ async function init() {
         : latestHist
           ? latestHist.total_points - (latestHist.event_transfers_cost || 0)
           : m.total;
-      const chip = standingsChips[m.id] || null;
+      const chip = standingsChips[m.id] || state.chipsHistory?.[m.id]?.[currentGW] || null;
       const captain = standingsCaptains[m.id] || null;
       return { ...m, total: liveTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, missedG, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain,
         played: liveScore?.played ?? null, remaining: liveScore?.remaining ?? null };
