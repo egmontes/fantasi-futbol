@@ -1107,6 +1107,7 @@
 
   // Current owed for standings = owed at start of next GW
   function getGuinnessOwed(name) {
+    if (state.isLive) return 0; // GW in progress — no debts until GW completes
     return getGuinnessOwedAtGW(name, state.latestGW + 1);
   }
 
