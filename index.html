@@ -1803,7 +1803,7 @@ async function init() {
     // --- BOTTOM shotgun ---
     if (n < 2) return prizes; // need at least 2 managers for shotgun
     // Shotgun: bottom ~6% of managers (min 2, rounded)
-    const numShotguns = is2025 ? 2 : Math.min(4, Math.max(2, Math.round(n * 0.06)));
+    const numShotguns = is2025 ? 2 : 4;
     // Find the score cutoff — expand to include ties
     const cutoffScore = ranked[n - numShotguns].gwPoints;
     let shotgunStart = n - numShotguns;
