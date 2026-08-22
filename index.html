@@ -1999,7 +1999,23 @@ async function init() {
       return { ...m, total: liveTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, missedG, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain };
     });
 
-    // Compute rank changes vs last GW
+    // Compute prospective prizes/shotguns based on current live scores
+    let liveProspective = {};
+    if (state.isLive && Object.keys(liveScoreMap).length > 0) {
+      const liveRanked = [...rows]
+        .filter(m => m.gwLatestPts !== null)
+        .sort((a, b) => (b.gwLatestPts||0) - (a.gwLatestPts||0))
+        .map(m => ({ ...m, gwPoints: m.gwLatestPts || 0 }));
+      if (liveRanked.length >= 2) {
+        liveProspective = computeWeeklyPrizes(liveRanked);
+      }
+    }
+
+    const rows2 = rows.map(m => ({
+      ...m,
+      _prize: liveProspective[m.id]?.prize || 0,
+      _shotgun: liveProspective[m.id]?.shotgun || false,
+    }));
     const rankChangeMap = {};
     if (currentGW > 1) {
       // Current rank: use m.total (FPL standings) when live since gwHistory won't have currentGW yet
@@ -2049,7 +2065,7 @@ async function init() {
 
     // Compute season rank by total pts (independent of current sort)
     const seasonRankMap = {};
-    const byTotal = [...rows].sort((a, b) => b.total - a.total);
+    const byTotal = [...rows2].sort((a, b) => b.total - a.total);
     let sRank = 1;
     byTotal.forEach((m, i) => {
       if (i > 0 && byTotal[i].total < byTotal[i-1].total) sRank = i + 1;
@@ -2176,9 +2192,9 @@ async function init() {
     const topMoneyValue = topMoneyManager ? stats[topMoneyManager].moneyWon : 0;
 
     // Compute season leader widgets
-    const mostBottom2 = state.historyLoaded ? [...rows].sort((a,b) => b.bottom2 - a.bottom2)[0] : null;
-    const mostTop4 = state.historyLoaded ? [...rows].sort((a,b) => b.top4 - a.top4)[0] : null;
-    const mostGuinness = state.historyLoaded ? [...rows].sort((a,b) => b.totalG - a.totalG)[0] : null;
+    const mostBottom2 = state.historyLoaded ? [...rows2].sort((a,b) => b.bottom2 - a.bottom2)[0] : null;
+    const mostTop4 = state.historyLoaded ? [...rows2].sort((a,b) => b.top4 - a.top4)[0] : null;
+    const mostGuinness = state.historyLoaded ? [...rows2].sort((a,b) => b.totalG - a.totalG)[0] : null;
 
     const cards =
       (mostTransIn ? '<div class="stat-card stat-card-green" data-widget="trans-in"><div class="s-label">📈 GW' + gwLabel + ' Most Transferred In</div><div class="s-value">' + esc(mostTransIn.web_name) + '<br>' + mostTransIn.transfers_in_event.toLocaleString() + ' transfers</div></div>' : '') +
@@ -2189,7 +2205,7 @@ async function init() {
       '<div class="stat-card"><div class="s-label">👥 Managers</div><div class="s-value single-line">' + state.managers.length + '</div></div>' +
       '<div class="stat-card"><div class="s-label">🏟 GWs Played</div><div class="s-value single-line">' + state.latestGW + '</div></div>' +
       '<div class="stat-card"><div class="s-label">' + (isSeasonOver ? '💵 Total Payouts' : '💵 Payouts So Far') + '</div><div class="s-value single-line">$' + totalPool + '</div></div>' +
-      '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Guinness Chugged</div><div class="s-value single-line">' + rows.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
+      '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Guinness Chugged</div><div class="s-value single-line">' + rows2.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
       (mostGuinness && mostGuinness.totalG > 0 ? '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Most Guinness</div><div class="s-value">' + esc(mostGuinness.name) + '<br>' + mostGuinness.totalG + '</div></div>' : '') +
       (mostTop4 && mostTop4.top4 > 0 ? '<div class="stat-card stat-card-green"><div class="s-label">🏆 Most Top 4 Finishes</div><div class="s-value">' + esc(mostTop4.name) + '<br>' + mostTop4.top4 + ' times</div></div>' : '') +
       (mostBottom2 && mostBottom2.bottom2 > 0 ? '<div class="stat-card stat-card-red"><div class="s-label">💀 Most Bottom 2 Finishes</div><div class="s-value">' + esc(mostBottom2.name) + '<br>' + mostBottom2.bottom2 + ' times</div></div>' : '') +
@@ -2262,7 +2278,7 @@ async function init() {
       });
     }
 
-    rows.forEach((m, idx) => {
+    rows2.forEach((m, idx) => {
       const pos = idx + 1;
       const rowCls = pos === 1 ? 'row-1' : pos === 2 ? 'row-2' : pos === 3 ? 'row-3' : '';
       const gmissCell = m.gmisses >= 3
@@ -2381,7 +2397,7 @@ async function init() {
       html += '<button onclick="window._sortCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
     });
     html += '</div>';
-    rows.forEach((m, idx) => {
+    rows2.forEach((m, idx) => {
       const pos = idx + 1;
       const sRank = seasonRankMap[m.id];
       const SEASON_PRIZES = {1:550,2:275,3:175,4:100,5:20};
@@ -2431,6 +2447,8 @@ async function init() {
         const gwColor = gwRankMap[m.id] <= 4 ? 'var(--theme)' : 'var(--text2)';
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + gwColor + ';background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + (m.gwRawPts||0) + 'pts</span>';
       }
+      if (state.isLive && m._prize > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;">💰 $' + m._prize.toFixed(2) + '</span>';
+      if (state.isLive && m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;">🍺 Shotgun</span>';
       if (!isSeasonOver && m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--text2);background:var(--bg3);border-radius:6px;padding:3px 8px;">©' + esc(m.captain.name) + '</span>';
       if (state.historyLoaded) {
         const chip = (label, value, activeColor, activeBg, active) => {
@@ -2558,7 +2576,7 @@ async function init() {
     }
 
     // Store card data for sorting
-    window._cardData = rows.map((m, idx) => {
+    window._cardData = rows2.map((m, idx) => {
       const sRank = seasonRankMap[m.id];
       const SEASON_PRIZES = {1:550,2:275,3:175,4:100,5:20};
       const sp = isSeasonOver ? (SEASON_PRIZES[sRank]||0) : 0;
