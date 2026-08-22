@@ -1512,7 +1512,13 @@ async function init() {
           updateExportBtn(state.latestGW);
         }
       } else {
-        await loadAllHistory(state.isLive);
+        // For live GW: render immediately with basic data, load history in background
+        renderStandings(); // Show basic standings right away
+        
+        // Load live scores + chips in parallel (most important for live view)
+        const [_history] = await Promise.all([
+          loadAllHistory(state.isLive),
+        ]);
         state.historyLoaded = true;
         renderStandings();
         // Show export button when GW is complete (not live)
@@ -1922,23 +1928,27 @@ async function init() {
       ? weeklyPool + SEASON_PRIZE_TOTAL + CUP_PRIZE_TOTAL + KLUIS_AWARD
       : weeklyPool;
     const totalShotguns = state.latestGW * 2;
-    if (!_chipCache[currentGW]) {
+    if (!_chipCache[currentGW] && !window._chipFetchInProgress) {
+      window._chipFetchInProgress = true;
       fetchChipsForGW(currentGW).then(() => {
+        window._chipFetchInProgress = false;
         window._renderStandingsInProgress = false;
         renderStandings();
-      }).catch(() => {});
+      }).catch(() => { window._chipFetchInProgress = false; });
     }
 
-    // Always refresh fixture counts when live (needed for Games Completed/Ongoing/Remaining)
-    if (state.isLive && state.fixturesTotal === undefined) {
+    // Always refresh fixture counts when live
+    if (state.isLive && state.fixturesTotal === undefined && !window._fixtureFetchInProgress) {
+      window._fixtureFetchInProgress = true;
       fetchFPL('fixtures/?event=' + currentGW).then(fixtures => {
         const total = fixtures.length;
         state.fixturesOngoing = fixtures.filter(f => f.started && !f.finished).length;
         state.fixturesRemaining = Math.max(0, total - fixtures.filter(f => f.finished).length - state.fixturesOngoing);
         state.fixturesTotal = total;
+        window._fixtureFetchInProgress = false;
         window._renderStandingsInProgress = false;
         renderStandings();
-      }).catch(() => {});
+      }).catch(() => { window._fixtureFetchInProgress = false; });
     }
     const standingsChips = _chipCache[currentGW] || {};
     const standingsCaptains = _captainCache[currentGW] || {};
