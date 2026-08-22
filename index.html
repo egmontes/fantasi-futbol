@@ -1552,7 +1552,7 @@ async function init() {
     window._loadLeagueInProgress = true;
     const CACHE_KEY = 'ff_managers';
     const CACHE_TS_KEY = 'ff_managers_ts';
-    const CACHE_TTL = 60 * 60 * 1000; // 1 hour — refresh frequently so new managers show up
+    const CACHE_TTL = 5 * 60 * 1000; // 5 min — refresh frequently for new managers
 
     let staticManagers = null;
 
@@ -2483,6 +2483,11 @@ async function init() {
       }
       if (state.isLive && m._prize > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;">💰 $' + m._prize.toFixed(2) + '</span>';
       if (state.isLive && m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;">🍺 Shotgun</span>';
+      if (m.chip) {
+        const chipLabels = { bboost: 'BB', '3xc': 'TC', wildcard: 'WC', freehit: 'FH' };
+        const chipLabel = chipLabels[m.chip] || m.chip.toUpperCase();
+        html += '<span style="font-size:11px;font-family:var(--font-mono);color:#FFD700;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.3);border-radius:6px;padding:3px 8px;">' + chipLabel + '</span>';
+      }
       if (!isSeasonOver && m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">©' + esc(m.captain.name) + '</span>';
       if (state.historyLoaded) {
         const chip = (label, value, activeColor, activeBg, active) => {
@@ -3082,6 +3087,17 @@ async function init() {
             const startingPicks = picks.picks.filter(p => p.position <= 11);
             const benchPicks = picks.picks.filter(p => p.position > 11);
 
+            // Compute league ownership for this GW
+            const leagueOwnership = {};
+            let ownershipTotal = 0;
+            Object.entries(window._picksCache || {}).forEach(([key, p]) => {
+              if (!key.endsWith('_' + drawerGW)) return;
+              ownershipTotal++;
+              (p.picks || []).filter(pick => pick.position <= 11).forEach(pick => {
+                leagueOwnership[pick.element] = (leagueOwnership[pick.element] || 0) + 1;
+              });
+            });
+
             const renderPick = (p, isBench = false) => {
               const name = state.bootstrapPlayers[p.element] || ('Player ' + p.element);
               const pts = playerPts[p.element] ?? '—';
@@ -3107,12 +3123,16 @@ async function init() {
                   scoreStr = '<span style="color:' + result + ';font-family:var(--font-mono);">' + myScore + '-' + oppScore + '</span>';
                 }
               }
+              const ownershipPct = !isBench && ownershipTotal > 0
+                ? Math.round((leagueOwnership[p.element] || 0) / ownershipTotal * 100)
+                : null;
               const subLine = (teamName || (mins !== null && mins !== undefined) || scoreStr) ?
                 '<div style="font-size:10px;color:var(--text3);margin-top:1px;display:flex;gap:4px;align-items:center;">' +
                 (teamName ? '<span>' + esc(teamName) + '</span>' : '') +
                 (mins !== null && mins !== undefined ? '<span>· ' + mins + ' min</span>' : '') +
                 (scoreStr ? '<span>· ' + scoreStr + '</span>' : '') +
-                '</div>' : '';
+                (ownershipPct !== null ? '<span style="color:var(--theme);margin-left:2px;">· ' + ownershipPct + '% start</span>' : '') +
+                '</div>' : (ownershipPct !== null ? '<div style="font-size:10px;color:var(--theme);margin-top:1px;">' + ownershipPct + '% start</div>' : '');
               return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">' +
                 '<div>' +
                 '<div style="color:' + nameColor + ';font-size:12px;">' + esc(name) +
