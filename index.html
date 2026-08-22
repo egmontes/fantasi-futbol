@@ -3749,14 +3749,24 @@ async function init() {
     const chips = {};
     const captains = {};
 
-    // Fetch live stats + fixtures ONCE upfront, in parallel with all picks
-    const [liveStatsRes, fixturesRes, ...picksRes] = await Promise.allSettled([
+    // Fetch live stats + fixtures upfront
+    const [liveStatsRes, fixturesRes] = await Promise.allSettled([
       fetchFPL('event/' + gw + '/live/'),
       fetchFPL('fixtures/?event=' + gw),
-      ...state.managers.map(m => fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/')
-        .then(d => ({ managerId: m.id, data: d }))
-        .catch(() => ({ managerId: m.id, data: null })))
     ]);
+
+    // Fetch picks in batches of 5 to avoid rate limiting
+    const picksRes = [];
+    const BATCH = 5;
+    for (let i = 0; i < state.managers.length; i += BATCH) {
+      const batch = state.managers.slice(i, i + BATCH);
+      const batchRes = await Promise.allSettled(
+        batch.map(m => fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/')
+          .then(d => ({ managerId: m.id, data: d }))
+          .catch(() => ({ managerId: m.id, data: null })))
+      );
+      picksRes.push(...batchRes);
+    }
 
     // Build stats and fixture maps
     const statsMap = {};
