@@ -1968,7 +1968,7 @@ async function init() {
         const saved = localStorage.getItem('ff_live_scores_' + currentGW);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Date.now() - parsed.ts < 15 * 60 * 1000) window._liveScoreCacheGW[currentGW] = parsed.data;
+          if (Date.now() - parsed.ts < 5 * 60 * 1000) window._liveScoreCacheGW[currentGW] = parsed.data;
         }
       } catch(e) {}
     }
@@ -1982,6 +1982,15 @@ async function init() {
       (async () => {
         try {
           const liveData = await fetchFPL('event/' + currentGW + '/live/');
+          // Also fetch and store fixtures globally for sub detection
+          try {
+            const fixturesData = await fetchFPL('fixtures/?event=' + currentGW);
+            window._fixturesByTeam = {};
+            fixturesData.forEach(f => {
+              window._fixturesByTeam[f.team_h] = f;
+              window._fixturesByTeam[f.team_a] = f;
+            });
+          } catch(e) {}
           const playerPts = {};
           const playerMinutes = {};
           liveData.elements.forEach(e => {
@@ -2028,7 +2037,6 @@ async function init() {
 
           window._liveScoreCacheGW[currentGW] = tempMap;
           window._liveScoreFetchInProgress = false;
-          try { localStorage.setItem('ff_live_scores_' + currentGW, JSON.stringify({ data: tempMap, ts: Date.now() })); } catch(e) {}
           window._renderStandingsInProgress = false;
           renderStandings();
 
@@ -2057,24 +2065,55 @@ async function init() {
                         if (!_chipCache[currentGW]) _chipCache[currentGW] = {};
                         _chipCache[currentGW][m.id] = picks.active_chip;
                       }
-                      // Update tempMap with accurate data
-                      let rawPts = 0, played = 0, remaining = 0;
-                      const isBB = picks.active_chip === 'bboost';
+                      // Update tempMap with accurate data, applying predicted auto-subs
+                      const isBB = picks.active_chip === 'bboost' || (state.chipsHistory?.[m.id]?.[currentGW] === 'bboost');
                       const maxPos = isBB ? 15 : 11;
-                      picks.picks.forEach(p => {
-                        if (p.position <= maxPos) {
-                          rawPts += (playerPts[p.element] || 0) * p.multiplier;
-                          const count = p.multiplier;
-                          if ((playerMinutes[p.element] || 0) > 0) played += count;
-                          else remaining += count;
+                      const startingEls = picks.picks.filter(p => p.position <= maxPos).map(p => ({...p}));
+                      const benchEls = picks.picks.filter(p => p.position > maxPos).map(p => ({...p}));
+                      const getElType = id => (state.bootstrapElements||[]).find(e=>e.id===id)?.element_type || 0;
+                      const elTeamFinished = id => {
+                        const el = (state.bootstrapElements||[]).find(e=>e.id===id);
+                        if (!el) return false;
+                        const f = (window._fixturesByTeam||{})[el.team];
+                        if (!f) return false;
+                        return f.finished || f.finished_provisional || 
+                          (f.team_h_score !== null && f.team_a_score !== null);
+                      };
+                      // Apply predicted subs if no confirmed subs yet
+                      if (!isBB && !picks.automatic_subs?.length) {
+                        const usedBench = new Set();
+                        for (let si = 0; si < startingEls.length; si++) {
+                          const starter = startingEls[si];
+                          if (starter.is_captain || starter.is_vice_captain) continue;
+                          if ((playerMinutes[starter.element] || 0) > 0) continue;
+                          if (playerMinutes[starter.element] === undefined) continue;
+                          if (!elTeamFinished(starter.element)) continue; // only sub if fixture done
+                          const starterPos = getElType(starter.element);
+                          for (const bench of benchEls.filter(b => !usedBench.has(b.element))) {
+                            if ((playerMinutes[bench.element] || 0) === 0) continue;
+                            const benchPos = getElType(bench.element);
+                            if (starterPos === 1 && benchPos !== 1) continue;
+                            if (starterPos !== 1 && benchPos === 1) continue;
+                            startingEls[si] = { ...bench, multiplier: starter.multiplier };
+                            usedBench.add(bench.element);
+                            break;
+                          }
                         }
+                      }
+                      let rawPts = 0, played = 0, remaining = 0;
+                      startingEls.forEach(p => {
+                        rawPts += (playerPts[p.element] || 0) * p.multiplier;
+                        const count = p.multiplier;
+                        if ((playerMinutes[p.element] || 0) > 0) played += count;
+                        else remaining += count;
                       });
                       const hit = picks.entry_history?.event_transfers_cost || 0;
                       window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
                     } catch(e) {}
                   }));
                 }
-                // Final re-render with complete data
+                // Final re-render with complete sub-adjusted data
+                try { localStorage.setItem('ff_live_scores_' + currentGW, JSON.stringify({ data: window._liveScoreCacheGW[currentGW], ts: Date.now() })); } catch(e) {}
                 window._renderStandingsInProgress = false;
                 renderStandings();
               } finally { window._picksFetchInProgress = false; }
@@ -3191,8 +3230,63 @@ async function init() {
               return badges ? { badges, bonusStr } : { badges: '', bonusStr };
             };
 
-            const startingPicks = picks.picks.filter(p => p.position <= 11);
-            const benchPicks = picks.picks.filter(p => p.position > 11);
+            const startingPicks = picks.picks.filter(p => p.position <= 11).map(p => ({...p}));
+            const benchPicks = picks.picks.filter(p => p.position > 11).map(p => ({...p}));
+
+            // Auto-subs: confirmed (post-GW) or predicted (live)
+            const autoSubs = []; // { elementOut, elementIn, confirmed, predicted }
+            const getPos = id => (state.bootstrapElements||[]).find(e=>e.id===id)?.element_type || 0;
+            const teamFinished = id => {
+              const el = (state.bootstrapElements||[]).find(e=>e.id===id);
+              if (!el) return false;
+              const f = fixtureMap[el.team];
+              if (!f) return false;
+              // Consider finished if API says so, OR if score exists and minutes suggest full time
+              return f.finished || f.finished_provisional || 
+                (f.team_h_score !== null && f.team_a_score !== null && (playerStats[id]?.minutes ?? 0) === 0);
+            };
+            const playerPlayed = id => (playerStats[id]?.minutes ?? -1) > 0;
+            const playerDataAvailable = id => playerStats[id] !== undefined;
+
+            if (picks.automatic_subs?.length > 0) {
+              // Confirmed subs from API
+              picks.automatic_subs.forEach(sub => {
+                autoSubs.push({ elementOut: sub.element_out, elementIn: sub.element_in, confirmed: true });
+              });
+            } else if (!isBB) {
+              // Predict subs: bench priority order, position constraints
+              const usedBench = new Set();
+              for (const starter of [...startingPicks]) {
+                if (starter.is_captain || starter.is_vice_captain) continue; // no sub for captain slot
+                if (!teamFinished(starter.element) && state.isLive) continue; // fixture not done yet
+                if (playerPlayed(starter.element)) continue; // played fine
+                if (!playerDataAvailable(starter.element)) continue; // no data yet
+                const starterPos = getPos(starter.element);
+                // Find first eligible bench player
+                for (const bench of benchPicks.filter(b => !usedBench.has(b.element))) {
+                  if (!playerPlayed(bench.element)) continue; // sub didn't play either
+                  const benchPos = getPos(bench.element);
+                  // Position constraint: must maintain valid formation (GK->GK only, outfield flexible)
+                  if (starterPos === 1 && benchPos !== 1) continue;
+                  if (starterPos !== 1 && benchPos === 1) continue;
+                  autoSubs.push({ elementOut: starter.element, elementIn: bench.element, confirmed: false });
+                  usedBench.add(bench.element);
+                  break;
+                }
+              }
+            }
+
+            // Apply subs to startingPicks/benchPicks
+            autoSubs.forEach(sub => {
+              const outIdx = startingPicks.findIndex(p => p.element === sub.elementOut);
+              const inIdx = benchPicks.findIndex(p => p.element === sub.elementIn);
+              if (outIdx === -1 || inIdx === -1) return;
+              const outPlayer = startingPicks[outIdx];
+              const inPlayer = benchPicks[inIdx];
+              // Swap
+              startingPicks[outIdx] = { ...inPlayer, multiplier: 1, is_captain: false, is_vice_captain: false, _subIn: true, _confirmed: sub.confirmed };
+              benchPicks[inIdx] = { ...outPlayer, _subOut: true, _confirmed: sub.confirmed };
+            });
 
             // Compute league ownership for this GW
             const leagueOwnership = {};
@@ -3211,9 +3305,11 @@ async function init() {
               const effectivePts = isBench ? pts : (pts !== '—' ? pts * p.multiplier : '—');
               const capLabel = p.multiplier === 3 ? ' (TC)' : p.multiplier === 2 ? ' (C)' : '';
               const mins = playerStats[p.element]?.minutes ?? null;
-              const played = mins !== null && mins !== undefined && mins > 0;              const nameColor = isBench ? 'var(--text3)' : (played ? 'var(--text)' : 'var(--text3)');
-              const ptsColor = isBench ? 'var(--text3)' : (effectivePts !== '—' && effectivePts > 0 ? 'var(--green)' : 'var(--text3)');
-              const { badges: emojis, bonusStr } = getEmojis(p.element);
+              const played = mins !== null && mins !== undefined && mins > 0;
+              const nameColor = isBench && !p._subOut ? 'var(--text3)' : (played ? 'var(--text)' : 'var(--text3)');
+              const ptsColor = isBench && !p._subOut ? 'var(--text3)' : (effectivePts !== '—' && effectivePts > 0 ? 'var(--green)' : 'var(--text3)');
+              const subInBadge = p._subIn ? '<span style="font-size:10px;color:var(--green);margin-left:4px;">' + (p._confirmed ? '↕️' : '⚡') + '</span>' : '';
+              const subOutBadge = p._subOut ? '<span style="font-size:10px;color:var(--red);margin-left:4px;">' + (p._confirmed ? '↕️' : '⚡') + '</span>' : '';              const { badges: emojis, bonusStr } = getEmojis(p.element);
               const el = (state.bootstrapElements || []).find(e => e.id === p.element);
               const teamId = el ? el.team : null;
               const teamEl = teamId && state.bootstrap ? (state.bootstrap.teams || []).find(t => t.id === teamId) : null;
@@ -3244,6 +3340,8 @@ async function init() {
                 '<div>' +
                 '<div style="color:' + nameColor + ';font-size:12px;">' + esc(name) +
                 '<span style="color:var(--theme);font-size:10px;">' + capLabel + '</span>' +
+                (p._subIn ? '<span style="font-size:11px;margin-left:4px;">' + (p._confirmed ? '↕️' : '⚡') + '</span>' : '') +
+                (p._subOut ? '<span style="font-size:11px;margin-left:4px;opacity:0.6;">' + (p._confirmed ? '↕️' : '⚡') + '</span>' : '') +
                 (emojis ? '<span style="font-size:10px;margin-left:4px;letter-spacing:2px;">' + emojis + '</span>' : '') +
                 bonusStr +
                 '</div>' +
@@ -3264,13 +3362,13 @@ async function init() {
             }
             const cachedGWPts = cachedManager?.history?.points ?? null;
 
-            // Use live score from card if available (most up to date)
-            const liveManagerScore = state.isLive ? window._liveScoreCacheGW?.[drawerGW]?.[managerId] : null;
-            const totalPts = liveManagerScore
-              ? liveManagerScore.rawPts
-              : Object.keys(playerPts).length > 0
-                ? startingPicks.reduce((sum, p) => sum + (playerPts[p.element] ?? 0) * p.multiplier, 0)
-                : cachedGWPts ?? '—';
+            // Compute total from startingPicks (after subs applied) for accuracy
+            const computedTotal = startingPicks.reduce((sum, p) => {
+              const pts = playerPts[p.element] ?? 0;
+              return sum + pts * p.multiplier;
+            }, 0);
+            const hit = picks.entry_history?.event_transfers_cost || 0;
+            const totalPts = computedTotal - hit;
 
             let html = '<div class="manager-drawer-inner" style="flex-direction:column;align-items:stretch;padding:0.75rem 1.5rem;">';
             html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">';
