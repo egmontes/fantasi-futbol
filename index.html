@@ -2722,7 +2722,16 @@ async function init() {
     // Save ticker offset before re-render
     const savedTickerOffset = window.__fantasiTickerOffset || 0;
     document.getElementById('standings-content').innerHTML = html;
-    if (window._selectedPlayer) window._applyPlayerHighlight();
+    // Restore player search state if a player was selected
+    if (window._selectedPlayer) {
+      const stat = document.getElementById('player-search-stat');
+      const clear = document.getElementById('player-search-clear');
+      const input = document.getElementById('player-search-input');
+      if (input && window._selectedPlayerName) { input.value = window._selectedPlayerName; input.style.borderColor = 'var(--theme)'; }
+      if (clear) clear.style.display = 'block';
+      // Recalculate ownership
+      window._selectPlayer(window._selectedPlayer, window._selectedPlayerName);
+    }
 
     // Show season toggle bar (do this before any early returns)
     if (isSeasonOver) {
@@ -8135,14 +8144,46 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (dropdown) dropdown.style.display = 'none';
     if (input) { input.value = name; input.style.borderColor = 'var(--theme)'; }
     window._selectedPlayer = parseInt(id);
+    window._selectedPlayerName = name;
 
-    // Count ownership from _picksCache
     const gw = state.isLive ? state.liveGW : state.latestGW;
     let owners = 0, total = 0;
     Object.entries(window._picksCache || {}).forEach(([key, picks]) => {
       if (!key.endsWith('_' + gw)) return;
       total++;
-      if ((picks.picks || []).some(p => p.element === window._selectedPlayer && p.position <= 11)) owners++;
+      const allPicks = picks.picks || [];
+      const starters = allPicks.filter(p => p.position <= 11).map(p => p.element);
+      const autoSubsIn = (picks.automatic_subs || []).map(s => s.element_in);
+      const autoSubsOut = (picks.automatic_subs || []).map(s => s.element_out);
+      // Predicted subs
+      const playerMins = window._playerMinutesCache || {};
+      const bootstrapEls = state.bootstrapElements || [];
+      const fixturesByTeam = window._fixturesByTeam || {};
+      const teamDone = id => { const el = bootstrapEls.find(e=>e.id===id); if(!el) return false; const f = fixturesByTeam[el.team]; return f ? (f.finished||f.finished_provisional) : false; };
+      const benchPicks = allPicks.filter(p => p.position > 11);
+      const usedBench = new Set([...autoSubsIn]);
+      const predictedOut = new Set([...autoSubsOut]);
+      if (!picks.active_chip || picks.active_chip !== 'bboost') {
+        for (const starter of starters) {
+          if (predictedOut.has(starter)) continue;
+          if ((playerMins[starter]??-1) > 0) continue;
+          if (!teamDone(starter)) continue;
+          const starterType = bootstrapEls.find(e=>e.id===starter)?.element_type;
+          for (const bench of benchPicks.filter(b=>!usedBench.has(b.element))) {
+            if ((playerMins[bench.element]??0) === 0) continue;
+            const benchType = bootstrapEls.find(e=>e.id===bench.element)?.element_type;
+            if (starterType===1 && benchType!==1) continue;
+            if (starterType!==1 && benchType===1) continue;
+            autoSubsIn.push(bench.element);
+            autoSubsOut.push(starter);
+            usedBench.add(bench.element);
+            predictedOut.add(starter);
+            break;
+          }
+        }
+      }
+      const effective = [...starters.filter(e => !autoSubsOut.includes(e)), ...autoSubsIn];
+      if (effective.includes(window._selectedPlayer)) owners++;
     });
 
     if (stat) {
@@ -8158,6 +8199,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   window._clearPlayerSearch = function() {
     window._selectedPlayer = null;
+    window._selectedPlayerName = null;
     const input = document.getElementById('player-search-input');
     const stat = document.getElementById('player-search-stat');
     const clear = document.getElementById('player-search-clear');
@@ -8178,7 +8220,41 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         return;
       }
       const picks = window._picksCache?.[mid + '_' + gw];
-      const hasPlayer = picks && (picks.picks || []).some(p => p.element === pid && p.position <= 11);
+      if (!picks) { card.style.opacity = '0.35'; card.style.filter = 'grayscale(0.5)'; return; }
+      const allPicks = picks.picks || [];
+      const starters = allPicks.filter(p => p.position <= 11).map(p => p.element);
+      // Confirmed auto-subs
+      const autoSubsIn = (picks.automatic_subs || []).map(s => s.element_in);
+      const autoSubsOut = (picks.automatic_subs || []).map(s => s.element_out);
+      // Predicted subs — bench players who played in place of 0-min starters
+      const playerMins = window._playerMinutesCache || {};
+      const fixturesByTeam = window._fixturesByTeam || {};
+      const bootstrapEls = state.bootstrapElements || [];
+      const teamDone = id => { const el = bootstrapEls.find(e=>e.id===id); if(!el) return false; const f = fixturesByTeam[el.team]; return f ? (f.finished||f.finished_provisional) : false; };
+      const benchPicks = allPicks.filter(p => p.position > 11);
+      const usedBench = new Set([...autoSubsIn]);
+      const predictedOut = new Set([...autoSubsOut]);
+      if (!picks.active_chip || picks.active_chip !== 'bboost') {
+        for (const starter of starters) {
+          if (predictedOut.has(starter)) continue;
+          if ((playerMins[starter]??-1) > 0) continue;
+          if (!teamDone(starter)) continue;
+          const starterType = bootstrapEls.find(e=>e.id===starter)?.element_type;
+          for (const bench of benchPicks.filter(b=>!usedBench.has(b.element))) {
+            if ((playerMins[bench.element]??0) === 0) continue;
+            const benchType = bootstrapEls.find(e=>e.id===bench.element)?.element_type;
+            if (starterType===1 && benchType!==1) continue;
+            if (starterType!==1 && benchType===1) continue;
+            autoSubsIn.push(bench.element);
+            autoSubsOut.push(starter);
+            usedBench.add(bench.element);
+            predictedOut.add(starter);
+            break;
+          }
+        }
+      }
+      const effective = [...starters.filter(e => !autoSubsOut.includes(e)), ...autoSubsIn];
+      const hasPlayer = effective.includes(pid);
       card.style.opacity = hasPlayer ? '1' : '0.35';
       card.style.filter = hasPlayer ? '' : 'grayscale(0.5)';
     });
