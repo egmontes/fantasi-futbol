@@ -2220,7 +2220,10 @@ async function init() {
       else if (activeSortKey === 'bottom2') { va = a.bottom2 || 0; vb = b.bottom2 || 0; }
       else if (activeSortKey === 'totalG') { va = a.totalG || 0; vb = b.totalG || 0; }
       else { va = a.total || 0; vb = b.total || 0; }
-      return activeSortDir * (va - vb);
+      const diff = activeSortDir * (va - vb);
+      if (diff !== 0) return diff;
+      // Stable secondary sort by name for ties
+      return a.name.localeCompare(b.name);
     });
     const rankChangeMap = {};
     if (currentGW > 1) {
@@ -2882,7 +2885,9 @@ async function init() {
         const db = window._cardData.find(d => d.id === parseInt(b.dataset.managerId));
         const va = key === 'gwpts' ? (da?.gwpts ?? 0) : (da?.[key] ?? 0);
         const vb = key === 'gwpts' ? (db?.gwpts ?? 0) : (db?.[key] ?? 0);
-        return window._cardSortDir * (va - vb);
+        const diff = window._cardSortDir * (va - vb);
+        if (diff !== 0) return diff;
+        return (da?.name || '').localeCompare(db?.name || '');
       });
       // Close all drawers
       container.querySelectorAll('.s-card-drawer').forEach(d => d.style.display = 'none');
@@ -7079,6 +7084,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       return names.length + '-way tie';
     };
 
+    const bigCard = (label, value, cls='') =>
+      `<div class="stat-card${cls ? ' ' + cls : ''}" style="height:110px;"><div class="s-label">${label}</div><div class="s-value big-value">${value}</div></div>`;
+
     let cards = '';
     if (byEarned) cards += statCard('💰 All-Time Earner', namesStr(byEarned.names) + '<br>$' + byEarned.value.toFixed(2), 'stat-card-green');
     if (byTitles) cards += statCard('🥇 Most Titles', namesStr(byTitles.names) + '<br>' + byTitles.value + '');
@@ -7086,8 +7094,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (byBeers)  cards += statCard('🍺 Most Beers', namesStr(byBeers.names) + '<br>' + byBeers.value);
     if (byKluis)  cards += statCard('🎬 Most Kluis Rolling Can Awards', namesStr(byKluis.names) + '<br>' + byKluis.value + '', 'stat-card-gold');
     if (byLast)   cards += statCard('💀 Most Last Place', namesStr(byLast.names) + '<br>' + byLast.value.toFixed(1) + '', 'stat-card-red');
-    cards += statCard('⌛ Seasons', seasonLabels.length + '');
-    cards += statCard('👥 All-Time Managers', Object.keys(managers).length + '');
+    cards += bigCard('⌛ Seasons', seasonLabels.length + '');
+    cards += bigCard('👥 All-Time Managers', Object.keys(managers).length + '');
 
     let html = '<div style="padding-bottom:4rem;">';
     html += '<div style="margin-bottom:1rem;">';
