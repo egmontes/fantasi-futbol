@@ -8043,11 +8043,54 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       <div id="stats-manager-list" style="display:flex;flex-direction:column;gap:8px;"></div>
     `;
     window._renderStatsManagerList('');
-    window._renderGrowthChart();
+    requestAnimationFrame(() => window._renderGrowthChart());
   };
 
   window._filterStatsManagers = function(val) {
     window._renderStatsManagerList(val);
+  };
+
+  window._compareManager = null;
+
+  window._onCompareSearch = function(val) {
+    const dropdown = document.getElementById('compare-dropdown');
+    if (!dropdown) return;
+    const q = val.toLowerCase().trim();
+    const currentName = window._currentStatManager;
+    const allManagers = window._atCardDataMap ? Object.values(window._atCardDataMap)
+      .filter(m => m.name !== currentName)
+      .sort((a,b) => b.earned - a.earned) : [];
+    const filtered = q ? allManagers.filter(m => m.name.toLowerCase().includes(q)) : allManagers.slice(0, 10);
+    if (!filtered.length) { dropdown.style.display = 'none'; return; }
+    dropdown.innerHTML = filtered.slice(0, 10).map(m =>
+      `<div onclick="window._selectCompare('${m.name.replace(/'/g,"\\'")}', this)" style="padding:8px 12px;font-size:13px;font-family:var(--font-mono);color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">${esc(m.name)}</div>`
+    ).join('');
+    dropdown.style.display = 'block';
+  };
+
+  window._selectCompare = function(name) {
+    window._compareManager = name;
+    const input = document.getElementById('compare-search');
+    const label = document.getElementById('compare-name');
+    const clear = document.getElementById('compare-clear');
+    const dropdown = document.getElementById('compare-dropdown');
+    if (input) input.value = name;
+    if (label) { label.textContent = 'vs ' + name; label.style.display = 'block'; }
+    if (clear) clear.style.display = 'block';
+    if (dropdown) dropdown.style.display = 'none';
+    // Re-render charts with comparison
+    window._renderManagerCharts(window._currentStatManager);
+  };
+
+  window._clearCompare = function() {
+    window._compareManager = null;
+    const input = document.getElementById('compare-search');
+    const label = document.getElementById('compare-name');
+    const clear = document.getElementById('compare-clear');
+    if (input) input.value = '';
+    if (label) label.style.display = 'none';
+    if (clear) clear.style.display = 'none';
+    window._renderManagerCharts(window._currentStatManager);
   };
 
   window._selectStatManager = function(name) {
@@ -8066,6 +8109,24 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">${m.seasons} season${m.seasons!==1?'s':''} · $${m.earned.toFixed(2)} earned</div>
         </div>
       </div>
+
+      <!-- Compare search -->
+      <div style="position:relative;margin-bottom:16px;">
+        <div style="font-size:9px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Compare With</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="position:relative;flex:1;">
+            <input id="compare-search" type="text" placeholder="Search manager..." autocomplete="off"
+              style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;padding:8px 12px 8px 36px;font-size:13px;font-family:var(--font-mono);color:var(--text);outline:none;"
+              oninput="window._onCompareSearch(this.value)"
+              onfocus="this.style.borderColor='var(--theme)';document.getElementById('compare-dropdown').style.display='block';"
+              onblur="setTimeout(()=>document.getElementById('compare-dropdown').style.display='none',200)">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;">🔍</span>
+            <div id="compare-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;margin-top:4px;z-index:100;max-height:180px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.4);"></div>
+          </div>
+          <button id="compare-clear" onclick="window._clearCompare()" style="display:none;background:none;border:1px solid var(--theme-border);border-radius:10px;padding:8px 12px;color:var(--text3);font-size:12px;font-family:var(--font-mono);cursor:pointer;">Clear</button>
+        </div>
+        <div id="compare-name" style="font-size:11px;color:var(--theme);font-family:var(--font-mono);margin-top:4px;display:none;"></div>
+      </div>
       <div style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.25);">
         <div style="font-size:9px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;">💰 Earnings Over Time</div>
         <canvas id="earnings-chart" style="width:100%;height:200px;"></canvas>
@@ -8076,12 +8137,19 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       </div>
     `;
 
-    // Build earnings data from seasonResults
-    const SEASON_ORDER = ['2022/23','2023/24','2024/25','2025/26'];
+    window._currentStatManager = name;
+    window._compareManager = null;
+    window._renderManagerCharts(name);
+  };
+
+  window._renderManagerCharts = function(name) {
+    const m = window._atCardDataMap?.[name];
+    if (!m) return;
     const historyData = window._historyData?.seasonData;
     if (!historyData) return;
 
-    // Reverse name map to find original season name from normalized name
+    const ALL_SEASONS = ['2022/23','2023/24','2024/25','2025/26'];
+
     const NAME_MAP = {
       'Eddy GM':'Eddy Garcia-Montes','Mike Delaus':'Michael DeLaus',
       'Dave Bambrick':'David Bambrick','Rob Disanto':'Rob DiSanto',
@@ -8091,19 +8159,79 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     };
     const normName = n => NAME_MAP[n] || n;
 
+    // Find seasons where either manager appeared
+    const cmpName = window._compareManager;
+    const activeSeasonsSet = new Set();
+    ALL_SEASONS.forEach(label => {
+      const season = historyData[label];
+      if (!season) return;
+      const hasPrimary = season.managers?.some(mm => normName(mm.name) === name);
+      const hasCompare = cmpName && season.managers?.some(mm => normName(mm.name) === cmpName);
+      if (hasPrimary || hasCompare) activeSeasonsSet.add(label);
+    });
+    const SEASON_ORDER = ALL_SEASONS.filter(s => activeSeasonsSet.has(s));
+
+    // Build primary earnings data
     const labels = [];
     const data = [];
+    const inLeague = []; // true if manager was actually in this season
     let cumulative = 0;
     SEASON_ORDER.forEach(label => {
       const season = historyData[label];
       if (!season) return;
       const mgr = season.managers?.find(mm => normName(mm.name) === name);
-      if (mgr !== undefined) {
-        cumulative += mgr ? mgr.earned : 0;
-        labels.push(label);
-        data.push(cumulative);
-      }
+      const wasIn = mgr !== undefined;
+      cumulative += wasIn ? mgr.earned : 0;
+      labels.push(label);
+      data.push(cumulative);
+      inLeague.push(wasIn);
     });
+
+    // Build compare earnings data
+    const cmpData = [];
+    const cmpInLeague = [];
+    if (cmpName) {
+      let cmpCum = 0;
+      SEASON_ORDER.forEach(label => {
+        const season = historyData[label];
+        if (!season) return;
+        const mgr = season.managers?.find(mm => normName(mm.name) === cmpName);
+        const wasIn = mgr !== undefined;
+        cmpCum += wasIn ? mgr.earned : 0;
+        cmpData.push(cmpCum);
+        cmpInLeague.push(wasIn);
+      });
+    }
+
+    // Build primary beers data
+    const bData = [];
+    const bInLeague = [];
+    let bCum = 0;
+    SEASON_ORDER.forEach(label => {
+      const season = historyData[label];
+      if (!season) return;
+      const mgr = season.managers?.find(mm => normName(mm.name) === name);
+      const wasIn = mgr !== undefined;
+      bCum += wasIn ? (mgr?.guinness || 0) + (mgr?.missedBeers || 0) : 0;
+      bData.push(bCum);
+      bInLeague.push(wasIn);
+    });
+
+    // Build compare beers data
+    const cmpBData = [];
+    const cmpBInLeague = [];
+    if (cmpName) {
+      let cmpBCum = 0;
+      SEASON_ORDER.forEach(label => {
+        const season = historyData[label];
+        if (!season) return;
+        const mgr = season.managers?.find(mm => normName(mm.name) === cmpName);
+        const wasIn = mgr !== undefined;
+        cmpBCum += wasIn ? (mgr?.guinness || 0) + (mgr?.missedBeers || 0) : 0;
+        cmpBData.push(cmpBCum);
+        cmpBInLeague.push(wasIn);
+      });
+    }
 
     // Draw chart using Canvas
     requestAnimationFrame(() => {
@@ -8160,121 +8288,174 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       ctx.fillStyle = grad;
       ctx.fill();
 
-      // Line
-      ctx.beginPath();
-      ctx.strokeStyle = theme;
-      ctx.lineWidth = 2.5;
-      ctx.lineJoin = 'round';
-      pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-      ctx.stroke();
+      // Line - segment by segment, gray if either endpoint wasn't in league
+      for (let i = 1; i < pts.length; i++) {
+        const segIn = inLeague[i-1] && inLeague[i];
+        ctx.beginPath();
+        ctx.strokeStyle = segIn ? theme : '#444';
+        ctx.lineWidth = segIn ? 2.5 : 1.5;
+        ctx.setLineDash(segIn ? [] : [3,3]);
+        ctx.lineJoin = 'round';
+        ctx.moveTo(pts[i-1].x, pts[i-1].y);
+        ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
 
       // Dots + labels
       pts.forEach((p, i) => {
+        const wasIn = inLeague[i];
         ctx.beginPath();
         ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-        ctx.fillStyle = theme;
+        ctx.fillStyle = wasIn ? theme : '#444';
         ctx.fill();
         ctx.strokeStyle = 'var(--bg2)';
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        // Season label
         ctx.fillStyle = text3; ctx.font = '10px monospace'; ctx.textAlign = 'center';
         ctx.fillText(labels[i], p.x, H - 6);
 
-        // Value label
-        if (data[i] > 0) {
+        if (data[i] > 0 && wasIn) {
           ctx.fillStyle = theme; ctx.font = 'bold 10px monospace';
           ctx.fillText('$' + data[i].toFixed(0), p.x, p.y - 10);
         }
       });
+
+      // Compare line — amber dashed
+      if (cmpName && cmpData.length >= 2) {
+        const compareColor = '#f59e0b';
+        const cmpMaxVal = Math.max(maxVal, ...cmpData);
+        const cmpPts = cmpData.map((v, i) => ({
+          x: pad.left + (i / (labels.length - 1)) * cW,
+          y: pad.top + cH * (1 - v / cmpMaxVal)
+        }));
+        for (let i = 1; i < cmpPts.length; i++) {
+          ctx.beginPath();
+          const cmpSegIn = cmpInLeague[i-1] && cmpInLeague[i];
+          ctx.strokeStyle = cmpSegIn ? compareColor : '#444';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5,3]);
+          ctx.lineJoin = 'round';
+          ctx.moveTo(cmpPts[i-1].x, cmpPts[i-1].y);
+          ctx.lineTo(cmpPts[i].x, cmpPts[i].y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        cmpPts.forEach((p, i) => {
+          ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+          ctx.fillStyle = cmpInLeague[i] ? compareColor : '#444'; ctx.fill();
+          if (cmpData[i] > 0 && cmpInLeague[i]) {
+            ctx.fillStyle = compareColor; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+            ctx.fillText('$' + cmpData[i].toFixed(0), p.x, p.y - 8);
+          }
+        });
+      }
 
       // Beers chart
       requestAnimationFrame(() => {
         const bCanvas = document.getElementById('beers-chart');
         if (!bCanvas) return;
 
-        // Build beers data per season
-        const bLabels = [];
-        const bData = [];
-        let cumBeers = 0;
-        SEASON_ORDER.forEach(label => {
-          const season = historyData[label];
-          if (!season) return;
-          const mgr = season.managers?.find(mm => normName(mm.name) === name);
-          if (mgr !== undefined) {
-            cumBeers += (mgr?.guinness || 0) + (mgr?.missedBeers || 0);
-            bLabels.push(label);
-            bData.push(cumBeers);
-          }
-        });
+        const dprB = window.devicePixelRatio || 1;
+        const WB = bCanvas.parentElement.clientWidth - 40;
+        const HB = 200;
+        bCanvas.width = WB * dprB; bCanvas.height = HB * dprB;
+        bCanvas.style.width = WB + 'px'; bCanvas.style.height = HB + 'px';
+        const bCtx = bCanvas.getContext('2d');
+        bCtx.scale(dprB, dprB);
 
-        const dpr = window.devicePixelRatio || 1;
-        const W = bCanvas.parentElement.clientWidth - 40;
-        const H = 200;
-        bCanvas.width = W * dpr;
-        bCanvas.height = H * dpr;
-        bCanvas.style.width = W + 'px';
-        bCanvas.style.height = H + 'px';
-        const ctx = bCanvas.getContext('2d');
-        ctx.scale(dpr, dpr);
-
-        const pad = { top: 20, right: 20, bottom: 30, left: 40 };
-        const cW = W - pad.left - pad.right;
-        const cH = H - pad.top - pad.bottom;
+        const bPad = { top: 20, right: 20, bottom: 30, left: 40 };
+        const bCW = WB - bPad.left - bPad.right;
+        const bCH = HB - bPad.top - bPad.bottom;
         const amber = '#f59e0b';
-        const text3 = '#666';
+        const compareColor = '#55e2e9';
+        const bText3 = '#666';
 
-        if (bData.length < 2 || Math.max(...bData) === 0) {
-          ctx.fillStyle = text3; ctx.font = '12px monospace'; ctx.textAlign = 'center';
-          ctx.fillText('No beers yet 🎉', W/2, H/2);
+        if (bData.length < 2 && Math.max(...bData) === 0) {
+          bCtx.fillStyle = bText3; bCtx.font = '12px monospace'; bCtx.textAlign = 'center';
+          bCtx.fillText('No beers yet 🎉', WB/2, HB/2);
           return;
         }
 
-        const maxVal = Math.max(...bData, 1);
+        const bMaxVal = Math.max(...bData, ...(cmpBData.length ? cmpBData : [0]), 1);
+        const bMinVal = 0;
 
-        // Grid lines
-        ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+        // Grid
+        bCtx.strokeStyle = 'rgba(255,255,255,0.06)'; bCtx.lineWidth = 1;
         [0, 0.5, 1].forEach(t => {
-          const y = pad.top + cH * (1 - t);
-          ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cW, y); ctx.stroke();
-          ctx.fillStyle = text3; ctx.font = '10px monospace'; ctx.textAlign = 'right';
-          ctx.fillText(Math.round(maxVal * t), pad.left - 6, y + 4);
+          const y = bPad.top + bCH * (1 - t);
+          bCtx.beginPath(); bCtx.moveTo(bPad.left, y); bCtx.lineTo(bPad.left + bCW, y); bCtx.stroke();
+          bCtx.fillStyle = bText3; bCtx.font = '10px monospace'; bCtx.textAlign = 'right';
+          bCtx.fillText(Math.round(bMaxVal * t), bPad.left - 6, y + 4);
         });
 
-        const pts = bData.map((v, i) => ({
-          x: pad.left + (i / (bData.length - 1)) * cW,
-          y: pad.top + cH * (1 - v / maxVal)
+        const bPts = bData.map((v, i) => ({
+          x: bPad.left + (i / (Math.max(bData.length - 1, 1))) * bCW,
+          y: bPad.top + bCH * (1 - v / bMaxVal)
         }));
 
-        // Gradient fill
-        const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + cH);
-        grad.addColorStop(0, 'rgba(245,158,11,0.25)');
-        grad.addColorStop(1, 'rgba(245,158,11,0)');
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x, pad.top + cH);
-        pts.forEach(p => ctx.lineTo(p.x, p.y));
-        ctx.lineTo(pts[pts.length-1].x, pad.top + cH);
-        ctx.closePath();
-        ctx.fillStyle = grad; ctx.fill();
+        // Line segments for primary
+        if (bPts.length >= 2) {
+          const bGrad = bCtx.createLinearGradient(0, bPad.top, 0, bPad.top + bCH);
+          bGrad.addColorStop(0, 'rgba(245,158,11,0.25)');
+          bGrad.addColorStop(1, 'rgba(245,158,11,0)');
+          bCtx.beginPath(); bCtx.moveTo(bPts[0].x, bPad.top + bCH);
+          bPts.forEach(p => bCtx.lineTo(p.x, p.y));
+          bCtx.lineTo(bPts[bPts.length-1].x, bPad.top + bCH);
+          bCtx.closePath(); bCtx.fillStyle = bGrad; bCtx.fill();
+          for (let i = 1; i < bPts.length; i++) {
+            bCtx.beginPath();
+            const bSegIn = bInLeague[i-1] && bInLeague[i];
+            bCtx.strokeStyle = bSegIn ? amber : '#444';
+            bCtx.lineWidth = bSegIn ? 2.5 : 1.5;
+            bCtx.setLineDash(bSegIn ? [] : [3,3]);
+            bCtx.lineJoin = 'round';
+            bCtx.moveTo(bPts[i-1].x, bPts[i-1].y);
+            bCtx.lineTo(bPts[i].x, bPts[i].y);
+            bCtx.stroke(); bCtx.setLineDash([]);
+          }
+        }
 
-        // Line
-        ctx.beginPath(); ctx.strokeStyle = amber; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
-        pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-        ctx.stroke();
-
-        // Dots + labels
-        pts.forEach((p, i) => {
-          ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-          ctx.fillStyle = amber; ctx.fill();
-          ctx.strokeStyle = 'var(--bg2)'; ctx.lineWidth = 1.5; ctx.stroke();
-          ctx.fillStyle = text3; ctx.font = '10px monospace'; ctx.textAlign = 'center';
-          ctx.fillText(bLabels[i], p.x, H - 6);
-          if (bData[i] > 0) {
-            ctx.fillStyle = amber; ctx.font = 'bold 10px monospace';
-            ctx.fillText(bData[i], p.x, p.y - 10);
+        // Dots + labels for primary
+        bPts.forEach((p, i) => {
+          bCtx.beginPath(); bCtx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          bCtx.fillStyle = bInLeague[i] ? amber : '#444'; bCtx.fill();
+          bCtx.strokeStyle = 'var(--bg2)'; bCtx.lineWidth = 1.5; bCtx.stroke();
+          bCtx.fillStyle = bText3; bCtx.font = '10px monospace'; bCtx.textAlign = 'center';
+          bCtx.fillText(labels[i], p.x, HB - 6);
+          if (bData[i] > 0 && bInLeague[i]) {
+            bCtx.fillStyle = amber; bCtx.font = 'bold 10px monospace';
+            bCtx.fillText(bData[i], p.x, p.y - 10);
           }
         });
+
+        // Compare line for beers — theme cyan dashed
+        if (cmpName && cmpBData.length >= 2) {
+          const cmpBPts = cmpBData.map((v, i) => ({
+            x: bPad.left + (i / (Math.max(cmpBData.length - 1, 1))) * bCW,
+            y: bPad.top + bCH * (1 - v / bMaxVal)
+          }));
+          for (let i = 1; i < cmpBPts.length; i++) {
+            bCtx.beginPath();
+            const cmpBSegIn = cmpBInLeague[i-1] && cmpBInLeague[i];
+            bCtx.strokeStyle = cmpBSegIn ? compareColor : '#444';
+            bCtx.lineWidth = 2;
+            bCtx.setLineDash([5,3]);
+            bCtx.lineJoin = 'round';
+            bCtx.moveTo(cmpBPts[i-1].x, cmpBPts[i-1].y);
+            bCtx.lineTo(cmpBPts[i].x, cmpBPts[i].y);
+            bCtx.stroke(); bCtx.setLineDash([]);
+          }
+          cmpBPts.forEach((p, i) => {
+            bCtx.beginPath(); bCtx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+            bCtx.fillStyle = cmpBInLeague[i] ? compareColor : '#444'; bCtx.fill();
+            if (cmpBData[i] > 0 && cmpBInLeague[i]) {
+              bCtx.fillStyle = compareColor; bCtx.font = 'bold 9px monospace'; bCtx.textAlign = 'center';
+              bCtx.fillText(cmpBData[i], p.x, p.y - 8);
+            }
+          });
+        }
       });
     });
   };
