@@ -2022,7 +2022,7 @@ async function init() {
        Date.now() - (window._lastMinutesFetch||0) > 2 * 60 * 1000);
     if (shouldRefreshMinutes) {
       window._lastMinutesFetch = Date.now();
-      fetchFPL('event/' + currentGW + '/live/').then(liveData => {
+      fetchFPL('event/' + currentGW + '/live/?t=' + Date.now()).then(liveData => {
         if (!window._playerPtsCache) window._playerPtsCache = {};
         if (!window._playerMinutesCache) window._playerMinutesCache = {};
         liveData.elements.forEach(e => {
@@ -2035,7 +2035,7 @@ async function init() {
       window._liveScoreFetchInProgress = true;
       (async () => {
         try {
-          const liveData = await fetchFPL('event/' + currentGW + '/live/');
+          const liveData = await fetchFPL('event/' + currentGW + '/live/?t=' + Date.now());
           // Also fetch and store fixtures globally for sub detection
           try {
             const fixturesData = await fetchFPL('fixtures/?event=' + currentGW);
@@ -2999,7 +2999,7 @@ async function init() {
     try {
       const [fixtures, liveData] = await Promise.all([
         fetchFPL('fixtures/?event=' + gw),
-        fetchFPL('event/' + gw + '/live/'),
+        fetchFPL('event/' + gw + '/live/?t=' + Date.now()),
       ]);
       fixtures.filter(f => f.started || f.finished || f.finished_provisional).forEach(f => {
         startedTeams.add(f.team_h);
@@ -3250,35 +3250,26 @@ async function init() {
             let playerStats = {};
             let fixtureMap = {}; // teamId -> fixture
             if (state.isLive && window._liveScoreCacheGW?.[drawerGW]) {
-              Object.entries(window._liveScoreCacheGW[drawerGW]).forEach(([pid, s]) => {
-                // _liveScoreCacheGW stores per-manager, not per-player
-              });
-              // Fetch live player stats and fixtures
+              // Fetch live player stats and fixtures with cache-bust
               try {
                 const [liveData, fixtureData] = await Promise.all([
-                  fetchFPL('event/' + drawerGW + '/live/'),
+                  fetchFPL('event/' + drawerGW + '/live/?t=' + Date.now()),
                   fetchFPL('fixtures/?event=' + drawerGW)
                 ]);
                 liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; playerStats[e.id] = e.stats; });
                 fixtureData.forEach(f => {
-                  if (f.started) {
-                    fixtureMap[f.team_h] = f;
-                    fixtureMap[f.team_a] = f;
-                  }
+                  if (f.started) { fixtureMap[f.team_h] = f; fixtureMap[f.team_a] = f; }
                 });
               } catch(e) {}
             } else {
               try {
                 const [liveData, fixtureData] = await Promise.all([
-                  fetchFPL('event/' + drawerGW + '/live/'),
+                  fetchFPL('event/' + drawerGW + '/live/?t=' + Date.now()),
                   fetchFPL('fixtures/?event=' + drawerGW)
                 ]);
                 liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; playerStats[e.id] = e.stats; });
                 fixtureData.forEach(f => {
-                  if (f.started) {
-                    fixtureMap[f.team_h] = f;
-                    fixtureMap[f.team_a] = f;
-                  }
+                  if (f.started) { fixtureMap[f.team_h] = f; fixtureMap[f.team_a] = f; }
                 });
               } catch(e) {}
             }
@@ -3789,7 +3780,7 @@ async function init() {
       '<div class="loading-state"><span class="spinner"></span>Loading live GW' + gw + ' scores...</div>';
     try {
       // Fetch live player scores
-      const liveData = await fetchFPL('event/' + gw + '/live/');
+      const liveData = await fetchFPL('event/' + gw + '/live/?t=' + Date.now());
       const liveScores = {};
       liveData.elements.forEach(e => {
         liveScores[e.id] = e.stats.total_points;
@@ -4032,7 +4023,7 @@ async function init() {
 
     // Fetch live stats + fixtures upfront
     const [liveStatsRes, fixturesRes] = await Promise.allSettled([
-      fetchFPL('event/' + gw + '/live/'),
+      fetchFPL('event/' + gw + '/live/?t=' + Date.now()),
       fetchFPL('fixtures/?event=' + gw),
     ]);
 
@@ -4448,7 +4439,7 @@ async function init() {
   async function fetchLiveStats(gw) {
     if (_liveStatsCache[gw]) return _liveStatsCache[gw];
     try {
-      const data = await fetchFPL('event/' + gw + '/live/');
+      const data = await fetchFPL('event/' + gw + '/live/?t=' + Date.now());
       const stats = {};
       data.elements.forEach(el => {
         const s = el.stats;
@@ -4858,7 +4849,7 @@ async function buildPrompt(gw) {
   fetchAllGWDetails(gw, ranked),
   fetchChipsForGW(gw),
   fetchOwnershipForGW(gw),
-  fetchFPL('event/' + gw + '/live/')
+  fetchFPL('event/' + gw + '/live/?t=' + Date.now())
 ]);
 
     const summaryLines = ranked.map((m, idx) => {
@@ -7611,7 +7602,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
     try {
       // Fetch full picks + live data for all managers
-      const liveData = await fetchFPL('event/' + gw + '/live/');
+      const liveData = await fetchFPL('event/' + gw + '/live/?t=' + Date.now());
       const playerPts = {};
       liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; });
 
@@ -8461,7 +8452,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const gw = state.isLive ? state.liveGW : state.latestGW;
     try {
       // Re-fetch live player data only (1 call)
-      const liveData = await fetchFPL('event/' + gw + '/live/');
+      const liveData = await fetchFPL('event/' + gw + '/live/?t=' + Date.now());
       if (!window._playerPtsCache) window._playerPtsCache = {};
       if (!window._playerMinutesCache) window._playerMinutesCache = {};
       liveData.elements.forEach(e => {
@@ -8516,10 +8507,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._liveScoreFetchInProgress = false;
       window._picksFetchInProgress = false;
       window._lastManualRefresh = Date.now();
-      // Clear stale score cache so renderStandings recomputes with fresh minutes
-      if (window._liveScoreCacheGW) delete window._liveScoreCacheGW[gw];
-      // Clear stale localStorage cache so other devices get fresh data
-      try { localStorage.removeItem('ff_live_scores_' + gw); } catch(e) {}
+      // Save fresh data to localStorage
+      try { localStorage.setItem('ff_live_scores_' + gw, JSON.stringify({ data: window._liveScoreCacheGW[gw], ts: Date.now() })); } catch(e) {}
       // Also refresh fixtures
       window._fixturesFetchedAt = 0;
       window._fixtureFetchInProgress = false;
