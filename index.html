@@ -1938,13 +1938,21 @@ async function init() {
     }
 
     // Always refresh fixture counts when live
-    if (state.isLive && state.fixturesTotal === undefined && !window._fixtureFetchInProgress) {
+    if (state.isLive && !window._fixtureFetchInProgress && (state.fixturesTotal === undefined || Date.now() - (window._fixturesFetchedAt||0) > 2 * 60 * 1000)) {
       window._fixtureFetchInProgress = true;
       fetchFPL('fixtures/?event=' + currentGW).then(fixtures => {
         const total = fixtures.length;
-        state.fixturesOngoing = fixtures.filter(f => f.started && !f.finished).length;
-        state.fixturesRemaining = Math.max(0, total - fixtures.filter(f => f.finished).length - state.fixturesOngoing);
+        const isFinished = f => f.finished || f.finished_provisional;
+        state.fixturesOngoing = fixtures.filter(f => f.started && !isFinished(f)).length;
+        state.fixturesRemaining = Math.max(0, total - fixtures.filter(f => isFinished(f)).length - state.fixturesOngoing);
         state.fixturesTotal = total;
+        window._fixturesFetchedAt = Date.now();
+        // Update global fixture map for auto-sub detection
+        window._fixturesByTeam = {};
+        fixtures.forEach(f => {
+          window._fixturesByTeam[f.team_h] = f;
+          window._fixturesByTeam[f.team_a] = f;
+        });
         window._fixtureFetchInProgress = false;
         window._renderStandingsInProgress = false;
         renderStandings();
@@ -2076,8 +2084,7 @@ async function init() {
                         if (!el) return false;
                         const f = (window._fixturesByTeam||{})[el.team];
                         if (!f) return false;
-                        return f.finished || f.finished_provisional || 
-                          (f.team_h_score !== null && f.team_a_score !== null);
+                        return f.finished || f.finished_provisional;
                       };
                       // Apply predicted subs if no confirmed subs yet
                       if (!isBB && !picks.automatic_subs?.length) {
@@ -3242,8 +3249,7 @@ async function init() {
               const f = fixtureMap[el.team];
               if (!f) return false;
               // Consider finished if API says so, OR if score exists and minutes suggest full time
-              return f.finished || f.finished_provisional || 
-                (f.team_h_score !== null && f.team_a_score !== null && (playerStats[id]?.minutes ?? 0) === 0);
+              return f.finished || f.finished_provisional;
             };
             const playerPlayed = id => (playerStats[id]?.minutes ?? -1) > 0;
             const playerDataAvailable = id => playerStats[id] !== undefined;
