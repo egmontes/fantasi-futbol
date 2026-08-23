@@ -313,6 +313,7 @@
       color: var(--theme);
     }
     .stat-card .s-value.single-line { font-size: clamp(20px, 4vw, 30px); letter-spacing: -0.03em; }
+    .stat-card .s-value.big-value { font-size: clamp(48px, 10vw, 64px) !important; display: flex !important; align-items: center; justify-content: center; flex: 1; }
 
     /* TABLE */
     .table-outer { overflow-x: auto; }
@@ -2407,8 +2408,8 @@ async function init() {
       (mostCaptained ? '<div class="stat-card stat-card-gold"><div class="s-label">©️ GW' + gwLabel + ' Most Captained</div><div class="s-value">' + esc(mostCaptained.name) + '<br>' + mostCaptained.count + ' mgrs</div></div>' : '') +
       (biggestMoverUp ? '<div class="stat-card stat-card-green"><div class="s-label">🚀 GW' + gwLabel + ' Biggest Mover Up</div><div class="s-value">' + esc(biggestMoverUp.name) + (biggestMoverUp.change !== 0 ? '<br>▲' + biggestMoverUp.change + ' spots' : '') + '</div></div>' : '') +
       (biggestMoverDown ? '<div class="stat-card stat-card-red"><div class="s-label">📉 GW' + gwLabel + ' Biggest Mover Down</div><div class="s-value">' + esc(biggestMoverDown.name) + (biggestMoverDown.change !== 0 ? '<br>▼' + Math.abs(biggestMoverDown.change) + ' spots' : '') + '</div></div>' : '') +
-      (completedGWsForPool > 0 || isSeasonOver ? '<div class="stat-card"><div class="s-label">' + (isSeasonOver ? '💵 Total Payouts' : '💵 Payouts So Far') + '</div><div class="s-value single-line">$' + totalPool + '</div></div>' : '') +
-      '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Guinness Chugged</div><div class="s-value single-line">' + rows2.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
+      (completedGWsForPool > 0 || isSeasonOver ? '<div class="stat-card" style="height:110px;"><div class="s-label">' + (isSeasonOver ? '💵 Total Payouts' : '💵 Payouts So Far') + '</div><div class="s-value big-value">$' + totalPool + '</div></div>' : '') +
+      '<div class="stat-card stat-card-guinness" style="height:110px;"><div class="s-label">🍺 Guinness Chugged</div><div class="s-value big-value">' + rows2.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
       (mostGuinness && mostGuinness.totalG > 0 ? '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Most Guinness</div><div class="s-value">' + esc(mostGuinness.name) + '<br>' + mostGuinness.totalG + '</div></div>' : '') +
       (mostTop4 && mostTop4.top4 > 0 ? '<div class="stat-card stat-card-green"><div class="s-label">🏆 Most Top 4 Finishes</div><div class="s-value">' + esc(mostTop4.name) + '<br>' + mostTop4.top4 + ' times</div></div>' : '') +
       (mostBottom2 && mostBottom2.bottom2 > 0 ? '<div class="stat-card stat-card-red"><div class="s-label">💀 Most Bottom 2 Finishes</div><div class="s-value">' + esc(mostBottom2.name) + '<br>' + mostBottom2.bottom2 + ' times</div></div>' : '') +
@@ -8027,6 +8028,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         <div style="font-size:9px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;">💰 Earnings Over Time</div>
         <canvas id="earnings-chart" style="width:100%;height:200px;"></canvas>
       </div>
+      <div style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.25);margin-top:12px;">
+        <div style="font-size:9px;color:var(--amber);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;">🍺 Beers Over Time</div>
+        <canvas id="beers-chart" style="width:100%;height:200px;"></canvas>
+      </div>
     `;
 
     // Build earnings data from seasonResults
@@ -8140,6 +8145,94 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           ctx.fillStyle = theme; ctx.font = 'bold 10px monospace';
           ctx.fillText('$' + data[i].toFixed(0), p.x, p.y - 10);
         }
+      });
+
+      // Beers chart
+      requestAnimationFrame(() => {
+        const bCanvas = document.getElementById('beers-chart');
+        if (!bCanvas) return;
+
+        // Build beers data per season
+        const bLabels = [];
+        const bData = [];
+        let cumBeers = 0;
+        SEASON_ORDER.forEach(label => {
+          const season = historyData[label];
+          if (!season) return;
+          const mgr = season.managers?.find(mm => normName(mm.name) === name);
+          if (mgr !== undefined) {
+            cumBeers += (mgr?.guinness || 0) + (mgr?.missedBeers || 0);
+            bLabels.push(label);
+            bData.push(cumBeers);
+          }
+        });
+
+        const dpr = window.devicePixelRatio || 1;
+        const W = bCanvas.parentElement.clientWidth - 40;
+        const H = 200;
+        bCanvas.width = W * dpr;
+        bCanvas.height = H * dpr;
+        bCanvas.style.width = W + 'px';
+        bCanvas.style.height = H + 'px';
+        const ctx = bCanvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+
+        const pad = { top: 20, right: 20, bottom: 30, left: 40 };
+        const cW = W - pad.left - pad.right;
+        const cH = H - pad.top - pad.bottom;
+        const amber = '#f59e0b';
+        const text3 = '#666';
+
+        if (bData.length < 2 || Math.max(...bData) === 0) {
+          ctx.fillStyle = text3; ctx.font = '12px monospace'; ctx.textAlign = 'center';
+          ctx.fillText('No beers yet 🎉', W/2, H/2);
+          return;
+        }
+
+        const maxVal = Math.max(...bData, 1);
+
+        // Grid lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+        [0, 0.5, 1].forEach(t => {
+          const y = pad.top + cH * (1 - t);
+          ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cW, y); ctx.stroke();
+          ctx.fillStyle = text3; ctx.font = '10px monospace'; ctx.textAlign = 'right';
+          ctx.fillText(Math.round(maxVal * t), pad.left - 6, y + 4);
+        });
+
+        const pts = bData.map((v, i) => ({
+          x: pad.left + (i / (bData.length - 1)) * cW,
+          y: pad.top + cH * (1 - v / maxVal)
+        }));
+
+        // Gradient fill
+        const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + cH);
+        grad.addColorStop(0, 'rgba(245,158,11,0.25)');
+        grad.addColorStop(1, 'rgba(245,158,11,0)');
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pad.top + cH);
+        pts.forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.lineTo(pts[pts.length-1].x, pad.top + cH);
+        ctx.closePath();
+        ctx.fillStyle = grad; ctx.fill();
+
+        // Line
+        ctx.beginPath(); ctx.strokeStyle = amber; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+        pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        ctx.stroke();
+
+        // Dots + labels
+        pts.forEach((p, i) => {
+          ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          ctx.fillStyle = amber; ctx.fill();
+          ctx.strokeStyle = 'var(--bg2)'; ctx.lineWidth = 1.5; ctx.stroke();
+          ctx.fillStyle = text3; ctx.font = '10px monospace'; ctx.textAlign = 'center';
+          ctx.fillText(bLabels[i], p.x, H - 6);
+          if (bData[i] > 0) {
+            ctx.fillStyle = amber; ctx.font = 'bold 10px monospace';
+            ctx.fillText(bData[i], p.x, p.y - 10);
+          }
+        });
       });
     });
   };
