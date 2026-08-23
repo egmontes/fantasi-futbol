@@ -8436,24 +8436,74 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const icon = document.getElementById('refresh-icon');
     if (icon) icon.classList.add('spinning');
     if (btn) btn.disabled = true;
-    // Clear live score caches but keep chips/picks to avoid rate limiting
-    const gw = state.isLive ? state.liveGW : state.latestGW;
-    if (window._liveScoreCacheGW) delete window._liveScoreCacheGW[gw];
-    try { localStorage.removeItem('ff_live_scores_' + gw); } catch(e) {}
-    window._liveScoreFetchInProgress = false;
-    window._picksFetchInProgress = false;
-    window._picksCache = {};
-    window._fixturesFetchedAt = 0;
-    window._fixtureFetchInProgress = false;
-    window._renderStandingsInProgress = false;
-    // Fade out, refresh, fade in
+
     const content = document.getElementById('standings-content');
-    if (content) content.style.transition = 'opacity 0.15s';
-    if (content) content.style.opacity = '0.4';
-    const [_] = await Promise.all([
+    if (content) { content.style.transition = 'opacity 0.15s'; content.style.opacity = '0.4'; }
+
+    const gw = state.isLive ? state.liveGW : state.latestGW;
+    try {
+      // Re-fetch live player data only (1 call)
+      const liveData = await fetchFPL('event/' + gw + '/live/');
+      if (!window._playerPtsCache) window._playerPtsCache = {};
+      if (!window._playerMinutesCache) window._playerMinutesCache = {};
+      liveData.elements.forEach(e => {
+        window._playerPtsCache[e.id] = e.stats.total_points;
+        window._playerMinutesCache[e.id] = e.stats.minutes;
+      });
+
+      // Recompute scores from existing picks + fresh player data
+      if (!window._liveScoreCacheGW) window._liveScoreCacheGW = {};
+      if (!window._liveScoreCacheGW[gw]) window._liveScoreCacheGW[gw] = {};
+      Object.entries(window._picksCache || {}).forEach(([key, picks]) => {
+        if (!key.endsWith('_' + gw)) return;
+        const mid = parseInt(key.split('_')[0]);
+        if (!picks?.picks) return;
+        const isBB = picks.active_chip === 'bboost' || state.chipsHistory?.[mid]?.[gw] === 'bboost';
+        const maxPos = isBB ? 15 : 11;
+        const startingEls = picks.picks.filter(p => p.position <= maxPos).map(p => ({...p}));
+        const benchEls = picks.picks.filter(p => p.position > maxPos);
+        const getElType = id => (state.bootstrapElements||[]).find(e=>e.id===id)?.element_type || 0;
+        const elDone = id => { const el = (state.bootstrapElements||[]).find(e=>e.id===id); if(!el) return false; const f=(window._fixturesByTeam||{})[el.team]; return f?(f.finished||f.finished_provisional):false; };
+        if (!isBB && !picks.automatic_subs?.length) {
+          const usedBench = new Set();
+          for (let si = 0; si < startingEls.length; si++) {
+            const starter = startingEls[si];
+            if ((window._playerMinutesCache[starter.element]??-1) > 0) continue;
+            if (window._playerMinutesCache[starter.element] === undefined) continue;
+            if (!elDone(starter.element)) continue;
+            const sType = getElType(starter.element);
+            for (const bench of benchEls.filter(b=>!usedBench.has(b.element))) {
+              if ((window._playerMinutesCache[bench.element]??0) === 0) continue;
+              const bType = getElType(bench.element);
+              if (sType===1 && bType!==1) continue;
+              if (sType!==1 && bType===1) continue;
+              startingEls[si] = {...bench, multiplier: starter.multiplier};
+              usedBench.add(bench.element);
+              break;
+            }
+          }
+        }
+        let rawPts = 0, played = 0, remaining = 0;
+        startingEls.forEach(p => {
+          rawPts += (window._playerPtsCache[p.element]||0) * p.multiplier;
+          const count = p.multiplier;
+          if ((window._playerMinutesCache[p.element]||0) > 0) played += count;
+          else remaining += count;
+        });
+        const hit = picks.entry_history?.event_transfers_cost || 0;
+        window._liveScoreCacheGW[gw][mid] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
+      });
+
+      // Also refresh fixtures
+      window._fixturesFetchedAt = 0;
+      window._fixtureFetchInProgress = false;
+    } catch(e) { console.warn('Refresh error:', e); }
+
+    await Promise.all([
       renderStandings(),
       new Promise(r => setTimeout(r, 400))
     ]);
+
     if (content) content.style.opacity = '1';
     if (icon) icon.classList.remove('spinning');
     if (btn) btn.disabled = false;
