@@ -8285,7 +8285,14 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const historyData = window._historyData?.seasonData;
     if (!historyData) return;
 
-    const seasons = ['2022/23', '2023/24', '2024/25', '2025/26', '2026/27'];
+    // Use static season counts — don't use live data which inflates numbers
+    const SEASON_COUNTS = {
+      '2022/23': null, // computed from season data
+      '2023/24': null,
+      '2024/25': null,
+      '2025/26': null,
+      '2026/27': null,
+    };
     const NAME_MAP_R = {
       'Eddy GM':'Eddy Garcia-Montes','Mike Delaus':'Michael DeLaus',
       'Dave Bambrick':'David Bambrick','Rob Disanto':'Rob DiSanto',
@@ -8296,13 +8303,21 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const normN = n => NAME_MAP_R[n] || n;
     const allManagers = new Set();
     const labels = [], data = [];
-    seasons.forEach(label => {
+    // Only use past seasons from static JSONs (not live-computed seasons)
+    const staticSeasons = ['2022/23', '2023/24', '2024/25', '2025/26'];
+    staticSeasons.forEach(label => {
       const season = historyData[label];
       if (!season?.managers?.length) return;
       season.managers.forEach(m => allManagers.add(normN(m.name)));
       labels.push(label);
       data.push(allManagers.size);
     });
+    // Add 2026/27 from state.managers count if available
+    if (state.managers.length > 0) {
+      state.managers.forEach(m => allManagers.add(m.name));
+      labels.push('2026/27');
+      data.push(allManagers.size);
+    }
 
     if (data.length < 2) return;
 
