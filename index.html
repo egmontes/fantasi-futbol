@@ -2146,7 +2146,10 @@ async function init() {
                         else remaining += count;
                       });
                       const hit = picks.entry_history?.event_transfers_cost || 0;
-                      window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
+                      // Don't overwrite if manual refresh happened in last 30s
+                      if (!window._lastManualRefresh || Date.now() - window._lastManualRefresh > 30000) {
+                        window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
+                      }
                     } catch(e) {}
                   }));
                 }
@@ -2659,7 +2662,7 @@ async function init() {
         if (kluis > 0) html += '<span class="badge" style="background:rgba(255,215,0,0.12);color:#FFD700;border:1px solid rgba(255,215,0,0.3);display:inline-flex;flex-direction:column;align-items:center;padding:2px 5px;line-height:1.3;flex-shrink:0;"><span style="font-size:11px;">🎬</span><span style="font-size:9px;">$' + kluis + '</span></span>';
       }
       html += '</div>';
-      html += '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">' + esc(m.team) + '</div>';
+      html += '<div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);">' + esc(m.team) + '</div>';
       // Stats chips left-aligned under name
       html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
       if (earned >= 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + (earned > 0 ? 'var(--green)' : 'var(--text3)') + ';background:' + (earned > 0 ? 'var(--green-dim)' : 'var(--bg3)') + ';border-radius:6px;padding:3px 8px;">$' + earned.toFixed(2) + '</span>';
@@ -2718,7 +2721,7 @@ async function init() {
         html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:var(--red);min-width:28px;align-self:center;">—</span>';
         html += '<div style="flex:1;min-width:0;">';
         html += '<div style="font-weight:700;font-size:15px;color:var(--red);opacity:0.7;display:flex;align-items:center;gap:5px;">' + esc(km.name) + '&nbsp;<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);opacity:0.5;font-weight:400;">kicked</span></div>';
-        html += '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">' + esc(km.team) + '</div>';
+        html += '<div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);">' + esc(km.team) + '</div>';
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--text3);background:var(--bg3);border-radius:6px;padding:3px 8px;">$0.00</span>';
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--red);">Bot 2:</span><span style="color:var(--text);">2</span></span>';
@@ -8494,9 +8497,16 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         window._liveScoreCacheGW[gw][mid] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
       });
 
+      // Mark live fetch as complete so renderStandings doesn't re-fetch and overwrite
+      window._liveScoreFetchInProgress = false;
+      window._picksFetchInProgress = false;
+      window._lastManualRefresh = Date.now();
       // Also refresh fixtures
       window._fixturesFetchedAt = 0;
       window._fixtureFetchInProgress = false;
+
+      // Save to localStorage so page reload keeps fresh data
+      try { localStorage.setItem('ff_live_scores_' + gw, JSON.stringify({ data: window._liveScoreCacheGW[gw], ts: Date.now() })); } catch(e) {}
     } catch(e) { console.warn('Refresh error:', e); }
 
     await Promise.all([
