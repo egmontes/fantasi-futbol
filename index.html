@@ -2016,6 +2016,21 @@ async function init() {
     const shouldFetchLive = !window._liveScoreCacheGW[currentGW] && !window._liveScoreFetchInProgress &&
       !isSeasonOver &&
       (state.isLive || currentGW === state.latestGW);
+    // Always refresh player minutes in background when live (even if we have cached scores)
+    const shouldRefreshMinutes = state.isLive && !window._liveScoreFetchInProgress && !shouldFetchLive &&
+      (!window._playerMinutesCache || !Object.keys(window._playerMinutesCache).length ||
+       Date.now() - (window._lastMinutesFetch||0) > 2 * 60 * 1000);
+    if (shouldRefreshMinutes) {
+      window._lastMinutesFetch = Date.now();
+      fetchFPL('event/' + currentGW + '/live/').then(liveData => {
+        if (!window._playerPtsCache) window._playerPtsCache = {};
+        if (!window._playerMinutesCache) window._playerMinutesCache = {};
+        liveData.elements.forEach(e => {
+          window._playerPtsCache[e.id] = e.stats.total_points;
+          window._playerMinutesCache[e.id] = e.stats.minutes;
+        });
+      }).catch(() => {});
+    }
     if (shouldFetchLive) {
       window._liveScoreFetchInProgress = true;
       (async () => {
