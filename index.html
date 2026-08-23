@@ -2007,7 +2007,7 @@ async function init() {
         const saved = localStorage.getItem('ff_live_scores_' + currentGW);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Date.now() - parsed.ts < 5 * 60 * 1000) window._liveScoreCacheGW[currentGW] = parsed.data;
+          if (Date.now() - parsed.ts < 60 * 1000) window._liveScoreCacheGW[currentGW] = parsed.data;
         }
       } catch(e) {}
     }
@@ -8501,6 +8501,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._liveScoreFetchInProgress = false;
       window._picksFetchInProgress = false;
       window._lastManualRefresh = Date.now();
+      // Clear stale localStorage cache so other devices get fresh data
+      try { localStorage.removeItem('ff_live_scores_' + gw); } catch(e) {}
       // Also refresh fixtures
       window._fixturesFetchedAt = 0;
       window._fixtureFetchInProgress = false;
