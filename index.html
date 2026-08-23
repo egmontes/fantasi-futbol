@@ -846,6 +846,12 @@
       <div style="font-family:var(--font-display);font-size:32px;color:var(--text);letter-spacing:1px;margin-bottom:4px;">Stats <span style="color:var(--theme);">Hub</span></div>
       <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:1.5rem;">Select a manager to explore their history</div>
 
+      <!-- League growth chart -->
+      <div style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:16px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.25);margin-bottom:16px;">
+        <div style="font-size:9px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">👥 League Growth</div>
+        <canvas id="growth-chart" style="width:100%;height:120px;"></canvas>
+      </div>
+
       <!-- Search bar -->
       <div style="position:relative;margin-bottom:16px;">
         <input id="stats-search" type="text" placeholder="Search managers..." oninput="window._filterStatsManagers(this.value)"
@@ -7992,6 +7998,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       updateStickyOffsets();
     }
     window._renderStatsManagerList(document.getElementById('stats-search')?.value || '');
+    window._renderGrowthChart();
   };
 
   window._renderStatsManagerList = function(filter) {
@@ -8036,6 +8043,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       <div id="stats-manager-list" style="display:flex;flex-direction:column;gap:8px;"></div>
     `;
     window._renderStatsManagerList('');
+    window._renderGrowthChart();
   };
 
   window._filterStatsManagers = function(val) {
@@ -8267,6 +8275,91 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
             ctx.fillText(bData[i], p.x, p.y - 10);
           }
         });
+      });
+    });
+  };
+
+  window._renderGrowthChart = function() {
+    const canvas = document.getElementById('growth-chart');
+    if (!canvas) return;
+    const historyData = window._historyData?.seasonData;
+    if (!historyData) return;
+
+    const seasons = ['2022/23', '2023/24', '2024/25', '2025/26', '2026/27'];
+    const NAME_MAP_R = {
+      'Eddy GM':'Eddy Garcia-Montes','Mike Delaus':'Michael DeLaus',
+      'Dave Bambrick':'David Bambrick','Rob Disanto':'Rob DiSanto',
+      'Zach Duguid':'Zachary Duguid','Harry Wang':'Harrison Wang',
+      'Mitch Pattullo':'Mitchel Pattullo','JCarr Gamble':'J. Carr Gamble',
+      'Tommy Mayer':'Thomas Mayer','Andrew Denucci':'Andrew DeNucci',
+    };
+    const normN = n => NAME_MAP_R[n] || n;
+    const allManagers = new Set();
+    const labels = [], data = [];
+    seasons.forEach(label => {
+      const season = historyData[label];
+      if (!season?.managers?.length) return;
+      season.managers.forEach(m => allManagers.add(normN(m.name)));
+      labels.push(label);
+      data.push(allManagers.size);
+    });
+
+    if (data.length < 2) return;
+
+    requestAnimationFrame(() => {
+      const dpr = window.devicePixelRatio || 1;
+      const W = canvas.parentElement.clientWidth - 40;
+      const H = 120;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      const pad = { top: 16, right: 30, bottom: 28, left: 36 };
+      const cW = W - pad.left - pad.right;
+      const cH = H - pad.top - pad.bottom;
+      const maxVal = Math.max(...data);
+      const minVal = Math.min(...data);
+      const range = maxVal - minVal || 1;
+      const theme = '#55e2e9';
+      const text3 = '#666';
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+      [0, 0.5, 1].forEach(t => {
+        const v = Math.round(minVal + range * t);
+        const y = pad.top + cH * (1 - (v - minVal) / range);
+        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cW, y); ctx.stroke();
+        ctx.fillStyle = text3; ctx.font = '10px monospace'; ctx.textAlign = 'right';
+        ctx.fillText(v, pad.left - 4, y + 3);
+      });
+
+      const pts = data.map((v, i) => ({
+        x: pad.left + (i / (data.length - 1)) * cW,
+        y: pad.top + cH * (1 - (v - minVal) / range)
+      }));
+
+      const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + cH);
+      grad.addColorStop(0, 'rgba(85,226,233,0.2)');
+      grad.addColorStop(1, 'rgba(85,226,233,0)');
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pad.top + cH);
+      pts.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.lineTo(pts[pts.length-1].x, pad.top + cH);
+      ctx.closePath();
+      ctx.fillStyle = grad; ctx.fill();
+
+      ctx.beginPath(); ctx.strokeStyle = theme; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+      pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+
+      pts.forEach((p, i) => {
+        ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = theme; ctx.fill();
+        ctx.strokeStyle = 'var(--bg2)'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.fillStyle = text3; ctx.font = '10px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(labels[i], p.x, H - 4);
+        ctx.fillStyle = theme; ctx.font = 'bold 10px monospace';
+        ctx.fillText(data[i], p.x, p.y - 8);
       });
     });
   };
