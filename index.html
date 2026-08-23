@@ -8516,6 +8516,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._liveScoreFetchInProgress = false;
       window._picksFetchInProgress = false;
       window._lastManualRefresh = Date.now();
+      // Clear stale score cache so renderStandings recomputes with fresh minutes
+      if (window._liveScoreCacheGW) delete window._liveScoreCacheGW[gw];
       // Clear stale localStorage cache so other devices get fresh data
       try { localStorage.removeItem('ff_live_scores_' + gw); } catch(e) {}
       // Also refresh fixtures
