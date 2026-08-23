@@ -8075,7 +8075,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const clear = document.getElementById('compare-clear');
     const dropdown = document.getElementById('compare-dropdown');
     if (input) input.value = name;
-    if (label) { label.textContent = 'vs ' + name; label.style.display = 'block'; }
+    if (label) { 
+      label.innerHTML = '<span style="color:var(--theme);">' + esc(window._currentStatManager) + '</span> <span style="color:var(--text3);">vs.</span> <span style="color:#f59e0b;">' + esc(name) + '</span>'; 
+      label.style.display = 'block'; 
+    }
     if (clear) clear.style.display = 'block';
     if (dropdown) dropdown.style.display = 'none';
     // Re-render charts with comparison
@@ -8132,7 +8135,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         <canvas id="earnings-chart" style="width:100%;height:200px;"></canvas>
       </div>
       <div style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.25);margin-top:12px;">
-        <div style="font-size:9px;color:var(--amber);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;">🍺 Beers Over Time</div>
+        <div style="font-size:9px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;">🍺 Beers Over Time</div>
         <canvas id="beers-chart" style="width:100%;height:200px;"></canvas>
       </div>
     `;
@@ -8316,13 +8319,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         ctx.fillStyle = text3; ctx.font = '10px monospace'; ctx.textAlign = 'center';
         ctx.fillText(labels[i], p.x, H - 6);
 
-        if (data[i] > 0 && wasIn) {
-          ctx.fillStyle = theme; ctx.font = 'bold 10px monospace';
-          ctx.fillText('$' + data[i].toFixed(0), p.x, p.y - 10);
-        }
+        // Value labels drawn after compare is computed (offset-aware below)
       });
 
-      // Compare line — amber dashed
+      // Compare line — amber solid
       if (cmpName && cmpData.length >= 2) {
         const compareColor = '#f59e0b';
         const cmpMaxVal = Math.max(maxVal, ...cmpData);
@@ -8335,19 +8335,39 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           const cmpSegIn = cmpInLeague[i-1] && cmpInLeague[i];
           ctx.strokeStyle = cmpSegIn ? compareColor : '#444';
           ctx.lineWidth = 2;
-          ctx.setLineDash([5,3]);
           ctx.lineJoin = 'round';
           ctx.moveTo(cmpPts[i-1].x, cmpPts[i-1].y);
           ctx.lineTo(cmpPts[i].x, cmpPts[i].y);
           ctx.stroke();
-          ctx.setLineDash([]);
         }
         cmpPts.forEach((p, i) => {
           ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
           ctx.fillStyle = cmpInLeague[i] ? compareColor : '#444'; ctx.fill();
           if (cmpData[i] > 0 && cmpInLeague[i]) {
+            const primY = pts[i]?.y ?? null;
+            const tooClose = primY !== null && Math.abs(p.y - primY) < 20;
+            // If close: compare goes above if it's lower on canvas (higher value), else below
+            const offset = tooClose ? (p.y > primY ? 14 : -8) : -8;
             ctx.fillStyle = compareColor; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
-            ctx.fillText('$' + cmpData[i].toFixed(0), p.x, p.y - 8);
+            ctx.fillText('$' + cmpData[i].toFixed(0), p.x, p.y + offset);
+          }
+        });
+        // Re-draw primary labels with offset awareness now that cmpPts is known
+        pts.forEach((p, i) => {
+          if (data[i] > 0 && inLeague[i]) {
+            const cmpY = cmpPts[i]?.y ?? null;
+            const tooClose = cmpY !== null && Math.abs(p.y - cmpY) < 20;
+            const offset = tooClose ? (p.y > cmpY ? 14 : -14) : -10;
+            ctx.fillStyle = theme; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+            ctx.fillText('$' + data[i].toFixed(0), p.x, p.y + offset);
+          }
+        });
+      } else {
+        // No compare — draw primary labels normally
+        pts.forEach((p, i) => {
+          if (data[i] > 0 && inLeague[i]) {
+            ctx.fillStyle = theme; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+            ctx.fillText('$' + data[i].toFixed(0), p.x, p.y - 10);
           }
         });
       }
@@ -8368,8 +8388,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         const bPad = { top: 20, right: 20, bottom: 30, left: 40 };
         const bCW = WB - bPad.left - bPad.right;
         const bCH = HB - bPad.top - bPad.bottom;
-        const amber = '#f59e0b';
-        const compareColor = '#55e2e9';
+        const amber = '#55e2e9'; // primary = theme cyan
+        const compareColor = '#f59e0b'; // compare = amber
         const bText3 = '#666';
 
         if (bData.length < 2 && Math.max(...bData) === 0) {
@@ -8398,8 +8418,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         // Line segments for primary
         if (bPts.length >= 2) {
           const bGrad = bCtx.createLinearGradient(0, bPad.top, 0, bPad.top + bCH);
-          bGrad.addColorStop(0, 'rgba(245,158,11,0.25)');
-          bGrad.addColorStop(1, 'rgba(245,158,11,0)');
+          bGrad.addColorStop(0, 'rgba(85,226,233,0.2)');
+          bGrad.addColorStop(1, 'rgba(85,226,233,0)');
           bCtx.beginPath(); bCtx.moveTo(bPts[0].x, bPad.top + bCH);
           bPts.forEach(p => bCtx.lineTo(p.x, p.y));
           bCtx.lineTo(bPts[bPts.length-1].x, bPad.top + bCH);
@@ -8424,13 +8444,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           bCtx.strokeStyle = 'var(--bg2)'; bCtx.lineWidth = 1.5; bCtx.stroke();
           bCtx.fillStyle = bText3; bCtx.font = '10px monospace'; bCtx.textAlign = 'center';
           bCtx.fillText(labels[i], p.x, HB - 6);
-          if (bData[i] > 0 && bInLeague[i]) {
-            bCtx.fillStyle = amber; bCtx.font = 'bold 10px monospace';
-            bCtx.fillText(bData[i], p.x, p.y - 10);
-          }
+          // Value labels drawn offset-aware below
         });
 
-        // Compare line for beers — theme cyan dashed
+        // Compare line for beers — theme cyan solid
         if (cmpName && cmpBData.length >= 2) {
           const cmpBPts = cmpBData.map((v, i) => ({
             x: bPad.left + (i / (Math.max(cmpBData.length - 1, 1))) * bCW,
@@ -8441,21 +8458,41 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
             const cmpBSegIn = cmpBInLeague[i-1] && cmpBInLeague[i];
             bCtx.strokeStyle = cmpBSegIn ? compareColor : '#444';
             bCtx.lineWidth = 2;
-            bCtx.setLineDash([5,3]);
             bCtx.lineJoin = 'round';
             bCtx.moveTo(cmpBPts[i-1].x, cmpBPts[i-1].y);
             bCtx.lineTo(cmpBPts[i].x, cmpBPts[i].y);
-            bCtx.stroke(); bCtx.setLineDash([]);
+            bCtx.stroke();
           }
           cmpBPts.forEach((p, i) => {
             bCtx.beginPath(); bCtx.arc(p.x, p.y, 3, 0, Math.PI * 2);
             bCtx.fillStyle = cmpBInLeague[i] ? compareColor : '#444'; bCtx.fill();
             if (cmpBData[i] > 0 && cmpBInLeague[i]) {
+              const primY = bPts[i]?.y ?? null;
+              const tooClose = primY !== null && Math.abs(p.y - primY) < 20;
+              const offset = tooClose ? (p.y > primY ? 14 : -8) : -8;
               bCtx.fillStyle = compareColor; bCtx.font = 'bold 9px monospace'; bCtx.textAlign = 'center';
-              bCtx.fillText(cmpBData[i], p.x, p.y - 8);
+              bCtx.fillText(cmpBData[i], p.x, p.y + offset);
             }
           });
-        }
+        // Re-draw primary labels with offset awareness
+        bPts.forEach((p, i) => {
+          if (bData[i] > 0 && bInLeague[i]) {
+            const cmpY = cmpBPts[i]?.y ?? null;
+            const tooClose = cmpY !== null && Math.abs(p.y - cmpY) < 20;
+            const offset = tooClose ? (p.y > cmpY ? 14 : -14) : -10;
+            bCtx.fillStyle = amber; bCtx.font = 'bold 10px monospace'; bCtx.textAlign = 'center';
+            bCtx.fillText(bData[i], p.x, p.y + offset);
+          }
+        });
+      } else {
+        // No compare — draw primary labels normally
+        bPts.forEach((p, i) => {
+          if (bData[i] > 0 && bInLeague[i]) {
+            bCtx.fillStyle = amber; bCtx.font = 'bold 10px monospace'; bCtx.textAlign = 'center';
+            bCtx.fillText(bData[i], p.x, p.y - 10);
+          }
+        });
+      }
       });
     });
   };
