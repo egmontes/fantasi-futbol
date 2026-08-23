@@ -2240,8 +2240,13 @@ async function init() {
       else { va = a.total || 0; vb = b.total || 0; }
       const diff = activeSortDir * (va - vb);
       if (diff !== 0) return diff;
-      // Stable secondary sort by name for ties
-      return a.name.localeCompare(b.name);
+      // Tiebreaker: alphabetical for pts sort, total pts for everything else
+      if (activeSortKey === 'pts') return a.name.localeCompare(b.name);
+      const rankA = seasonRankMap[a.id] || 0;
+      const rankB = seasonRankMap[b.id] || 0;
+      if (rankA !== rankB) return activeSortDir === 1 ? rankB - rankA : rankA - rankB;
+      const nameCmp = a.name.localeCompare(b.name);
+      return activeSortDir === 1 ? -nameCmp : nameCmp;
     });
     const rankChangeMap = {};
     if (currentGW > 1) {
@@ -2659,7 +2664,7 @@ async function init() {
 
       // Top row: rank + name + pts
       html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
-      html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:' + cardRankColor + ';min-width:28px;align-self:center;">' + pos + '</span>';
+      html += '<span class="s-card-rank" style="font-size:20px;font-weight:700;font-family:var(--font-display);color:' + cardRankColor + ';min-width:28px;align-self:center;">' + pos + '</span>';
       html += '<div style="flex:1;min-width:0;">';
       html += '<div style="font-weight:700;font-size:15px;color:' + (kickedCard ? 'var(--red)' : 'var(--text)') + ';display:flex;align-items:center;gap:5px;overflow:hidden;' + (kickedCard ? 'opacity:0.7;' : '') + '">';
       html += '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (rankMedal ? rankMedal + ' ' : '') + esc(m.name) + '</span>';
@@ -2842,8 +2847,11 @@ async function init() {
       const kluis = isSeasonOver && m.name==='Jack Bernatchez'?50:0;
       return {
         id: m.id,
+        name: m.name,
+        pos: idx + 1,
         pts: m.total,
         gwpts: m.gwLatestPts,
+        sRank,
         earned: m.earned + sp + cp + kluis,
         top4: m.top4,
         bottom2: m.bottom2,
@@ -2905,7 +2913,16 @@ async function init() {
         const vb = key === 'gwpts' ? (db?.gwpts ?? 0) : (db?.[key] ?? 0);
         const diff = window._cardSortDir * (va - vb);
         if (diff !== 0) return diff;
-        return (da?.name || '').localeCompare(db?.name || '');
+        // Tiebreaker: use original position
+        const posA = da?.pos || 0;
+        const posB = db?.pos || 0;
+        return window._cardSortDir === 1 ? posB - posA : posA - posB;
+      });
+      // Update rank numbers to match new order
+      const total = cards.length;
+      cards.forEach((card, i) => {
+        const rankEl = card.querySelector('.s-card-rank');
+        if (rankEl) rankEl.textContent = window._cardSortDir === -1 ? i + 1 : total - i;
       });
       // Close all drawers
       container.querySelectorAll('.s-card-drawer').forEach(d => d.style.display = 'none');
