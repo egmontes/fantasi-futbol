@@ -6687,17 +6687,22 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
       // Load 2025/2026 — skip when silent to avoid conflicting with init
       if (silent) {
-        // If state.managers is empty (pre-GW1), load from managers.json
-        let liveManagers = state.managers;
-        if (!liveManagers.length) {
-          try {
-            const mRes = await fetch('data/2025-2026/managers.json');
-            if (mRes.ok) {
-              const mData = await mRes.json();
-              liveManagers = mData.map(m => ({ id: m.id, name: m.name, team: m.team, total: 0 }));
-            }
-          } catch(e) {}
+        // Load 2025/26 GW files if not already loaded
+        const has2025History = state.managers.some(m => (state.gwHistory[m.id]||[]).some(h => h.event <= 38));
+        if (!has2025History) {
+          try { await loadHistoryFromGWFiles('2025-2026'); } catch(e) {}
         }
+        // Now use 2025/26 data from state (loadHistoryFromGWFiles swapped state in)
+        // Build managers from managers.json since state.managers is 2026/27
+        let liveManagers = [];
+        try {
+          const mRes = await fetch('data/2025-2026/managers.json');
+          if (mRes.ok) {
+            const mData = await mRes.json();
+            liveManagers = mData.map(m => ({ id: m.id, name: m.name, team: m.team, total: 0 }));
+          }
+        } catch(e) {}
+        if (!liveManagers.length) liveManagers = state.managers;
         const liveStats = liveManagers.length ? computeSeasonStats(state.latestGW) : {};
         const liveRanked = [...liveManagers].sort((a,b) => {
           const ha = (state.gwHistory[a.id]||[]).sort((x,y)=>y.event-x.event)[0];
@@ -7939,8 +7944,17 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     }
 
     // Load all-time data if not yet available
-    if (!window._atCardDataMap || !Object.keys(window._atCardDataMap).length) {
-      await showLeagueHistory(true);
+    if (!window._atCardDataMap || !Object.keys(window._atCardDataMap).length || !window._historyData?.seasonData?.['2025/26']) {
+      // Non-silent load builds complete data including 2025/26
+      await showLeagueHistory(false);
+      // Redirect back to stats after full load completes
+      history.replaceState(null, '', '#stats');
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById('tab-stats').classList.add('active');
+      updateSeasonLabel('Stats Hub', false);
+      window.__viewingSeason = 'stats-page';
+      updateBottomNav('stats');
+      updateStickyOffsets();
     }
     window._renderStatsManagerList(document.getElementById('stats-search')?.value || '');
   };
