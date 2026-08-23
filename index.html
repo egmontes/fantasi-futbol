@@ -1855,7 +1855,17 @@ async function init() {
     };
 
     for (let gw = 1; gw <= state.latestGW; gw++) {
-      const ranked = getWeeklyRankings(gw);
+      let ranked;
+      const liveMap = window._liveScoreCacheGW?.[gw];
+      if (state.isLive && gw === state.latestGW && liveMap && Object.keys(liveMap).length > 0) {
+        // Use live scores for current GW
+        ranked = state.managers
+          .filter(m => liveMap[m.id])
+          .map(m => ({ ...m, gwPoints: liveMap[m.id].netPts || 0 }))
+          .sort((a, b) => b.gwPoints - a.gwPoints);
+      } else {
+        ranked = getWeeklyRankings(gw);
+      }
       if (!ranked.length) continue;
 
       const top = ranked[0];
@@ -1920,7 +1930,8 @@ async function init() {
     }
     const completedGWs = state.isLive ? state.latestGW - 1 : state.latestGW;
     const stats = completedGWs > 0 ? computeSeasonStats(completedGWs) : (() => { const s = {}; state.managers.forEach(m => { s[m.id] = { top4: 0, bottom2: 0, moneyWon: 0 }; }); return s; })();
-    const weeklyPool = state.latestGW * 60;
+    const completedGWsForPool = state.isLive ? state.latestGW - 1 : state.latestGW;
+    const weeklyPool = completedGWsForPool * 65;
     const SEASON_PRIZE_TOTAL = 550 + 275 + 175 + 100 + 20; // 1120
     const CUP_PRIZE_TOTAL = 225 + 125; // 350
     const KLUIS_AWARD = 50;
@@ -2377,9 +2388,7 @@ async function init() {
       (mostCaptained ? '<div class="stat-card stat-card-gold"><div class="s-label">©️ GW' + gwLabel + ' Most Captained</div><div class="s-value">' + esc(mostCaptained.name) + '<br>' + mostCaptained.count + ' mgrs</div></div>' : '') +
       (biggestMoverUp ? '<div class="stat-card stat-card-green"><div class="s-label">🚀 GW' + gwLabel + ' Biggest Mover Up</div><div class="s-value">' + esc(biggestMoverUp.name) + (biggestMoverUp.change !== 0 ? '<br>▲' + biggestMoverUp.change + ' spots' : '') + '</div></div>' : '') +
       (biggestMoverDown ? '<div class="stat-card stat-card-red"><div class="s-label">📉 GW' + gwLabel + ' Biggest Mover Down</div><div class="s-value">' + esc(biggestMoverDown.name) + (biggestMoverDown.change !== 0 ? '<br>▼' + Math.abs(biggestMoverDown.change) + ' spots' : '') + '</div></div>' : '') +
-      '<div class="stat-card"><div class="s-label">👥 Managers</div><div class="s-value single-line">' + state.managers.length + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">🏟 GWs Played</div><div class="s-value single-line">' + state.latestGW + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">' + (isSeasonOver ? '💵 Total Payouts' : '💵 Payouts So Far') + '</div><div class="s-value single-line">$' + totalPool + '</div></div>' +
+      (completedGWsForPool > 0 || isSeasonOver ? '<div class="stat-card"><div class="s-label">' + (isSeasonOver ? '💵 Total Payouts' : '💵 Payouts So Far') + '</div><div class="s-value single-line">$' + totalPool + '</div></div>' : '') +
       '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Guinness Chugged</div><div class="s-value single-line">' + rows2.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
       (mostGuinness && mostGuinness.totalG > 0 ? '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Most Guinness</div><div class="s-value">' + esc(mostGuinness.name) + '<br>' + mostGuinness.totalG + '</div></div>' : '') +
       (mostTop4 && mostTop4.top4 > 0 ? '<div class="stat-card stat-card-green"><div class="s-label">🏆 Most Top 4 Finishes</div><div class="s-value">' + esc(mostTop4.name) + '<br>' + mostTop4.top4 + ' times</div></div>' : '') +
@@ -2387,7 +2396,7 @@ async function init() {
       '<div class="stat-card stat-card-green"><div class="s-label">🟢 Highest GW Score</div><div class="s-value">' + esc(tickerInsights.highest.manager) + '<br>GW' + tickerInsights.highest.gw + ' · ' + tickerInsights.highest.points + ' pts' + '</div></div>' +
       '<div class="stat-card stat-card-red"><div class="s-label">🔴 Lowest GW Score</div><div class="s-value">' + esc(tickerInsights.lowest.manager) + '<br>GW' + tickerInsights.lowest.gw + ' · ' + tickerInsights.lowest.points + ' pts' + '</div></div>' +
       '<div class="stat-card"><div class="s-label">👑 Biggest Win Margin</div><div class="s-value">' + esc(tickerInsights.biggestMargin.manager) + '<br>GW' + tickerInsights.biggestMargin.gw + ' · ' + tickerInsights.biggestMargin.margin + ' pts' + '</div></div>' +
-      '<div class="stat-card"><div class="s-label">💰 Top Weekly Earner</div><div class="s-value">' + (topMoney ? esc(topMoney.name) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') : '—') + '</div></div>' +
+      (topMoney && topMoneyValue > 0 ? '<div class="stat-card"><div class="s-label">💰 Top Weekly Earner</div><div class="s-value">' + esc(topMoney.name) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') + '</div></div>' : '') +
       (isSeasonOver ? '<div class="stat-card stat-card-gold"><div class="s-label">🍺🎬 Rolling Can Rolling Can Award</div><div class="s-value">Jack Bernatchez<br>$50</div></div>' : '');
     const isCurrent2025 = window.__viewingSeason === '2025-2026' || (isSeasonOver && !window.__viewingSeason);
     const prizePool = isCurrent2025
