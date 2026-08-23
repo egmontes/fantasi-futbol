@@ -703,6 +703,13 @@
     <span id="gw-callout-label" style="font-size:18px;font-weight:700;color:var(--text);font-family:var(--font-display);flex-shrink:0;"></span>
     <span id="gw-deadline-label" style="font-size:11px;color:var(--theme);font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;"></span>
   </div>
+  <div style="margin-top:2px;">
+    <button onclick="window._togglePrizePool()" style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;gap:4px;font-size:11px;font-family:var(--font-mono);color:var(--theme);font-weight:700;letter-spacing:.04em;">
+      <span id="prize-pool-arrow" style="font-size:9px;transition:transform 0.2s;color:var(--theme);">▶</span>
+      <span>Prize Pool</span>
+    </button>
+    <div id="prize-pool-drawer" style="display:none;margin-top:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;" id="prize-pool-drawer"></div>
+  </div>
   <div id="fpl-lineup-bar" style="display:none;align-items:center;gap:10px;margin-top:4px;">
     <button id="export-gw-btn" onclick="window._exportCurrentGW()" style="display:none;margin-left:auto;flex-shrink:0;background:var(--theme-dim);color:var(--theme);border:1px solid var(--theme-border);border-radius:6px;padding:3px 10px;font-size:11px;font-family:var(--font-mono);cursor:pointer;font-weight:600;">💾 Save GW</button>
   </div>
@@ -2403,12 +2410,6 @@ async function init() {
       : [['badge-1','🥇','$750'],['badge-2','🥈','$500'],['badge-3','🥉','$300'],['badge-4','4️⃣','$225'],['badge-5','5️⃣','$175'],['badge-4','6️⃣','$125'],['badge-4','7️⃣','$100'],['badge-5','8️⃣','$5']];
     const kluisPrizeDisplay = isCurrent2025 ? '$50' : '$100';
     let html = (state.historyLoaded ? '<div class="stat-ticker-wrap"><div class="stat-ticker">' + cards + cards + '</div></div>' : '') +
-      // Season prizes section
-      '<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:8px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;padding:4px 0;">' +
-      '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;flex-shrink:0;">Prize Pool:</span>' +
-      prizePool.map(([cls, emoji, amt]) => `<span class="badge ${cls}" style="display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;flex-shrink:0;"><span style="font-size:13px;">${emoji}</span><span style="font-size:10px;">${amt}</span></span>`).join('') +
-      `<span class="badge" style="background:rgba(255,215,0,0.1);color:#FFD700;border:1px solid rgba(255,215,0,0.3);display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;flex-shrink:0;"><span style="font-size:13px;">🎬</span><span style="font-size:10px;">${kluisPrizeDisplay}</span></span>` +
-      '</div>' +
       '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:left;">' +
         (state.isLive
           ? '<span style="color:var(--red);margin-right:8px;">● Live scores</span>'
@@ -8260,6 +8261,46 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       card.style.opacity = hasPlayer ? '1' : '0.35';
       card.style.filter = hasPlayer ? '' : 'grayscale(0.5)';
     });
+  };
+
+  window._prizePoolOpen = false;
+  window._togglePrizePool = function() {
+    const drawer = document.getElementById('prize-pool-drawer');
+    const arrow = document.getElementById('prize-pool-arrow');
+    if (!drawer) return;
+    window._prizePoolOpen = !window._prizePoolOpen;
+    arrow.style.transform = window._prizePoolOpen ? 'rotate(90deg)' : '';
+    if (window._prizePoolOpen) {
+      const seasonPrizes = [
+        ['badge-1','🥇','$750'],['badge-2','🥈','$500'],['badge-3','🥉','$300'],
+        ['badge-4','4️⃣','$225'],['badge-5','5️⃣','$175'],['badge-4','6️⃣','$125'],
+        ['badge-4','7️⃣','$100'],['badge-5','8️⃣','$5']
+      ];
+      const gwPrizes = [
+        ['🥇','$25'],['🥈','$15'],['🥉','$10'],['4️⃣','$7.50'],['5️⃣','$5'],['6️⃣','$2.50']
+      ];
+      const cupPrizes = [
+        ['🏆','$300','Cup Winner'],['🥈','$150','Runner Up']
+      ];
+      const rowStyle = 'display:flex;gap:6px;align-items:center;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:2px 0;';
+      const labelStyle = 'font-size:9px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0;margin-right:2px;font-weight:700;';
+      drawer.innerHTML =
+        `<div style="${rowStyle}"><span style="${labelStyle}">Season</span>` +
+        seasonPrizes.map(([cls,emoji,amt]) => `<span class="badge ${cls}" style="display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;flex-shrink:0;"><span style="font-size:13px;">${emoji}</span><span style="font-size:10px;">${amt}</span></span>`).join('') +
+        `<span class="badge" style="background:rgba(255,215,0,0.1);color:#FFD700;border:1px solid rgba(255,215,0,0.3);display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;flex-shrink:0;"><span style="font-size:13px;">🎬</span><span style="font-size:10px;">$100</span></span>` +
+        `</div>` +
+        `<div style="${rowStyle}"><span style="${labelStyle}">GW</span>` +
+        gwPrizes.map(([emoji,amt]) => `<span class="badge" style="background:var(--bg3);border:1px solid var(--theme-border);display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;flex-shrink:0;"><span style="font-size:13px;">${emoji}</span><span style="font-size:10px;color:var(--text2);">${amt}</span></span>`).join('') +
+        `</div>` +
+        `<div style="${rowStyle}"><span style="${labelStyle}">Cup</span>` +
+        `<span class="badge" style="background:rgba(255,215,0,0.1);color:#FFD700;border:1px solid rgba(255,215,0,0.3);display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;flex-shrink:0;"><span style="font-size:13px;">🏆</span><span style="font-size:10px;">$300</span></span>` +
+        `<span class="badge" style="background:rgba(180,180,180,0.1);border:1px solid rgba(180,180,180,0.3);display:flex;flex-direction:column;align-items:center;padding:3px 7px;line-height:1.3;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 20 20" style="display:block;"><path d="M7 2 Q6 2 5.5 3.5 L5 9 Q4.8 11 6 12 L7 12.5 L7 14 L5 14.5 L5 16 L15 16 L15 14.5 L13 14 L13 12.5 L14 12 Q15.2 11 15 9 L14.5 3.5 Q14 2 13 2 Z" fill="url(#silver-grad)" stroke="#999" stroke-width="0.3"/><path d="M5.5 4 Q2 4 2 8 Q2 11 5.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><path d="M14.5 4 Q18 4 18 8 Q18 11 14.5 11" fill="none" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"/><rect x="8.5" y="14" width="3" height="1.5" fill="#999" rx="0.3"/><rect x="6.5" y="15.5" width="7" height="1.5" fill="#888" rx="0.5"/></svg><span style="font-size:10px;color:#aaa;">$150</span></span>` +
+        `</div>`;
+      drawer.style.display = 'block';
+    } else {
+      drawer.style.display = 'none';
+    }
+    requestAnimationFrame(() => updateStickyOffsets());
   };
 
   window._ssHistory = () => { history.replaceState(null,'','#alltime'); showLeagueHistory(); };
