@@ -2609,7 +2609,7 @@ async function init() {
       const cp = isSeasonOver && cupFinal ? (cupFinal.winner===m.id?225:(cupFinal.entry_1_entry===cupFinal.winner?cupFinal.entry_2_entry:cupFinal.entry_1_entry)===m.id?125:0) : 0;
       const kluis = isSeasonOver && m.name==='Jack Bernatchez'?50:0;
       const earned = m.earned + sp + cp + kluis;
-      const rankMedal = sRank===1?'🥇':sRank===2?'🥈':sRank===3?'🥉':'';
+      const rankMedal = sRank===1?'🥇':sRank===2?'🥈':sRank===3?'🥉':sRank===4?'4️⃣':sRank===5?'5️⃣':sRank===6?'6️⃣':sRank===7?'7️⃣':sRank===8?'8️⃣':'';
       const kickedCard = isKickedOut(m.name);
       const sCardTheme = isSeasonOver ? {
         1: { border:'rgba(255,215,0,0.4)', bg:'rgba(255,215,0,0.05)', rankColor:'#FFD700' },
@@ -4274,7 +4274,7 @@ async function init() {
       enriched.forEach((m, idx) => {
         const rank = m._displayRank;
         const rankColor = 'var(--theme)';
-        const rankMedal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank===4?'4️⃣':'';
+        const rankMedal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank===4?'4️⃣':rank===5?'5️⃣':rank===6?'6️⃣':'';
         const captain = (_captainCache[gw]||{})[m.id];
         const capStr = captain ? (captain.isVC ? captain.name + ' (vc)' : captain.name) : null;
         const chipHtml = buildChipBadges(m.id, m.chip, gw);
