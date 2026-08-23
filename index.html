@@ -51,6 +51,7 @@
       min-height: 100vh;
       font-size: 15px;
       line-height: 1.6;
+      padding-top: 0;
     }
 
     #ptr-bar {
@@ -6062,6 +6063,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const gwBarH = (gwBar && !gwBar.classList.contains('hidden')) ? gwBar.offsetHeight : 0;
 
     document.documentElement.style.setProperty('--header-h', headerH + 'px');
+    document.documentElement.style.setProperty('--callout-h', calloutH + 'px');
     document.documentElement.style.setProperty('--sticky-tabs-top', (headerH + calloutH) + 'px');
     document.documentElement.style.setProperty('--sticky-gw-bar-top', (headerH + calloutH + tabsH) + 'px');
     document.documentElement.style.setProperty('--gwbar-h', gwBarH + 'px');
