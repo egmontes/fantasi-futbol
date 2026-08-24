@@ -2690,6 +2690,16 @@ async function init() {
           <div id="player-search-stat" style="font-size:12px;font-family:var(--font-mono);color:var(--theme);white-space:nowrap;display:none;"></div>
           <button id="player-search-clear" onclick="window._clearPlayerSearch()" style="display:none;background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:0 4px;line-height:1;">×</button>
         </div>
+      </div>
+      <div id="manager-search-wrap" style="margin-bottom:8px;position:relative;">
+        <div style="position:relative;">
+          <input id="manager-search-input" type="text" placeholder="👤 Jump to manager..." autocomplete="off"
+            style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;padding:8px 12px;font-size:13px;font-family:var(--font-mono);color:var(--text);outline:none;"
+            oninput="window._onManagerSearch(this.value)"
+            onfocus="this.style.borderColor='var(--theme)';document.getElementById('manager-search-dropdown').style.display='block';"
+            onblur="setTimeout(()=>{ const d=document.getElementById('manager-search-dropdown'); if(d)d.style.display='none'; this.style.borderColor='var(--theme-border)'; },200)">
+          <div id="manager-search-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;margin-top:4px;z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.4);"></div>
+        </div>
       </div>`;
     html += `<div id="cards-sort-bar" style="position:sticky;top:var(--sticky-toggle-top,150px);z-index:12;background:var(--bg);padding:4px 0;display:flex;gap:0;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--border);width:100%;">`;
     html += '';
@@ -8739,6 +8749,57 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         ctx.fillText(data[i], p.x, p.y - 8);
       });
     });
+  };
+
+  window._onManagerSearch = function(val) {
+    const dropdown = document.getElementById('manager-search-dropdown');
+    if (!dropdown) return;
+    const q = val.toLowerCase().trim();
+    if (!q) { dropdown.style.display = 'none'; return; }
+    const matches = (window._cardData || []).filter(d => d.name.toLowerCase().includes(q)).slice(0, 8);
+    if (!matches.length) { dropdown.style.display = 'none'; return; }
+    dropdown.innerHTML = matches.map(d =>
+      `<div onclick="window._scrollToManager(${d.id}, '${d.name.replace(/'/g,"\\'")}\')" style="padding:8px 12px;font-size:13px;font-family:var(--font-mono);color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">${d.name}</div>`
+    ).join('');
+    dropdown.style.display = 'block';
+  };
+
+  window._scrollToManager = function(id, name) {
+    const input = document.getElementById('manager-search-input');
+    const dropdown = document.getElementById('manager-search-dropdown');
+    if (input) input.value = name;
+    if (dropdown) dropdown.style.display = 'none';
+
+    const card = document.querySelector('[data-manager-id="' + id + '"]');
+    if (!card) return;
+
+    const cardTop = card.getBoundingClientRect().top + window.scrollY;
+    const stickyToggleTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sticky-toggle-top') || '120');
+    const sortBar = document.getElementById('cards-sort-bar');
+    const sortBarH = sortBar ? sortBar.offsetHeight : 36;
+    const toggleBar = document.getElementById('standings-toggle-bar');
+    const toggleBarH = (toggleBar && toggleBar.style.display !== 'none') ? toggleBar.offsetHeight : 0;
+    const stickyOffset = stickyToggleTop + toggleBarH + sortBarH + 8;
+    const target = cardTop - stickyOffset;
+    const start = window.scrollY;
+    const dist = target - start;
+    const duration = Math.min(800, Math.max(300, Math.abs(dist) * 0.4));
+    let startTime = null;
+
+    const easeInOut = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+
+    function step(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      window.scrollTo(0, start + dist * easeInOut(progress));
+      if (progress < 1) requestAnimationFrame(step);
+      else {
+        card.style.transition = 'box-shadow 0.3s';
+        card.style.boxShadow = '0 0 0 2px var(--theme)';
+        setTimeout(() => { card.style.boxShadow = ''; }, 1000);
+      }
+    }
+    requestAnimationFrame(step);
   };
 
   window._selectedPlayer = null;
