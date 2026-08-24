@@ -8050,7 +8050,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     window._renderStatsManagerList(val);
   };
 
-  window._compareManager = null;
+  window._compareManagers = [];
+  const COMPARE_COLORS = ['#f59e0b', '#f87171', '#a78bfa', '#34d399'];
 
   window._onCompareSearch = function(val) {
     const dropdown = document.getElementById('compare-dropdown');
@@ -8058,7 +8059,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const q = val.toLowerCase().trim();
     const currentName = window._currentStatManager;
     const allManagers = window._atCardDataMap ? Object.values(window._atCardDataMap)
-      .filter(m => m.name !== currentName)
+      .filter(m => m.name !== currentName && !window._compareManagers.includes(m.name))
       .sort((a,b) => b.earned - a.earned) : [];
     const filtered = q ? allManagers.filter(m => m.name.toLowerCase().includes(q)) : allManagers.slice(0, 10);
     if (!filtered.length) { dropdown.style.display = 'none'; return; }
@@ -8069,29 +8070,49 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
   };
 
   window._selectCompare = function(name) {
-    window._compareManager = name;
+    if (window._compareManagers.length >= 4) return;
+    if (window._compareManagers.includes(name)) return;
+    window._compareManagers.push(name);
     const input = document.getElementById('compare-search');
     const label = document.getElementById('compare-name');
     const clear = document.getElementById('compare-clear');
     const dropdown = document.getElementById('compare-dropdown');
-    if (input) input.value = name;
-    if (label) { 
-      label.innerHTML = '<span style="color:var(--theme);">' + esc(window._currentStatManager) + '</span> <span style="color:var(--text3);">vs.</span> <span style="color:#f59e0b;">' + esc(name) + '</span>'; 
-      label.style.display = 'block'; 
-    }
-    if (clear) clear.style.display = 'block';
+    if (input) { input.value = ''; }
     if (dropdown) dropdown.style.display = 'none';
-    // Re-render charts with comparison
+    if (clear) clear.style.display = 'block';
+    window._updateCompareLabel();
     window._renderManagerCharts(window._currentStatManager);
   };
 
+  window._removeCompare = function(name) {
+    window._compareManagers = window._compareManagers.filter(n => n !== name);
+    if (!window._compareManagers.length) {
+      const clear = document.getElementById('compare-clear');
+      if (clear) clear.style.display = 'none';
+    }
+    window._updateCompareLabel();
+    window._renderManagerCharts(window._currentStatManager);
+  };
+
+  window._updateCompareLabel = function() {
+    const label = document.getElementById('compare-name');
+    if (!label) return;
+    if (!window._compareManagers.length) { label.innerHTML = ''; return; }
+    const primary = window._currentStatManager;
+    label.innerHTML = `<span style="color:var(--theme);font-weight:700;">${esc(primary)}</span>` +
+      window._compareManagers.map((n, i) =>
+        ` <span style="color:var(--text3);">vs.</span> <span style="color:${COMPARE_COLORS[i]};font-weight:700;">${esc(n)}</span>` +
+        `<span onclick="window._removeCompare('${n.replace(/'/g,"\\'")}\')" style="cursor:pointer;color:var(--text3);margin-left:3px;font-size:10px;">✕</span>`
+      ).join('');
+  };
+
   window._clearCompare = function() {
-    window._compareManager = null;
+    window._compareManagers = [];
     const input = document.getElementById('compare-search');
     const label = document.getElementById('compare-name');
     const clear = document.getElementById('compare-clear');
     if (input) input.value = '';
-    if (label) label.style.display = 'none';
+    if (label) label.innerHTML = '';
     if (clear) clear.style.display = 'none';
     window._renderManagerCharts(window._currentStatManager);
   };
@@ -8115,10 +8136,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
       <!-- Compare search -->
       <div style="position:relative;margin-bottom:16px;">
-        <div style="font-size:9px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Compare With</div>
+        <div style="font-size:9px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Compare With (up to 4)</div>
         <div style="display:flex;gap:8px;align-items:center;">
           <div style="position:relative;flex:1;">
-            <input id="compare-search" type="text" placeholder="Search manager..." autocomplete="off"
+            <input id="compare-search" type="text" placeholder="Add manager..." autocomplete="off"
               style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;padding:8px 12px 8px 36px;font-size:13px;font-family:var(--font-mono);color:var(--text);outline:none;"
               oninput="window._onCompareSearch(this.value)"
               onfocus="this.style.borderColor='var(--theme)';document.getElementById('compare-dropdown').style.display='block';"
@@ -8126,9 +8147,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
             <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;">🔍</span>
             <div id="compare-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;margin-top:4px;z-index:100;max-height:180px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.4);"></div>
           </div>
-          <button id="compare-clear" onclick="window._clearCompare()" style="display:none;background:none;border:1px solid var(--theme-border);border-radius:10px;padding:8px 12px;color:var(--text3);font-size:12px;font-family:var(--font-mono);cursor:pointer;">Clear</button>
+          <button id="compare-clear" onclick="window._clearCompare()" style="display:none;background:none;border:1px solid var(--theme-border);border-radius:10px;padding:8px 12px;color:var(--text3);font-size:12px;font-family:var(--font-mono);cursor:pointer;">Clear All</button>
         </div>
-        <div id="compare-name" style="font-size:11px;color:var(--theme);font-family:var(--font-mono);margin-top:4px;display:none;"></div>
+        <div id="compare-name" style="font-size:11px;font-family:var(--font-mono);margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;"></div>
       </div>
       <div style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.25);">
         <div style="font-size:9px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;">💰 Earnings Over Time</div>
@@ -8141,7 +8162,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     `;
 
     window._currentStatManager = name;
-    window._compareManager = null;
+    window._compareManagers = [];
     window._renderManagerCharts(name);
   };
 
@@ -8163,13 +8184,13 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const normName = n => NAME_MAP[n] || n;
 
     // Find seasons where either manager appeared
-    const cmpName = window._compareManager;
+    const cmpNames = window._compareManagers || [];
     const activeSeasonsSet = new Set();
     ALL_SEASONS.forEach(label => {
       const season = historyData[label];
       if (!season) return;
       const hasPrimary = season.managers?.some(mm => normName(mm.name) === name);
-      const hasCompare = cmpName && season.managers?.some(mm => normName(mm.name) === cmpName);
+      const hasCompare = cmpNames.some(cmpN => season.managers?.some(mm => normName(mm.name) === cmpN));
       if (hasPrimary || hasCompare) activeSeasonsSet.add(label);
     });
     const SEASON_ORDER = ALL_SEASONS.filter(s => activeSeasonsSet.has(s));
@@ -8190,21 +8211,23 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       inLeague.push(wasIn);
     });
 
-    // Build compare earnings data
-    const cmpData = [];
-    const cmpInLeague = [];
-    if (cmpName) {
+    const COMPARE_COLORS = ['#f59e0b', '#f87171', '#a78bfa', '#34d399'];
+
+    // Build all compare earnings data
+    const allCmpData = cmpNames.map(cmpN => {
+      const cmpData = [], cmpInLeague = [];
       let cmpCum = 0;
       SEASON_ORDER.forEach(label => {
         const season = historyData[label];
         if (!season) return;
-        const mgr = season.managers?.find(mm => normName(mm.name) === cmpName);
+        const mgr = season.managers?.find(mm => normName(mm.name) === cmpN);
         const wasIn = mgr !== undefined;
         cmpCum += wasIn ? mgr.earned : 0;
         cmpData.push(cmpCum);
         cmpInLeague.push(wasIn);
       });
-    }
+      return { data: cmpData, inLeague: cmpInLeague };
+    });
 
     // Build primary beers data
     const bData = [];
@@ -8220,21 +8243,21 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       bInLeague.push(wasIn);
     });
 
-    // Build compare beers data
-    const cmpBData = [];
-    const cmpBInLeague = [];
-    if (cmpName) {
+    // Build all compare beers data
+    const allCmpBData = cmpNames.map(cmpN => {
+      const cmpBData = [], cmpBInLeague = [];
       let cmpBCum = 0;
       SEASON_ORDER.forEach(label => {
         const season = historyData[label];
         if (!season) return;
-        const mgr = season.managers?.find(mm => normName(mm.name) === cmpName);
+        const mgr = season.managers?.find(mm => normName(mm.name) === cmpN);
         const wasIn = mgr !== undefined;
         cmpBCum += wasIn ? (mgr?.guinness || 0) + (mgr?.missedBeers || 0) : 0;
         cmpBData.push(cmpBCum);
         cmpBInLeague.push(wasIn);
       });
-    }
+      return { data: cmpBData, inLeague: cmpBInLeague };
+    });
 
     // Draw chart using Canvas
     requestAnimationFrame(() => {
@@ -8250,10 +8273,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const ctx = canvas.getContext('2d');
       ctx.scale(dpr, dpr);
 
-      const pad = { top: 36, right: 20, bottom: 30, left: 50 };
+      const pad = { top: 24, right: 20, bottom: 30, left: 50 };
       const cW = W - pad.left - pad.right;
       const cH = H - pad.top - pad.bottom;
-      const maxVal = Math.max(...data, 100);
+      const rawMax = Math.max(...data, ...allCmpData.flatMap(c => c.data), 1);
+      const maxVal = rawMax * 1.15;
       const theme = '#55e2e9';
       const text3 = '#666';
 
@@ -8261,10 +8285,10 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       ctx.strokeStyle = 'rgba(255,255,255,0.06)';
       ctx.lineWidth = 1;
       [0, 0.25, 0.5, 0.75, 1].forEach(t => {
-        const y = pad.top + cH * (1 - t);
+        const y = pad.top + cH * (1 - t * rawMax / maxVal);
         ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cW, y); ctx.stroke();
         ctx.fillStyle = text3; ctx.font = '10px monospace'; ctx.textAlign = 'right';
-        ctx.fillText('$' + Math.round(maxVal * t), pad.left - 6, y + 4);
+        ctx.fillText('$' + Math.round(rawMax * t), pad.left - 6, y + 4);
       });
 
       if (data.length < 2) {
@@ -8322,55 +8346,95 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         // Value labels drawn after compare is computed (offset-aware below)
       });
 
-      // Compare line — amber solid
-      if (cmpName && cmpData.length >= 2) {
-        const compareColor = '#f59e0b';
-        const cmpMaxVal = Math.max(maxVal, ...cmpData);
-        const cmpPts = cmpData.map((v, i) => ({
+
+      // Compare lines — loop over all compare managers
+      const allCmpPts = allCmpData.map(({ data: cmpD, inLeague: cmpIL }, ci) => {
+        const compareColor = COMPARE_COLORS[ci];
+        const cmpPts = cmpD.map((v, i) => ({
           x: pad.left + (i / (labels.length - 1)) * cW,
-          y: pad.top + cH * (1 - v / cmpMaxVal)
+          y: pad.top + cH * (1 - v / maxVal)
         }));
         for (let i = 1; i < cmpPts.length; i++) {
           ctx.beginPath();
-          const cmpSegIn = cmpInLeague[i-1] && cmpInLeague[i];
-          ctx.strokeStyle = cmpSegIn ? compareColor : '#444';
-          ctx.lineWidth = 2;
-          ctx.lineJoin = 'round';
+          const segIn = cmpIL[i-1] && cmpIL[i];
+          ctx.strokeStyle = segIn ? compareColor : '#444';
+          ctx.lineWidth = 2; ctx.lineJoin = 'round';
           ctx.moveTo(cmpPts[i-1].x, cmpPts[i-1].y);
           ctx.lineTo(cmpPts[i].x, cmpPts[i].y);
           ctx.stroke();
         }
         cmpPts.forEach((p, i) => {
           ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-          ctx.fillStyle = cmpInLeague[i] ? compareColor : '#444'; ctx.fill();
-          if (cmpData[i] > 0 && cmpInLeague[i]) {
-            const primY = pts[i]?.y ?? null;
-            const tooClose = primY !== null && Math.abs(p.y - primY) < 20;
-            // If close: compare goes above if it's lower on canvas (higher value), else below
-            const offset = tooClose ? (p.y > primY ? 14 : -8) : -8;
-            ctx.fillStyle = compareColor; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
-            ctx.fillText('$' + cmpData[i].toFixed(0), p.x, p.y + offset);
-          }
+          ctx.fillStyle = cmpIL[i] ? compareColor : '#444'; ctx.fill();
         });
-        // Re-draw primary labels with offset awareness now that cmpPts is known
-        pts.forEach((p, i) => {
-          if (data[i] > 0 && inLeague[i]) {
-            const cmpY = cmpPts[i]?.y ?? null;
-            const tooClose = cmpY !== null && Math.abs(p.y - cmpY) < 20;
-            const offset = tooClose ? (p.y > cmpY ? 14 : -14) : -10;
-            ctx.fillStyle = theme; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
-            ctx.fillText('$' + data[i].toFixed(0), p.x, p.y + offset);
+        return cmpPts;
+      });
+
+      // Collect labels with value-based positioning
+      const labelItems = [];
+      const showAllLabels = cmpNames.length === 0;
+      // Always show all labels — higher value above, lower below at each season
+      const allSeries = [
+        { pts, data, inLeague, color: theme },
+        ...allCmpData.map((c, ci) => ({ pts: allCmpPts[ci], data: c.data, inLeague: c.inLeague, color: COMPARE_COLORS[ci] }))
+      ];
+      for (let i = 0; i < labels.length; i++) {
+        const atSeason = allSeries
+          .filter(s => s.pts[i] && s.data[i] > 0 && s.inLeague[i])
+          .sort((a, b) => b.data[i] - a.data[i]);
+        const labelYs = [];
+        atSeason.forEach((s, rank) => {
+          const n = atSeason.length;
+          const pt = s.pts[i];
+          let labelY;
+          if (n <= 2) {
+            // Simple: top above, bottom below
+            labelY = rank === 0 ? pt.y - 12 : pt.y + 18;
+          } else if (rank === 0) {
+            labelY = pt.y - 12;
+          } else if (rank === n - 1) {
+            labelY = pt.y + 18;
+          } else {
+            // Middle: pick above or below based on which has more gap
+            const prevDotY = atSeason[rank - 1].pts[i].y;
+            const nextDotY = atSeason[rank + 1].pts[i].y;
+            const spaceAbove = pt.y - prevDotY; // gap to dot above
+            const spaceBelow = nextDotY - pt.y; // gap to dot below
+            labelY = spaceAbove >= spaceBelow ? pt.y - 12 : pt.y + 18;
           }
-        });
-      } else {
-        // No compare — draw primary labels normally
-        pts.forEach((p, i) => {
-          if (data[i] > 0 && inLeague[i]) {
-            ctx.fillStyle = theme; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
-            ctx.fillText('$' + data[i].toFixed(0), p.x, p.y - 10);
-          }
+          labelYs.push(labelY);
+          labelItems.push({ x: pt.x, y: labelY, dotY: pt.y, text: '$' + s.data[i].toFixed(0), color: s.color, font: 'bold 10px monospace' });
         });
       }
+      // Simple vertical-only collision resolution — only when comparing
+      if (cmpNames.length > 0) {
+        for (let pass = 0; pass < 15; pass++) {
+          for (let i = 0; i < labelItems.length; i++) {
+            for (let j = i + 1; j < labelItems.length; j++) {
+              if (Math.abs(labelItems[i].x - labelItems[j].x) > 45) continue;
+              const dy = labelItems[j].y - labelItems[i].y;
+              if (Math.abs(dy) < 16) {
+                const push = (16 - Math.abs(dy)) / 2 + 1;
+                labelItems[i].y -= push;
+                labelItems[j].y += push;
+              }
+            }
+          }
+          labelItems.forEach(item => { item.y = Math.max(pad.top + 8, item.y); });
+        }
+        // Ensure no label overlaps its own dot
+        labelItems.forEach(item => {
+          const dist = item.y - item.dotY;
+          if (Math.abs(dist) < 10) item.y = dist >= 0 ? item.dotY + 10 : item.dotY - 10;
+        });
+      }
+      // Draw all labels
+      labelItems.forEach(item => {
+        ctx.fillStyle = item.color;
+        ctx.font = item.font;
+        ctx.textAlign = 'center';
+        ctx.fillText(item.text, item.x, item.y);
+      });
 
       // Beers chart
       requestAnimationFrame(() => {
@@ -8385,11 +8449,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         const bCtx = bCanvas.getContext('2d');
         bCtx.scale(dprB, dprB);
 
-        const bPad = { top: 36, right: 20, bottom: 30, left: 40 };
+        const bPad = { top: 24, right: 20, bottom: 30, left: 40 };
         const bCW = WB - bPad.left - bPad.right;
         const bCH = HB - bPad.top - bPad.bottom;
         const amber = '#55e2e9'; // primary = theme cyan
-        const compareColor = '#f59e0b'; // compare = amber
+        // compareColor defined per-compare-manager in loop below
         const bText3 = '#666';
 
         if (bData.length < 2 && Math.max(...bData) === 0) {
@@ -8398,7 +8462,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           return;
         }
 
-        const bMaxVal = Math.max(...bData, ...(cmpBData.length ? cmpBData : [0]), 1);
+        const bMaxVal = Math.max(...bData, ...allCmpBData.flatMap(c => c.data), 1) * 1.15;
         const bMinVal = 0;
 
         // Grid
@@ -8447,52 +8511,75 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           // Value labels drawn offset-aware below
         });
 
-        // Compare line for beers — theme cyan solid
-        if (cmpName && cmpBData.length >= 2) {
-          const cmpBPts = cmpBData.map((v, i) => ({
-            x: bPad.left + (i / (Math.max(cmpBData.length - 1, 1))) * bCW,
+        // Compare lines for beers — loop over all
+        const allCmpBPts = allCmpBData.map(({ data: cmpBD, inLeague: cmpBIL }, ci) => {
+          const compareColor = COMPARE_COLORS[ci];
+          const cmpBPts = cmpBD.map((v, i) => ({
+            x: bPad.left + (i / (Math.max(cmpBD.length - 1, 1))) * bCW,
             y: bPad.top + bCH * (1 - v / bMaxVal)
           }));
           for (let i = 1; i < cmpBPts.length; i++) {
             bCtx.beginPath();
-            const cmpBSegIn = cmpBInLeague[i-1] && cmpBInLeague[i];
-            bCtx.strokeStyle = cmpBSegIn ? compareColor : '#444';
-            bCtx.lineWidth = 2;
-            bCtx.lineJoin = 'round';
+            const segIn = cmpBIL[i-1] && cmpBIL[i];
+            bCtx.strokeStyle = segIn ? compareColor : '#444';
+            bCtx.lineWidth = 2; bCtx.lineJoin = 'round';
             bCtx.moveTo(cmpBPts[i-1].x, cmpBPts[i-1].y);
             bCtx.lineTo(cmpBPts[i].x, cmpBPts[i].y);
             bCtx.stroke();
           }
           cmpBPts.forEach((p, i) => {
             bCtx.beginPath(); bCtx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-            bCtx.fillStyle = cmpBInLeague[i] ? compareColor : '#444'; bCtx.fill();
-            if (cmpBData[i] > 0 && cmpBInLeague[i]) {
-              const primY = bPts[i]?.y ?? null;
-              const tooClose = primY !== null && Math.abs(p.y - primY) < 20;
-              const offset = tooClose ? (p.y > primY ? 14 : -8) : -8;
-              bCtx.fillStyle = compareColor; bCtx.font = 'bold 9px monospace'; bCtx.textAlign = 'center';
-              bCtx.fillText(cmpBData[i], p.x, p.y + offset);
-            }
+            bCtx.fillStyle = cmpBIL[i] ? compareColor : '#444'; bCtx.fill();
+            // Labels drawn in collision-resolution pass below
           });
-        // Re-draw primary labels with offset awareness
-        bPts.forEach((p, i) => {
-          if (bData[i] > 0 && bInLeague[i]) {
-            const cmpY = cmpBPts[i]?.y ?? null;
-            const tooClose = cmpY !== null && Math.abs(p.y - cmpY) < 20;
-            const offset = tooClose ? (p.y > cmpY ? 14 : -14) : -10;
-            bCtx.fillStyle = amber; bCtx.font = 'bold 10px monospace'; bCtx.textAlign = 'center';
-            bCtx.fillText(bData[i], p.x, p.y + offset);
-          }
+          return cmpBPts;
         });
-      } else {
-        // No compare — draw primary labels normally
-        bPts.forEach((p, i) => {
-          if (bData[i] > 0 && bInLeague[i]) {
-            bCtx.fillStyle = amber; bCtx.font = 'bold 10px monospace'; bCtx.textAlign = 'center';
-            bCtx.fillText(bData[i], p.x, p.y - 10);
-          }
+
+                // Collect labels with value-based positioning
+        const bLabelItems = [];
+        const showAllBLabels = cmpNames.length === 0;
+        // Always show all labels — higher value above, lower below at each season
+        const allBSeries = [
+          { pts: bPts, data: bData, inLeague: bInLeague, color: amber },
+          ...allCmpBData.map((c, ci) => ({ pts: allCmpBPts[ci], data: c.data, inLeague: c.inLeague, color: COMPARE_COLORS[ci] }))
+        ];
+        for (let i = 0; i < labels.length; i++) {
+          const atSeason = allBSeries
+            .filter(s => s.pts[i] && s.data[i] > 0 && s.inLeague[i])
+            .sort((a, b) => b.data[i] - a.data[i]);
+          const bLabelYs = [];
+          atSeason.forEach((s, rank) => {
+            const n = atSeason.length;
+            const pt = s.pts[i];
+            let labelY;
+            if (n <= 2) {
+              labelY = rank === 0 ? pt.y - 12 : pt.y + 18;
+            } else if (rank === 0) {
+              labelY = pt.y - 12;
+            } else if (rank === n - 1) {
+              labelY = pt.y + 18;
+            } else {
+              const prevDotY = atSeason[rank - 1].pts[i].y;
+              const nextDotY = atSeason[rank + 1].pts[i].y;
+              const spaceAbove = pt.y - prevDotY;
+              const spaceBelow = nextDotY - pt.y;
+              labelY = spaceAbove >= spaceBelow ? pt.y - 12 : pt.y + 18;
+            }
+            bLabelYs.push(labelY);
+            bLabelItems.push({ x: pt.x, y: labelY, dotY: pt.y, text: String(s.data[i]), color: s.color, font: 'bold 10px monospace' });
+          });
+        }
+        // Ensure no label overlaps its own dot
+        bLabelItems.forEach(item => {
+          const dist = item.y - item.dotY;
+          if (Math.abs(dist) < 10) item.y = dist >= 0 ? item.dotY + 10 : item.dotY - 10;
         });
-      }
+        bLabelItems.forEach(item => {
+          bCtx.fillStyle = item.color;
+          bCtx.font = item.font;
+          bCtx.textAlign = 'center';
+          bCtx.fillText(item.text, item.x, item.y);
+        });
       });
     });
   };
