@@ -9153,6 +9153,28 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (btn) btn.disabled = false;
   };
 
+  // Shrink bottom nav on scroll down, restore on scroll up
+  let _lastScrollY = window.scrollY;
+  let _navShrunk = false;
+  window.addEventListener('scroll', () => {
+    const currentY = window.scrollY;
+    const nav = document.getElementById('bottom-nav');
+    if (!nav) return;
+    if (currentY > _lastScrollY + 10 && !_navShrunk && currentY > 100) {
+      // Scrolling down — shrink
+      nav.style.transition = 'transform 0.25s ease, opacity 0.25s ease';
+      nav.style.transform = 'translateX(-50%) scale(0.85)';
+      nav.style.opacity = '0.7';
+      _navShrunk = true;
+    } else if (currentY < _lastScrollY - 5 && _navShrunk) {
+      // Scrolling up — restore
+      nav.style.transform = 'translateX(-50%) scale(1)';
+      nav.style.opacity = '1';
+      _navShrunk = false;
+    }
+    _lastScrollY = currentY;
+  }, { passive: true });
+
   window._ssHistory = () => { history.replaceState(null,'','#alltime'); showLeagueHistory(); };
   function updateSeasonLabel(text, isLive) {
     const label = document.getElementById('season-label');
