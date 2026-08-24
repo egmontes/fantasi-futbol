@@ -7672,6 +7672,11 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
 
   init().then(() => {
     window._initComplete = true;
+    // Ensure page starts at top after hard refresh so sticky bars don't cover content
+    requestAnimationFrame(() => {
+      updateStickyOffsets();
+      window.scrollTo(0, 0);
+    });
     initPullToRefresh();
     const cupBtn = document.getElementById('cup-tab-btn');
     if (cupBtn && !window._allCupMatches?.length && !window.__viewingSeason) {
@@ -9185,6 +9190,9 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     }
     _lastScrollY = currentY;
   }, { passive: true });
+
+  // Prevent browser from restoring scroll before sticky offsets are calculated
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
   window._ssHistory = () => { history.replaceState(null,'','#alltime'); showLeagueHistory(); };
   function updateSeasonLabel(text, isLive) {
