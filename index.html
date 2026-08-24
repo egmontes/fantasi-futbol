@@ -41,6 +41,9 @@
 
     html { scroll-behavior: smooth; }
 
+    /* Prevent iOS auto-zoom on input focus */
+    input, select, textarea { font-size: 16px !important; }
+
     html, body {
     }
 
@@ -9161,15 +9164,23 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const nav = document.getElementById('bottom-nav');
     if (!nav) return;
     if (currentY > _lastScrollY + 10 && !_navShrunk && currentY > 100) {
-      // Scrolling down — shrink
+      // Scrolling down — shrink nav, fade buttons
       nav.style.transition = 'transform 0.25s ease, opacity 0.25s ease';
       nav.style.transform = 'translateX(-50%) scale(0.85)';
       nav.style.opacity = '0.7';
+      const rb = document.getElementById('refresh-btn');
+      const st = document.getElementById('scroll-top-btn');
+      if (rb) { rb.style.transition = 'opacity 0.25s ease'; rb.style.opacity = '0.3'; }
+      if (st) { st.style.transition = 'opacity 0.25s ease'; st.style.opacity = '0.3'; }
       _navShrunk = true;
     } else if (currentY < _lastScrollY - 5 && _navShrunk) {
       // Scrolling up — restore
       nav.style.transform = 'translateX(-50%) scale(1)';
       nav.style.opacity = '1';
+      const rb = document.getElementById('refresh-btn');
+      const st = document.getElementById('scroll-top-btn');
+      if (rb) rb.style.opacity = '1';
+      if (st) st.style.opacity = '1';
       _navShrunk = false;
     }
     _lastScrollY = currentY;
