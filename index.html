@@ -9151,15 +9151,32 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._fixtureFetchInProgress = false;
     } catch(e) { console.warn('Refresh error:', e); }
 
-    await Promise.all([
-      renderStandings(),
-      new Promise(r => setTimeout(r, 400))
-    ]);
+    try {
+      await Promise.all([
+        renderStandings(),
+        new Promise(r => setTimeout(r, 400))
+      ]);
+    } catch(e) { console.warn('Render error:', e); }
 
     if (content) content.style.opacity = '1';
     if (icon) icon.classList.remove('spinning');
     if (btn) btn.disabled = false;
   };
+
+  // Safety net: if spinner is still going after 8s, stop it
+  window._refreshLiveScores = (function(orig) {
+    return async function() {
+      const timeout = setTimeout(() => {
+        const icon = document.getElementById('refresh-icon');
+        const btn = document.getElementById('refresh-btn');
+        const content = document.getElementById('standings-content');
+        if (icon) icon.classList.remove('spinning');
+        if (btn) btn.disabled = false;
+        if (content) content.style.opacity = '1';
+      }, 8000);
+      try { await orig(); } finally { clearTimeout(timeout); }
+    };
+  })(window._refreshLiveScores);
 
   // Shrink bottom nav on scroll down, restore on scroll up
   let _lastScrollY = window.scrollY;
