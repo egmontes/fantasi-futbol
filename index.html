@@ -2077,6 +2077,25 @@ async function init() {
                 }
               });
               const hit = cached.entry_history?.event_transfers_cost || 0;
+              // Reduce remaining for impossible sub situations
+              if (!isBB) {
+                const getElTypeFn = id => (state.bootstrapElements||[]).find(e=>e.id===id)?.element_type || 0;
+                const stPicks = (cached.picks||[]).filter(p => p.position <= maxPos);
+                const bnPicks = (cached.picks||[]).filter(p => p.position > maxPos);
+                const gkS = stPicks.filter(p => getElTypeFn(p.element) === 1);
+                const defS = stPicks.filter(p => getElTypeFn(p.element) === 2);
+                const midS = stPicks.filter(p => getElTypeFn(p.element) === 3);
+                const fwdS = stPicks.filter(p => getElTypeFn(p.element) === 4);
+                const gkPlayed = gkS.filter(p => (playerMinutes[p.element]||0) > 0).length;
+                const defPlayed = defS.filter(p => (playerMinutes[p.element]||0) > 0).length;
+                const midPlayed = midS.filter(p => (playerMinutes[p.element]||0) > 0).length;
+                const fwdPlayed = fwdS.filter(p => (playerMinutes[p.element]||0) > 0).length;
+                const benchGKMins = bnPicks.some(b => getElTypeFn(b.element) === 1 && (playerMinutes[b.element]||0) > 0);
+                if (gkPlayed === 0 && !benchGKMins) remaining = Math.max(0, remaining - 1);
+                if (defPlayed < 3) remaining = Math.max(0, remaining - Math.min(defS.filter(p=>(playerMinutes[p.element]||0)===0).length, Math.max(0, 3-defPlayed)));
+                if (midPlayed < 2) remaining = Math.max(0, remaining - Math.min(midS.filter(p=>(playerMinutes[p.element]||0)===0).length, Math.max(0, 2-midPlayed)));
+                if (fwdPlayed < 1) remaining = Math.max(0, remaining - Math.min(fwdS.filter(p=>(playerMinutes[p.element]||0)===0).length, Math.max(0, 1-fwdPlayed)));
+              }
               tempMap[m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
               // Populate captain + chip from cached picks
               const capPick = cached.picks?.find(p => p.is_captain);
@@ -2166,6 +2185,39 @@ async function init() {
                         if ((playerMinutes[p.element] || 0) > 0) played += count;
                         else remaining += count;
                       });
+                      // Reduce remaining for impossible sub situations:
+                      // 1. GK with 0 min where no bench GK has minutes either
+                      // 2. Defender(s) with 0 min where there are fewer than 3 defenders with minutes
+                      if (!isBB) {
+                        const gkStarters = startingEls.filter(p => getElType(p.element) === 1);
+                        const defStarters = startingEls.filter(p => getElType(p.element) === 2);
+                        const gkPlayed = gkStarters.filter(p => (playerMinutes[p.element]||0) > 0).length;
+                        const defPlayed = defStarters.filter(p => (playerMinutes[p.element]||0) > 0).length;
+                        const benchGKMins = benchEls.filter(b => getElType(b.element) === 1).some(b => (playerMinutes[b.element]||0) > 0);
+                        // GK: no bench GK available → stuck
+                        if (gkPlayed === 0 && !benchGKMins) {
+                          remaining = Math.max(0, remaining - 1);
+                        }
+                        // DEF: need min 3
+                        if (defPlayed < 3) {
+                          const stuckDefs = defStarters.filter(p => (playerMinutes[p.element]||0) === 0).length;
+                          remaining = Math.max(0, remaining - Math.min(stuckDefs, Math.max(0, 3 - defPlayed)));
+                        }
+                        // MID: need min 2
+                        const midStarters = startingEls.filter(p => getElType(p.element) === 3);
+                        const midPlayed = midStarters.filter(p => (playerMinutes[p.element]||0) > 0).length;
+                        if (midPlayed < 2) {
+                          const stuckMids = midStarters.filter(p => (playerMinutes[p.element]||0) === 0).length;
+                          remaining = Math.max(0, remaining - Math.min(stuckMids, Math.max(0, 2 - midPlayed)));
+                        }
+                        // FWD: need min 1
+                        const fwdStarters = startingEls.filter(p => getElType(p.element) === 4);
+                        const fwdPlayed = fwdStarters.filter(p => (playerMinutes[p.element]||0) > 0).length;
+                        if (fwdPlayed < 1) {
+                          const stuckFwds = fwdStarters.filter(p => (playerMinutes[p.element]||0) === 0).length;
+                          remaining = Math.max(0, remaining - Math.min(stuckFwds, Math.max(0, 1 - fwdPlayed)));
+                        }
+                      }
                       const hit = picks.entry_history?.event_transfers_cost || 0;
                       // Don't overwrite if manual refresh happened in last 30s
                       if (!window._lastManualRefresh || Date.now() - window._lastManualRefresh > 30000) {
@@ -3277,7 +3329,7 @@ async function init() {
               try {
                 const [liveData, fixtureData] = await Promise.all([
                   fetchFPL('event/' + drawerGW + '/live/?t=' + Date.now()),
-                  fetchFPL('fixtures/?event=' + drawerGW)
+                  fetchFPL('fixtures/?event=' + drawerGW + '&t=' + Date.now())
                 ]);
                 liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; playerStats[e.id] = e.stats; });
                 fixtureData.forEach(f => {
@@ -3288,7 +3340,7 @@ async function init() {
               try {
                 const [liveData, fixtureData] = await Promise.all([
                   fetchFPL('event/' + drawerGW + '/live/?t=' + Date.now()),
-                  fetchFPL('fixtures/?event=' + drawerGW)
+                  fetchFPL('fixtures/?event=' + drawerGW + '&t=' + Date.now())
                 ]);
                 liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; playerStats[e.id] = e.stats; });
                 fixtureData.forEach(f => {
@@ -3333,8 +3385,13 @@ async function init() {
               if (!el) return false;
               const f = fixtureMap[el.team];
               if (!f) return false;
-              // Consider finished if API says so, OR if score exists and minutes suggest full time
-              return f.finished || f.finished_provisional;
+              if (f.finished || f.finished_provisional) return true;
+              // Live game: treat as done if a teammate has 45+ minutes
+              if (f.started) {
+                const teammates = (state.bootstrapElements||[]).filter(e => e.team === el.team && e.id !== id);
+                if (teammates.some(e => (playerStats[e.id]?.minutes ?? 0) >= 1)) return true;
+              }
+              return false;
             };
             const playerPlayed = id => (playerStats[id]?.minutes ?? -1) > 0;
             const playerDataAvailable = id => playerStats[id] !== undefined;
@@ -8729,7 +8786,20 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const playerMins = window._playerMinutesCache || {};
       const bootstrapEls = state.bootstrapElements || [];
       const fixturesByTeam = window._fixturesByTeam || {};
-      const teamDone = id => { const el = bootstrapEls.find(e=>e.id===id); if(!el) return false; const f = fixturesByTeam[el.team]; return f ? (f.finished||f.finished_provisional) : false; };
+      const teamDone = id => {
+          const el = bootstrapEls.find(e=>e.id===id);
+          if (!el) return false;
+          const f = fixturesByTeam[el.team];
+          if (!f) return false;
+          if (f.finished || f.finished_provisional) return true;
+          // Live game: treat as done if a teammate has 45+ minutes (player likely not playing)
+          if (f.started) {
+            const teammates = bootstrapEls.filter(e => e.team === el.team && e.id !== id);
+            const teammateMinutes = teammates.map(e => window._playerMinutesCache?.[e.id] ?? 0);
+            if (teammateMinutes.some(m => m >= 1)) return true;
+          }
+          return false;
+        };
       const benchPicks = allPicks.filter(p => p.position > 11);
       const usedBench = new Set([...autoSubsIn]);
       const predictedOut = new Set([...autoSubsOut]);
@@ -8800,7 +8870,20 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       const playerMins = window._playerMinutesCache || {};
       const fixturesByTeam = window._fixturesByTeam || {};
       const bootstrapEls = state.bootstrapElements || [];
-      const teamDone = id => { const el = bootstrapEls.find(e=>e.id===id); if(!el) return false; const f = fixturesByTeam[el.team]; return f ? (f.finished||f.finished_provisional) : false; };
+      const teamDone = id => {
+          const el = bootstrapEls.find(e=>e.id===id);
+          if (!el) return false;
+          const f = fixturesByTeam[el.team];
+          if (!f) return false;
+          if (f.finished || f.finished_provisional) return true;
+          // Live game: treat as done if a teammate has 45+ minutes (player likely not playing)
+          if (f.started) {
+            const teammates = bootstrapEls.filter(e => e.team === el.team && e.id !== id);
+            const teammateMinutes = teammates.map(e => window._playerMinutesCache?.[e.id] ?? 0);
+            if (teammateMinutes.some(m => m >= 1)) return true;
+          }
+          return false;
+        };
       const benchPicks = allPicks.filter(p => p.position > 11);
       const usedBench = new Set([...autoSubsIn]);
       const predictedOut = new Set([...autoSubsOut]);
@@ -8902,7 +8985,18 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         const startingEls = picks.picks.filter(p => p.position <= maxPos).map(p => ({...p}));
         const benchEls = picks.picks.filter(p => p.position > maxPos);
         const getElType = id => (state.bootstrapElements||[]).find(e=>e.id===id)?.element_type || 0;
-        const elDone = id => { const el = (state.bootstrapElements||[]).find(e=>e.id===id); if(!el) return false; const f=(window._fixturesByTeam||{})[el.team]; return f?(f.finished||f.finished_provisional):false; };
+        const elDone = id => {
+          const el = (state.bootstrapElements||[]).find(e=>e.id===id);
+          if (!el) return false;
+          const f = (window._fixturesByTeam||{})[el.team];
+          if (!f) return false;
+          if (f.finished || f.finished_provisional) return true;
+          if (f.started) {
+            const teammates = (state.bootstrapElements||[]).filter(e => e.team === el.team && e.id !== id);
+            if (teammates.some(e => (window._playerMinutesCache?.[e.id] ?? 0) >= 1)) return true;
+          }
+          return false;
+        };
         if (!isBB && !picks.automatic_subs?.length) {
           const usedBench = new Set();
           for (let si = 0; si < startingEls.length; si++) {
@@ -8929,6 +9023,31 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           if ((window._playerMinutesCache[p.element]||0) > 0) played += count;
           else remaining += count;
         });
+        // Reduce remaining for impossible sub situations
+        if (!isBB) {
+          const gkS = startingEls.filter(p => getElType(p.element) === 1);
+          const defS = startingEls.filter(p => getElType(p.element) === 2);
+          const gkPlayed = gkS.filter(p => (window._playerMinutesCache[p.element]||0) > 0).length;
+          const defPlayed = defS.filter(p => (window._playerMinutesCache[p.element]||0) > 0).length;
+          const benchGKMins = benchEls.some(b => getElType(b.element) === 1 && (window._playerMinutesCache[b.element]||0) > 0);
+          if (gkPlayed === 0 && !benchGKMins) remaining = Math.max(0, remaining - 1);
+          if (defPlayed < 3) {
+            const stuckDefs = defS.filter(p => (window._playerMinutesCache[p.element]||0) === 0).length;
+            remaining = Math.max(0, remaining - Math.min(stuckDefs, Math.max(0, 3 - defPlayed)));
+          }
+          const midS = startingEls.filter(p => getElType(p.element) === 3);
+          const midPlayed = midS.filter(p => (window._playerMinutesCache[p.element]||0) > 0).length;
+          if (midPlayed < 2) {
+            const stuckMids = midS.filter(p => (window._playerMinutesCache[p.element]||0) === 0).length;
+            remaining = Math.max(0, remaining - Math.min(stuckMids, Math.max(0, 2 - midPlayed)));
+          }
+          const fwdS = startingEls.filter(p => getElType(p.element) === 4);
+          const fwdPlayed = fwdS.filter(p => (window._playerMinutesCache[p.element]||0) > 0).length;
+          if (fwdPlayed < 1) {
+            const stuckFwds = fwdS.filter(p => (window._playerMinutesCache[p.element]||0) === 0).length;
+            remaining = Math.max(0, remaining - Math.min(stuckFwds, Math.max(0, 1 - fwdPlayed)));
+          }
+        }
         const hit = picks.entry_history?.event_transfers_cost || 0;
         window._liveScoreCacheGW[gw][mid] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
       });
@@ -8939,12 +9058,19 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._lastManualRefresh = Date.now();
       // Save fresh data to localStorage
       try { localStorage.setItem('ff_live_scores_' + gw, JSON.stringify({ data: window._liveScoreCacheGW[gw], ts: Date.now() })); } catch(e) {}
-      // Also refresh fixtures
-      window._fixturesFetchedAt = 0;
+      // Fetch fresh fixture scores
+      try {
+        const fixtureData = await fetchFPL('fixtures/?event=' + gw + '&t=' + Date.now());
+        if (!window._fixturesByTeam) window._fixturesByTeam = {};
+        fixtureData.forEach(f => {
+          if (f.started) {
+            window._fixturesByTeam[f.team_h] = f;
+            window._fixturesByTeam[f.team_a] = f;
+          }
+        });
+        window._fixturesFetchedAt = Date.now();
+      } catch(e) {}
       window._fixtureFetchInProgress = false;
-
-      // Save to localStorage so page reload keeps fresh data
-      try { localStorage.setItem('ff_live_scores_' + gw, JSON.stringify({ data: window._liveScoreCacheGW[gw], ts: Date.now() })); } catch(e) {}
     } catch(e) { console.warn('Refresh error:', e); }
 
     await Promise.all([
