@@ -3809,7 +3809,7 @@ async function init() {
 
     if (shotgunDuty.length > 0) {
       html += '<div style="background:var(--red-dim);border:1px solid rgba(248,113,113,0.2);border-radius:8px;padding:1rem;margin-bottom:1rem;">' +
-        '<div style="font-size:12px;color:var(--red);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">🍺 Shotgun duty — due Saturday before 7:30am ET</div>' +
+        '<div style="font-size:12px;color:var(--red);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">🍺 Shotgun duty — 6-7:30am local time next Saturday</div>' +
         shotgunDuty.map(m => '<div style="font-size:14px;color:var(--text);font-weight:500;margin-bottom:2px;">' + esc(m.name) + ' <span style="color:var(--text3);font-size:12px;">(' + esc(m.team) + ')</span></div>').join('') +
         '</div>';
     }
@@ -5080,7 +5080,7 @@ async function buildPrompt(gw) {
       const seasonRankChange = prevSeasonRank ? prevSeasonRank - seasonRank : 0; // positive = moved up
       const seasonRankStr = seasonRankChange > 0 ? ' ↑' + seasonRankChange : seasonRankChange < 0 ? ' ↓' + Math.abs(seasonRankChange) : ' (no change)';
 
-      let line = m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts | Season total: ' + gwTotal + ' (Rank ' + seasonRank + seasonRankStr + ') | Top-4 finishes: ' + s.top4 + ' | Bottom-2 finishes: ' + s.bottom2 + ' | ' + result;
+      let line = m._displayRank + '. ' + m.name + ' (' + m.team + '): ' + m.gwPoints + ' pts | Season: ' + gwTotal + ' (Rank ' + seasonRank + seasonRankStr + ') | Top-6: ' + s.top4 + ' | Bot-4: ' + s.bottom2 + ' | ' + result;
       if (extras.length > 0) line += ' | ' + extras.join(' | ');
       return line;
     }).join('\n');
@@ -5133,88 +5133,45 @@ async function buildPrompt(gw) {
     return `You are the snarky, brutally funny commissioner of a Fantasy Premier League league called "Fantasi Futbol". Write a roast-filled weekly recap for Gameweek ${gw}.
 ${leagueContext}
 League rules:
-- Weekly prizes: 1st = $30, 2nd = $15, 3rd = $10, 4th = $5
-- The bottom 4 managers each week must shotgun a Guinness before 7:30am ET the following Saturday. No exceptions.
+- Weekly prizes: 1st=$25, 2nd=$15, 3rd=$10, 4th=$7.50, 5th=$5, 6th=$2.50
+- Bottom 4 each week shotgun a Guinness between 6-7:30am in their own timezone the following Saturday.
 
-GW${gw} results (includes captain, chip, and transfer data where available):
+GW${gw} results:
 ${summaryLines}
 
-Player data notes:
-- You MUST reference how each manager’s weekly performance fits into their season.
-- Use season stats (total points, top-4 finishes, bottom-2 finishes) to add context:
-  - Is this a rare good week or business as usual?
-  - Are they consistent, streaky, or chaotic?
-  - Are they climbing, collapsing, or stuck in mediocrity?
-- Call out patterns (e.g. “another top finish”, “back in the mud again”, “quietly consistent all season”).
-- Each manager's line includes rank trend data: their GW ranking change vs last week (e.g. "↑3 vs last week" = finished 3 spots higher this week) and their season standings movement (e.g. "Rank 5 ↑2" = moved up 2 overall). Use these naturally — "climbing the table", "on a slide", "cementing their spot" — never read the numbers out robotically.
-- "Captained: [player] (X% captained): Y pts — [stats]" = captain pick with actual points and stat breakdown. Write about this like a match reporter, not a data analyst — fold the stats into the narrative naturally. Only mention the ownership % if it genuinely adds to the story (ultra-contrarian pick that paid off, or consensus pick that bombed). Never put raw numbers in parentheses mid-sentence.
-- Captain points are already DOUBLED in the point total shown.
-- The raw performance listed (goals, assists, etc.) reflects the player's actual match output, not the doubled score.
-- When writing about captains, make it clear whether the performance itself was good, or if the doubled points are making it look better than it was.
-- Example: if a captain shows 8 points from a single assist, acknowledge that it was a modest return that looks better because of the armband.
-- Do NOT describe the doubled total as the player's actual performance.
-- IMPORTANT VICE CAPTAIN RULE: If a captain shows 0 pts (DNP), it means they didn't play. The armband automatically transfers to the vice captain. On a normal week the vice captain gets 2x points. If the Triple Captain chip was used and the captain DNPs, the vice captain gets 3x instead — the triple captain bonus transfers with the armband. The vice captain's points (at the correct multiplier) are already included in the total shown. Always mention when the armband transferred and whether the vice captain delivered.
-- "(TC)" = Triple Captain chip — captain scores 3x points instead of 2x. Always mention if used. If the TC captain DNPs, the armband AND the 3x multiplier pass to the vice captain — worth noting whether that saved the week or made it even worse.
-- "Chip used: bboost" = Bench Boost — ALL 15 players score that week, not just the starting 11. IMPORTANT: when someone uses bench boost, their bench points are ALREADY included in their total. Do NOT joke about or roast them for leaving points on the bench — there is no bench to leave points on. The "Points left on bench" data shown for bench boost managers reflects players who underperformed, not wasted points. Celebrate a big bench boost haul or note if the bench was weak and didn't add much.
-- "Chip used: wildcard" = Wildcard — unlimited free transfers to rebuild the squad. Doesn't directly boost this week's score but sets up future weeks. Worth noting if the rebuild paid off immediately or flopped.
-- "Chip used: freehit" = Free Hit — unlimited transfers for one week only, squad reverts after. Often used on blank/double gameweeks. Worth noting if it was well-timed.
-- "Chip used: 3xc" = Triple Captain (same as TC above).
-- Always mention chip usage for top-4 and bottom-2 managers, weaving it naturally into the narrative.
-- "Transferred in: [player] (X% owned): Y pts — [stats]" = use the stats to celebrate genius transfers or roast disasters. Ownership % should flavor the writing — "a player barely anyone else owned" rather than "(8% owned)". Never list the raw % in parentheses.
-- "Transferred out: [player] (Y pts — goals/assists if any)" = if a sold player then scored, roast the manager for it naturally. If they scored 0, skip them.
-- "Standout players: [player]: Y pts — stats" = non-captain starters who scored 8+ pts. Mention if they drove a big haul — weave it in naturally.
-- "Points left on bench: [player]: Y pts (on bench — wasted)" = great roast material for non-bench-boost weeks. Mention naturally if notable — e.g. "somehow left X on the bench." NEVER mention this as a negative for bench boost managers.
-- Always use the actual stats provided — never speculate or guess about player performance. But present them like a punchy writer, not a spreadsheet.
-- CLEAN SHEET RULES — only mention clean sheets for the positions that benefit:
-  - Goalkeepers & Defenders: 4 points for a clean sheet (60+ mins played). Worth highlighting.
-  - Midfielders: 1 point for a clean sheet (60+ mins played). Minor benefit, rarely worth calling out.
-  - Forwards (e.g. Calvert-Lewin, Haaland, Welbeck, Truffert etc.): ZERO points for a clean sheet. Never mention a clean sheet as a positive for a forward — it means nothing to their score.
-- "Guinness owed: N" = this manager owes N shotguns. Only mention if N >= 2. They have NOT missed their shotgun — the deadline hasn't passed. Do NOT imply they've missed anything.
-- "Cup (Round Name): WON/LOST vs [opponent] (X-Y)" = cup result for this GW. If present, weave it into that manager's section naturally. A cup win alongside a good league week is a double celebration. A cup loss on a bad league week is a brutal double blow. If the scores were close, note the tension. If it was a blowup, rub it in. Only mention the cup if the data is present — not all GWs have cup matches.
-- "SHOTGUN DUTY" = this manager finished bottom-2 THIS week and must shotgun a Guinness before 7:30am ET next Saturday. Fresh obligation, not a missed one.
+Writing notes:
+- Top-6 / Bot-4 in each manager's line = season consistency record.
+- Season rank trend (↑/↓) = overall standings movement. Use naturally, never robotically.
+- Captain points already doubled in total shown. Write about the player's ACTUAL performance, not the multiplier.
+- If captain DNPs (0 pts), armband goes to vice captain (2x, or 3x if TC chip). Always note the transfer.
+- TC = 3x captain. BB = all 15 players score (bench IS included — never joke about wasted bench). WC/FH = mention if relevant.
+- Transfers: celebrate genius, roast disasters. Ownership as flavor only, never raw % in parentheses.
+- Bench points = roast material ONLY for non-BB managers.
+- Guinness owed: only mention if N >= 2. Deadline hasn't passed — they have NOT missed yet.
+- Cup result: weave in naturally if present.
+- Clean sheets: GK/DEF = 4 pts. MID = 1 pt. FWD = 0 pts. Never credit a forward for a clean sheet.
 
-Write the recap with the following structure. Follow this EXACTLY:
+Structure (follow EXACTLY):
 
-**GW${gw}: [PUNCHY RECAP TITLE IN ALL CAPS — 3-6 words, captures the week's biggest story]**
-
-Then a blank line, then:
+**GW${gw}: [PUNCHY RECAP TITLE — 3-6 words ALL CAPS]**
 
 **📋 GW${gw} HEADLINES**
+One emoji headline per line, no bullets. Each is ONE punchy sentence — their prize amount plus one sharp observation (captain, chip, transfer, or notable moment). Positions 1-6 each get their own line. Bottom-4 share one line:
+🥇 1st — $25
+🥈 2nd — $15
+🥉 3rd — $10
+4️⃣ 4th — $7.50
+5️⃣ 5th — $5
+6️⃣ 6th — $2.50
+🍺 Bot-4 shotgun duty (all 4 on one line)
 
-One headline per line, each starting with a relevant emoji, punchy and funny, one-liner newspaper style. One headline for each of the following in order:
-- 1st place finisher(s) — use 🥇
-- 2nd place finisher(s) — use 🥈
-- 3rd place finisher(s) — use 🥉
-- 4th place finisher(s) — use 4️⃣
-- Bottom 4 / shotgun duty finisher(s) — use 🍺
-
-No dashes, no bullet points — just emoji then headline on each line. Each headline should be punchy, funny, reference chips/captains/key moments where relevant.
-
-Then a blank line, then the detailed sections below. Each section header must follow this exact format:
-- Fixed prefix (emoji + place + manager name) followed by a dash and a SHORT FUNNY TITLE (3-5 words)
-- Entire header is bold
-- Paragraph starts on a NEW LINE after the header
-- Blank line between each section
-
-**🥇 1ST PLACE — [manager name] — [funny title]**
-Hype the winner. Reference their captain and whether it paid off. Mention smart transfers or chips. Mention prize money only if it feels natural — don't force it. Make them feel like a genius.
-
-**🥈 2ND PLACE — [manager name] — [funny title]**
-Celebrate second place. Reference a key player moment or captain. Slight dig that they weren't first. Prize money mention is optional.
-
-**🥉 3RD PLACE — [manager name] — [funny title]**
-Third place. Mention something specific about their team — a captain, transfer, or chip. Positive with gentle ribbing. No need to mention prize money unless it adds something funny.
-
-**4️⃣ 4TH PLACE — [manager name] — [funny title]**
-Fourth place. Reference their captain or a notable transfer. They scraped into the money — have fun with that if it feels right, but don't force the dollar amount.
+**🥇 1ST — [name] — [funny title]**
+2-3 sentences. Hype the win, captain, key transfer or chip.
 
 **🍺 SHOTGUN DUTY — [funny title]**
-Ruthless but good-natured roast of the bottom 4. Reference what went wrong — bad captain, transfer that backfired, chip that flopped. Name both managers. Call out repeat offenders with a funny nickname. Remind them: 7:30am Saturday, no exceptions.
+2-3 sentences. Ruthless roast of all 4 bottom managers. Name them all. Repeat offenders get a nickname. 6-7:30am their local timezone next Saturday, no exceptions.
 
-PACIFICO IMPULSE CAPTAIN OF THE WEEK (optional, woven into the captain discussion):
-If any manager in the top 6 captained someone truly unusual — low ownership (<15% of league), unexpected, or a bold left-field pick — and it paid off, work the "Pacifico Impulse Captain of the Week" award naturally into the part of that manager's section where you're talking about their captain. It should flow directly from the captain discussion, not be tacked on at the end. Make it feel like a prestigious honor being bestowed in the moment. If nobody qualifies, skip it entirely. Do not force it or give it its own section.
-
-Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra commentary outside the sections.`
+Tone: funny, punchy, group-chat energy. No extra commentary outside the sections. Pacifico Impulse Captain of the Week: if a top-6 manager made a bold low-ownership captain call that paid off, weave this award naturally into their section — don't force it or give it its own section.`
   }
 
   // Try to load recap from GitHub Pages recaps/ folder, fall back to localStorage
