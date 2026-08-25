@@ -6651,6 +6651,9 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
 
   // ── LOAD HISTORY FROM GW CACHE FILES ────────────────────────────────────
   async function loadHistoryFromGWFiles(season) {
+    if (window._historyLoadInProgress) return; // already loading
+    window._historyLoadInProgress = true;
+    try {
     const TOTAL_GWS = 38;
     let loaded = 0;
     const BATCH = 5;
@@ -6712,7 +6715,11 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     }
 
     console.log('Loaded ' + loaded + '/' + TOTAL_GWS + ' GW files from data/' + season);
+    if (season === CURRENT_SEASON && loaded > 0) state.historyLoaded = true;
     return loaded;
+    } finally {
+      window._historyLoadInProgress = false;
+    }
   }
   // ── END LOAD HISTORY FROM GW CACHE FILES ────────────────────────────────
   async function showLeagueHistory(silent = false) {
@@ -6777,51 +6784,102 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       // Sort labels chronologically
       labels.sort();
 
-      // Load 2025/2026 — skip when silent to avoid conflicting with init
+      // Load 2025/2026 — use same data as non-silent but without DOM render
       if (silent) {
-        // Load 2025/26 GW files if not already loaded
-        const has2025History = state.managers.some(m => (state.gwHistory[m.id]||[]).some(h => h.event <= 38));
-        if (!has2025History) {
-          try { await loadHistoryFromGWFiles('2025-2026'); } catch(e) {}
-        }
-        // Now use 2025/26 data from state (loadHistoryFromGWFiles swapped state in)
-        // Build managers from managers.json since state.managers is 2026/27
-        let liveManagers = [];
         try {
-          const mRes = await fetch('data/2025-2026/managers.json');
-          if (mRes.ok) {
-            const mData = await mRes.json();
-            liveManagers = mData.map(m => ({ id: m.id, name: m.name, team: m.team, total: 0 }));
+          const savedManagers = state.managers;
+          const savedHistory = state.gwHistory;
+          const savedChips = state.chipsHistory;
+          const savedCupMatches = window._allCupMatches;
+          const savedLatestGW = state.latestGW;
+          const savedHistLoaded = state.historyLoaded;
+          const savedGuinness = state.guinnessDebts;
+          const savedCaptains = { ..._captainCache };
+
+          state.managers = [];
+          state.gwHistory = {};
+          state.chipsHistory = {};
+          state.historyLoaded = false;
+          window._allCupMatches = [];
+
+          const gw38res = await fetch('data/2025-2026/gw38.json');
+          if (gw38res.ok) {
+            const gw38 = await gw38res.json();
+            state.managers = [...gw38.managers].sort((a,b) =>
+              (b.history?.total_points||0) - (a.history?.total_points||0)
+            ).map((m,i) => ({ id:m.id, name:m.name, team:m.team, total:m.history?.total_points||0, rank:i+1 }));
+
+            await loadHistoryFromGWFiles('2025-2026');
+            await loadGuinnessDebts('2025-2026');
+
+            const weeklyFinishes2025 = {};
+            const allGWs2025 = [...new Set(Object.values(state.gwHistory).flatMap(h => h.map(e => e.event)))];
+            allGWs2025.forEach(gw => {
+              const gwRanked = state.managers
+                .map(m => ({ id:m.id, name:m.name, pts:(state.gwHistory[m.id]||[]).find(h=>h.event===gw)?.points||0 }))
+                .filter(m => m.pts > 0).sort((a,b) => b.pts - a.pts);
+              const prizes2025 = computeWeeklyPrizes(gwRanked, '2025-2026');
+              gwRanked.forEach(m => {
+                if (!weeklyFinishes2025[m.name]) weeklyFinishes2025[m.name] = { w1:0, w2:0, w3:0, w4:0 };
+                const p = prizes2025[m.id];
+                if (p?.prize > 0) {
+                  const rank = gwRanked.findIndex(r=>r.id===m.id)+1;
+                  if (rank===1) weeklyFinishes2025[m.name].w1++;
+                  else if (rank===2) weeklyFinishes2025[m.name].w2++;
+                  else if (rank===3) weeklyFinishes2025[m.name].w3++;
+                  else weeklyFinishes2025[m.name].w4++;
+                }
+              });
+            });
+
+            const liveStats2025 = computeSeasonStats(38, '2025-2026');
+            const seasonRanked2025 = [...state.managers].sort((a,b) => {
+              const ha = (state.gwHistory[a.id]||[]).sort((x,y)=>y.event-x.event)[0];
+              const hb = (state.gwHistory[b.id]||[]).sort((x,y)=>y.event-x.event)[0];
+              return (hb?.total_points||0) - (ha?.total_points||0);
+            });
+            const cupFinal2025 = (window._allCupMatches||[]).filter(m=>m.winner).sort((a,b)=>b.event-a.event)[0];
+            const cwId = cupFinal2025?.winner;
+            const crId = cupFinal2025 ? (cupFinal2025.entry_1_entry===cwId?cupFinal2025.entry_2_entry:cupFinal2025.entry_1_entry) : null;
+            const PRIZES_2025 = {1:550,2:275,3:175,4:100,5:20};
+            const CUP_2025 = { winner:225, runnerUp:125 };
+
+            seasonData['2025/26'] = {
+              season: '2025/2026',
+              managers: [
+                ...seasonRanked2025.map((m,i) => {
+                  const s = liveStats2025[m.id] || {};
+                  const sp = PRIZES_2025[i+1] || 0;
+                  const cp = m.id===cwId ? CUP_2025.winner : m.id===crId ? CUP_2025.runnerUp : 0;
+                  const kluis = m.name==='Jack Bernatchez' ? 100 : 0;
+                  return { name:m.name, earned:(s.moneyWon||0)+sp+cp+kluis,
+                    guinness:0, missedBeers:0, top1:0,top2:0,top3:0,top4:0,last:0,
+                    w1:weeklyFinishes2025[m.name]?.w1||0, w2:weeklyFinishes2025[m.name]?.w2||0,
+                    w3:weeklyFinishes2025[m.name]?.w3||0, w4:weeklyFinishes2025[m.name]?.w4||0 };
+                }),
+                { name:'Jeff Wright', earned:0, guinness:5, missedBeers:3, top1:0,top2:0,top3:0,top4:0,last:0 }
+              ],
+              awards: {
+                League: { winner:seasonRanked2025[0]?.name, runner_up:seasonRanked2025[1]?.name, third:seasonRanked2025[2]?.name, fourth:seasonRanked2025[3]?.name, fifth:seasonRanked2025[4]?.name },
+                Cup: { winner:state.managers.find(m=>m.id===cwId)?.name, runner_up:state.managers.find(m=>m.id===crId)?.name },
+                Kluis: { winner:'Jack Bernatchez' }
+              }
+            };
+            labels.push('2025/26');
           }
-        } catch(e) {}
-        if (!liveManagers.length) liveManagers = state.managers;
-        const liveStats = liveManagers.length ? computeSeasonStats(state.latestGW) : {};
-        const liveRanked = [...liveManagers].sort((a,b) => {
-          const ha = (state.gwHistory[a.id]||[]).sort((x,y)=>y.event-x.event)[0];
-          const hb = (state.gwHistory[b.id]||[]).sort((x,y)=>y.event-x.event)[0];
-          return (hb?.total_points||0) - (ha?.total_points||0);
-        });
-        const PRIZES_S = {1:750,2:500,3:300,4:225,5:175,6:125,7:100,8:5};
-        const cupFinalS = (window._allCupMatches||[]).filter(m=>m.winner).sort((a,b)=>b.event-a.event)[0];
-        const cwIdS = cupFinalS?.winner;
-        const crIdS = cupFinalS ? (cupFinalS.entry_1_entry===cwIdS?cupFinalS.entry_2_entry:cupFinalS.entry_1_entry) : null;
-        seasonData['2025/26'] = {
-          season: '2025/2026',
-          managers: liveRanked.map((m,i) => {
-            const s = liveStats[m.id] || {};
-            const sp = PRIZES_S[i+1]||0;
-            const cp = m.id===cwIdS ? 300 : m.id===crIdS ? 150 : 0;
-            const kluis = m.name==='Jack Bernatchez' ? 50 : 0;
-            return { name:m.name, earned:(s.moneyWon||0)+sp+cp+kluis, guinness:0, missedBeers:0, top1:0,top2:0,top3:0,top4:0,last:0,w1:0,w2:0,w3:0,w4:0 };
-          }),
-          awards: {
-            League: { winner:liveRanked[0]?.name, runner_up:liveRanked[1]?.name, third:liveRanked[2]?.name, fourth:liveRanked[3]?.name, fifth:liveRanked[4]?.name },
-            Cup: { winner:liveManagers.find(m=>m.id===cwIdS)?.name, runner_up:liveManagers.find(m=>m.id===crIdS)?.name },
-            Kluis: { winner:'Jack Bernatchez' }
-          }
-        };
-        labels.push('2025/26');
-      } else if (!silent) try {        // Save current state to restore after
+
+          // Restore original state
+          state.managers = savedManagers;
+          state.gwHistory = savedHistory;
+          state.chipsHistory = savedChips;
+          state.guinnessDebts = savedGuinness;
+          Object.assign(_captainCache, savedCaptains);
+          window._allCupMatches = savedCupMatches;
+          state.latestGW = savedLatestGW;
+          state.historyLoaded = savedHistLoaded;
+        } catch(e) { console.warn('Silent 2025/26 load error:', e); }
+      }
+      if (!silent) try {
         const savedManagers = state.managers;
         const savedHistory = state.gwHistory;
         const savedChips = state.chipsHistory;
@@ -7006,8 +7064,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       window._historyData = { seasonData, labels };
       window._historySort = { col: 'earned', dir: -1 };
 
-      // Pre-build _atCardDataMap so Stats Hub works without rendering
-      if (!window._atCardDataMap || !Object.keys(window._atCardDataMap).length) {
+      // Always rebuild _atCardDataMap so Stats Hub has complete data
+      {
         // Run same aggregation as renderLeagueHistory
         const NAME_MAP_H = {
           'Eddy GM':'Eddy Garcia-Montes','Mike Delaus':'Michael DeLaus',
@@ -8043,18 +8101,27 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       });
     }
 
-    // Load all-time data if not yet available
-    if (!window._atCardDataMap || !Object.keys(window._atCardDataMap).length || !window._historyData?.seasonData?.['2025/26']) {
-      // Non-silent load builds complete data including 2025/26
-      await showLeagueHistory(false);
-      // Redirect back to stats after full load completes
-      history.replaceState(null, '', '#stats');
-      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      document.getElementById('tab-stats').classList.add('active');
-      updateSeasonLabel('Stats Hub', false);
-      window.__viewingSeason = 'stats-page';
-      updateBottomNav('stats');
-      updateStickyOffsets();
+    // Wait for GW history to be fully loaded (may still be loading in background)
+    if (!state.historyLoaded) {
+      await new Promise(resolve => {
+        const check = setInterval(() => {
+          if (state.historyLoaded) { clearInterval(check); resolve(); }
+        }, 100);
+        setTimeout(() => { clearInterval(check); resolve(); }, 10000);
+      });
+    }
+
+    // Load all-time data if not yet available — use silent mode to avoid any DOM render
+    // Check AFTER history is loaded, and only load if genuinely missing
+    const needsLoad = !window._statsDataLoaded || !window._historyData?.seasonData?.['2025/26'];
+    if (needsLoad) {
+      await showLeagueHistory(true);
+      // If 2025/26 still missing, retry once more
+      if (!window._historyData?.seasonData?.['2025/26']) {
+        await new Promise(r => setTimeout(r, 500));
+        await showLeagueHistory(true);
+      }
+      window._statsDataLoaded = true;
     }
     window._renderStatsManagerList(document.getElementById('stats-search')?.value || '');
     window._renderGrowthChart();
