@@ -1352,7 +1352,7 @@ async function init() {
           state.liveGW = currentGWEvent.id;
           try {
             const fixtures = await fetchFPL('fixtures/?event=' + currentGWEvent.id);
-            if (fixtures.length > 0 && fixtures.every(f => f.finished_provisional)) {
+            if (fixtures.length > 0 && fixtures.every(f => f.finished && f.data_checked !== false)) {
               state.isLive = false;
               state.latestGW = currentGWEvent.id;
               state.currentGW = state.latestGW;
@@ -2009,13 +2009,13 @@ async function init() {
     // (history can update and cache may be stale from previous session)
     if (!window._liveScoreClearedThisSession) {
       window._liveScoreClearedThisSession = true;
-      localStorage.removeItem('ff_live_scores_' + currentGW);
+      localStorage.removeItem('ff_live_scores_v2_' + currentGW);
       delete window._liveScoreCacheGW[currentGW];
     }
     // Restore live scores from localStorage if available and fresh (< 15min)
     if (!window._liveScoreCacheGW[currentGW]) {
       try {
-        const saved = localStorage.getItem('ff_live_scores_' + currentGW);
+        const saved = localStorage.getItem('ff_live_scores_v2_' + currentGW);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Date.now() - parsed.ts < 60 * 1000) window._liveScoreCacheGW[currentGW] = parsed.data;
@@ -2082,24 +2082,30 @@ async function init() {
                 }
               });
               const hit = cached.entry_history?.event_transfers_cost || 0;
-              // Reduce remaining for impossible sub situations
+              // Reduce remaining: for each 0-min starter, check if any bench player can cover them
               if (!isBB) {
-                const getElTypeFn = id => (state.bootstrapElements||[]).find(e=>e.id===id)?.element_type || 0;
-                const stPicks = (cached.picks||[]).filter(p => p.position <= maxPos);
-                const bnPicks = (cached.picks||[]).filter(p => p.position > maxPos);
-                const gkS = stPicks.filter(p => getElTypeFn(p.element) === 1);
-                const defS = stPicks.filter(p => getElTypeFn(p.element) === 2);
-                const midS = stPicks.filter(p => getElTypeFn(p.element) === 3);
-                const fwdS = stPicks.filter(p => getElTypeFn(p.element) === 4);
-                const gkPlayed = gkS.filter(p => (playerMinutes[p.element]||0) > 0).length;
-                const defPlayed = defS.filter(p => (playerMinutes[p.element]||0) > 0).length;
-                const midPlayed = midS.filter(p => (playerMinutes[p.element]||0) > 0).length;
-                const fwdPlayed = fwdS.filter(p => (playerMinutes[p.element]||0) > 0).length;
-                const benchGKMins = bnPicks.some(b => getElTypeFn(b.element) === 1 && (playerMinutes[b.element]||0) > 0);
-                if (gkPlayed === 0 && !benchGKMins) remaining = Math.max(0, remaining - 1);
-                if (defPlayed < 3) remaining = Math.max(0, remaining - Math.min(defS.filter(p=>(playerMinutes[p.element]||0)===0).length, Math.max(0, 3-defPlayed)));
-                if (midPlayed < 2) remaining = Math.max(0, remaining - Math.min(midS.filter(p=>(playerMinutes[p.element]||0)===0).length, Math.max(0, 2-midPlayed)));
-                if (fwdPlayed < 1) remaining = Math.max(0, remaining - Math.min(fwdS.filter(p=>(playerMinutes[p.element]||0)===0).length, Math.max(0, 1-fwdPlayed)));
+                const usedBench = new Set();
+                stPicks.forEach(starter => {
+                  if ((playerMinutes[starter.element]||0) > 0) return; // played, no issue
+                  const sType = getElTypeFn(starter.element);
+                  // Find a bench player with minutes who can legally sub in
+                  const validSub = bnPicks.find(b =>
+                    !usedBench.has(b.element) &&
+                    (playerMinutes[b.element]||0) > 0 &&
+                    getElTypeFn(b.element) > 1 && // bench outfielder (any non-GK)
+                    (sType !== 1) // starter is outfielder (GK handled below)
+                  );
+                  const validGKSub = sType === 1 && bnPicks.find(b =>
+                    !usedBench.has(b.element) &&
+                    (playerMinutes[b.element]||0) > 0 &&
+                    getElTypeFn(b.element) === 1
+                  );
+                  if (sType === 1 ? !validGKSub : !validSub) {
+                    remaining = Math.max(0, remaining - 1);
+                  } else if (sType === 1 ? validGKSub : validSub) {
+                    usedBench.add(sType === 1 ? validGKSub.element : validSub.element);
+                  }
+                });
               }
               tempMap[m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
               // Populate captain + chip from cached picks
@@ -2163,8 +2169,8 @@ async function init() {
                         return f.finished || f.finished_provisional;
                       };
                       // Apply predicted subs if no confirmed subs yet
+                      const usedBench = new Set();
                       if (!isBB && !picks.automatic_subs?.length) {
-                        const usedBench = new Set();
                         for (let si = 0; si < startingEls.length; si++) {
                           const starter = startingEls[si];
                           if (starter.is_captain || starter.is_vice_captain) continue;
@@ -2190,38 +2196,18 @@ async function init() {
                         if ((playerMinutes[p.element] || 0) > 0) played += count;
                         else remaining += count;
                       });
-                      // Reduce remaining for impossible sub situations:
-                      // 1. GK with 0 min where no bench GK has minutes either
-                      // 2. Defender(s) with 0 min where there are fewer than 3 defenders with minutes
+                      // Reduce remaining: for each 0-min starter, check if any bench player can cover
                       if (!isBB) {
-                        const gkStarters = startingEls.filter(p => getElType(p.element) === 1);
-                        const defStarters = startingEls.filter(p => getElType(p.element) === 2);
-                        const gkPlayed = gkStarters.filter(p => (playerMinutes[p.element]||0) > 0).length;
-                        const defPlayed = defStarters.filter(p => (playerMinutes[p.element]||0) > 0).length;
-                        const benchGKMins = benchEls.filter(b => getElType(b.element) === 1).some(b => (playerMinutes[b.element]||0) > 0);
-                        // GK: no bench GK available → stuck
-                        if (gkPlayed === 0 && !benchGKMins) {
-                          remaining = Math.max(0, remaining - 1);
-                        }
-                        // DEF: need min 3
-                        if (defPlayed < 3) {
-                          const stuckDefs = defStarters.filter(p => (playerMinutes[p.element]||0) === 0).length;
-                          remaining = Math.max(0, remaining - Math.min(stuckDefs, Math.max(0, 3 - defPlayed)));
-                        }
-                        // MID: need min 2
-                        const midStarters = startingEls.filter(p => getElType(p.element) === 3);
-                        const midPlayed = midStarters.filter(p => (playerMinutes[p.element]||0) > 0).length;
-                        if (midPlayed < 2) {
-                          const stuckMids = midStarters.filter(p => (playerMinutes[p.element]||0) === 0).length;
-                          remaining = Math.max(0, remaining - Math.min(stuckMids, Math.max(0, 2 - midPlayed)));
-                        }
-                        // FWD: need min 1
-                        const fwdStarters = startingEls.filter(p => getElType(p.element) === 4);
-                        const fwdPlayed = fwdStarters.filter(p => (playerMinutes[p.element]||0) > 0).length;
-                        if (fwdPlayed < 1) {
-                          const stuckFwds = fwdStarters.filter(p => (playerMinutes[p.element]||0) === 0).length;
-                          remaining = Math.max(0, remaining - Math.min(stuckFwds, Math.max(0, 1 - fwdPlayed)));
-                        }
+                        const usedBenchSub = new Set(usedBench); // exclude already-used bench players
+                        startingEls.forEach(starter => {
+                          if ((playerMinutes[starter.element]||0) > 0) return;
+                          const sType = getElType(starter.element);
+                          const validSub = sType === 1
+                            ? benchEls.find(b => !usedBenchSub.has(b.element) && (playerMinutes[b.element]||0) > 0 && getElType(b.element) === 1)
+                            : benchEls.find(b => !usedBenchSub.has(b.element) && (playerMinutes[b.element]||0) > 0 && getElType(b.element) > 1);
+                          if (!validSub) remaining = Math.max(0, remaining - 1);
+                          else usedBenchSub.add(validSub.element);
+                        });
                       }
                       const hit = picks.entry_history?.event_transfers_cost || 0;
                       // Don't overwrite if manual refresh happened in last 30s
@@ -2232,7 +2218,7 @@ async function init() {
                   }));
                 }
                 // Final re-render with complete sub-adjusted data
-                try { localStorage.setItem('ff_live_scores_' + currentGW, JSON.stringify({ data: window._liveScoreCacheGW[currentGW], ts: Date.now() })); } catch(e) {}
+                try { localStorage.setItem('ff_live_scores_v2_' + currentGW, JSON.stringify({ data: window._liveScoreCacheGW[currentGW], ts: Date.now() })); } catch(e) {}
                 window._renderStandingsInProgress = false;
                 renderStandings();
               } finally { window._picksFetchInProgress = false; }
@@ -6625,7 +6611,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
         // Clear old GW caches from localStorage
         for (let i = localStorage.length - 1; i >= 0; i--) {
           const key = localStorage.key(i);
-          if (key && (key.startsWith('ff_chips_cache_') || key.startsWith('ff_captains_cache_') || key.startsWith('ff_live_scores_'))) {
+          if (key && (key.startsWith('ff_chips_cache_') || key.startsWith('ff_captains_cache_') || key.startsWith('ff_live_scores_v2_'))) {
             localStorage.removeItem(key);
           }
         }
@@ -9041,6 +9027,8 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     if (content) { content.style.transition = 'opacity 0.15s'; content.style.opacity = '0.4'; }
 
     const gw = state.isLive ? state.liveGW : state.latestGW;
+    // Clear stale localStorage cache immediately
+    try { localStorage.removeItem('ff_live_scores_v2_' + gw); } catch(e) {}
     try {
       // Re-fetch live player data only (1 call)
       const liveData = await fetchFPL('event/' + gw + '/live/?t=' + Date.now());
@@ -9101,30 +9089,18 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
           if ((window._playerMinutesCache[p.element]||0) > 0) played += count;
           else remaining += count;
         });
-        // Reduce remaining for impossible sub situations
+        // Reduce remaining: for each 0-min starter, check if any bench player can cover
         if (!isBB) {
-          const gkS = startingEls.filter(p => getElType(p.element) === 1);
-          const defS = startingEls.filter(p => getElType(p.element) === 2);
-          const gkPlayed = gkS.filter(p => (window._playerMinutesCache[p.element]||0) > 0).length;
-          const defPlayed = defS.filter(p => (window._playerMinutesCache[p.element]||0) > 0).length;
-          const benchGKMins = benchEls.some(b => getElType(b.element) === 1 && (window._playerMinutesCache[b.element]||0) > 0);
-          if (gkPlayed === 0 && !benchGKMins) remaining = Math.max(0, remaining - 1);
-          if (defPlayed < 3) {
-            const stuckDefs = defS.filter(p => (window._playerMinutesCache[p.element]||0) === 0).length;
-            remaining = Math.max(0, remaining - Math.min(stuckDefs, Math.max(0, 3 - defPlayed)));
-          }
-          const midS = startingEls.filter(p => getElType(p.element) === 3);
-          const midPlayed = midS.filter(p => (window._playerMinutesCache[p.element]||0) > 0).length;
-          if (midPlayed < 2) {
-            const stuckMids = midS.filter(p => (window._playerMinutesCache[p.element]||0) === 0).length;
-            remaining = Math.max(0, remaining - Math.min(stuckMids, Math.max(0, 2 - midPlayed)));
-          }
-          const fwdS = startingEls.filter(p => getElType(p.element) === 4);
-          const fwdPlayed = fwdS.filter(p => (window._playerMinutesCache[p.element]||0) > 0).length;
-          if (fwdPlayed < 1) {
-            const stuckFwds = fwdS.filter(p => (window._playerMinutesCache[p.element]||0) === 0).length;
-            remaining = Math.max(0, remaining - Math.min(stuckFwds, Math.max(0, 1 - fwdPlayed)));
-          }
+          const usedBenchSub = new Set(usedBench); // exclude already-used bench players
+          startingEls.forEach(starter => {
+            if ((window._playerMinutesCache[starter.element]||0) > 0) return;
+            const sType = getElType(starter.element);
+            const validSub = sType === 1
+              ? benchEls.find(b => !usedBenchSub.has(b.element) && (window._playerMinutesCache[b.element]||0) > 0 && getElType(b.element) === 1)
+              : benchEls.find(b => !usedBenchSub.has(b.element) && (window._playerMinutesCache[b.element]||0) > 0 && getElType(b.element) > 1);
+            if (!validSub) remaining = Math.max(0, remaining - 1);
+            else usedBenchSub.add(validSub.element);
+          });
         }
         const hit = picks.entry_history?.event_transfers_cost || 0;
         window._liveScoreCacheGW[gw][mid] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
@@ -9135,7 +9111,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
       window._picksFetchInProgress = false;
       window._lastManualRefresh = Date.now();
       // Save fresh data to localStorage
-      try { localStorage.setItem('ff_live_scores_' + gw, JSON.stringify({ data: window._liveScoreCacheGW[gw], ts: Date.now() })); } catch(e) {}
+      try { localStorage.setItem('ff_live_scores_v2_' + gw, JSON.stringify({ data: window._liveScoreCacheGW[gw], ts: Date.now() })); } catch(e) {}
       // Fetch fresh fixture scores
       try {
         const fixtureData = await fetchFPL('fixtures/?event=' + gw + '&t=' + Date.now());
@@ -9246,7 +9222,7 @@ Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra com
     const refreshBtn = document.getElementById('refresh-btn');
     if (refreshBtn) { refreshBtn.style.display = (active === 'current' && state.isLive) ? 'flex' : 'none'; }
     const scrollTopBtn = document.getElementById('scroll-top-btn');
-    if (scrollTopBtn) scrollTopBtn.style.display = (active === 'current' && state.isLive) ? 'flex' : 'none';
+    if (scrollTopBtn) scrollTopBtn.style.display = active === 'current' ? 'flex' : 'none';
     ['current', 'history', 'seasons', 'rules', 'stats'].forEach(key => {
       const btn = document.getElementById('bnav-' + key);
       if (!btn) return;
