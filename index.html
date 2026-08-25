@@ -2265,6 +2265,12 @@ async function init() {
         .map(m => ({ ...m, gwPoints: m.gwLatestPts || 0 }));
       if (liveRanked.length >= 2) {
         liveProspective = computeWeeklyPrizes(liveRanked);
+        // Add GW rank (with ties sharing the same rank)
+        let gwRank = 1;
+        liveRanked.forEach((m, i) => {
+          if (i > 0 && liveRanked[i].gwPoints < liveRanked[i-1].gwPoints) gwRank = i + 1;
+          liveProspective[m.id].gwRank = gwRank;
+        });
       }
     }
 
@@ -2272,6 +2278,7 @@ async function init() {
       ...m,
       _prize: liveProspective[m.id]?.prize || 0,
       _shotgun: liveProspective[m.id]?.shotgun || false,
+      _gwRank: liveProspective[m.id]?.gwRank || null,
     }));
     const hasLiveScores = state.isLive && Object.keys(liveScoreMap).length > 0;
     const activeSortKey = window._cardSortKey || 'pts';
@@ -2708,7 +2715,7 @@ async function init() {
       const cp = isSeasonOver && cupFinal ? (cupFinal.winner===m.id?225:(cupFinal.entry_1_entry===cupFinal.winner?cupFinal.entry_2_entry:cupFinal.entry_1_entry)===m.id?125:0) : 0;
       const kluis = isSeasonOver && m.name==='Jack Bernatchez'?50:0;
       const earned = m.earned + sp + cp + kluis;
-      const rankMedal = sRank===1?'🥇':sRank===2?'🥈':sRank===3?'🥉':sRank===4?'4️⃣':sRank===5?'5️⃣':sRank===6?'6️⃣':sRank===7?'7️⃣':sRank===8?'8️⃣':'';
+      const rankMedal = isSeasonOver ? (sRank===1?'🥇':sRank===2?'🥈':sRank===3?'🥉':sRank===4?'4️⃣':sRank===5?'5️⃣':sRank===6?'6️⃣':sRank===7?'7️⃣':sRank===8?'8️⃣':'') : '';
       const kickedCard = isKickedOut(m.name);
       const sCardTheme = isSeasonOver ? {
         1: { border:'rgba(255,215,0,0.4)', bg:'rgba(255,215,0,0.05)', rankColor:'#FFD700' },
@@ -2753,7 +2760,11 @@ async function init() {
           html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + (allPlayed ? 'var(--text3)' : 'var(--amber)') + ';background:var(--bg3);border-radius:6px;padding:3px 8px;">' + m.played + '/' + total + (allPlayed ? ' ✓' : '') + '</span>';
         }
       }
-      if (state.isLive && m._prize > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;">💰 $' + m._prize.toFixed(2) + '</span>';
+      if (state.isLive && m._prize > 0) {
+        const GW_RANK_EMOJI = {1:'🥇', 2:'🥈', 3:'🥉', 4:'4️⃣', 5:'5️⃣', 6:'6️⃣'};
+        const prizeEmoji = GW_RANK_EMOJI[m._gwRank] || '💰';
+        html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;">' + prizeEmoji + ' $' + m._prize.toFixed(2) + '</span>';
+      }
       if (state.isLive && m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;">🍺 Shotgun</span>';
       if (m.chip) {
         const chipLabels = { bboost: 'BB', '3xc': 'TC', wildcard: 'WC', freehit: 'FH' };
