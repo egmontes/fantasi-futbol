@@ -3395,7 +3395,7 @@ async function init() {
               return badges ? { badges, bonusStr } : { badges: '', bonusStr };
             };
 
-            const startingPicks = picks.picks.filter(p => p.position <= 11).map(p => ({...p}));
+            const startingPicks = picks.picks.filter(p => p.position <= (isBB ? 15 : 11)).map(p => ({...p}));
             const benchPicks = picks.picks.filter(p => p.position > 11).map(p => ({...p}));
 
             // Auto-subs: confirmed (post-GW) or predicted (live)
