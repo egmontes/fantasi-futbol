@@ -1878,8 +1878,8 @@ async function init() {
 
   function computeTickerInsights() {
     const insights = {
-      highest: { points: -Infinity, manager: '', gw: null },
-      lowest: { points: Infinity, manager: '', gw: null },
+      highest: { points: -Infinity, manager: '', gw: null, tied: 1 },
+      lowest: { points: Infinity, manager: '', gw: null, tied: 1 },
       biggestMargin: { margin: 0, manager: '', gw: null },
       mostTransfers: { transfers: -Infinity, manager: '', gw: null },
       leastTransfers: { transfers: Infinity, manager: '', gw: null },
@@ -1889,7 +1889,6 @@ async function init() {
       let ranked;
       const liveMap = window._liveScoreCacheGW?.[gw];
       if (state.isLive && gw === state.latestGW && liveMap && Object.keys(liveMap).length > 0) {
-        // Use live scores for current GW
         ranked = state.managers
           .filter(m => liveMap[m.id])
           .map(m => ({ ...m, gwPoints: liveMap[m.id].netPts || 0 }))
@@ -1901,14 +1900,14 @@ async function init() {
 
       const top = ranked[0];
       const bottom = ranked[ranked.length - 1];
-      const topTransfers = (state.gwHistory[top.id] || []).find(h => h.event === gw)?.event_transfers || 0;
-      const bottomTransfers = (state.gwHistory[bottom.id] || []).find(h => h.event === gw)?.event_transfers || 0;
 
       if (top.gwPoints > insights.highest.points) {
-        insights.highest = { points: top.gwPoints, manager: top.name, gw };
+        const tied = ranked.filter(m => m.gwPoints === top.gwPoints).length;
+        insights.highest = { points: top.gwPoints, manager: top.name, gw, tied };
       }
       if (bottom.gwPoints < insights.lowest.points) {
-        insights.lowest = { points: bottom.gwPoints, manager: bottom.name, gw };
+        const tied = ranked.filter(m => m.gwPoints === bottom.gwPoints).length;
+        insights.lowest = { points: bottom.gwPoints, manager: bottom.name, gw, tied };
       }
       if (ranked.length > 1) {
         const margin = top.gwPoints - ranked[1].gwPoints;
@@ -2484,19 +2483,29 @@ async function init() {
     const mostTop4 = state.historyLoaded ? [...rows2].sort((a,b) => b.top4 - a.top4)[0] : null;
     const mostGuinness = state.historyLoaded ? [...rows2].sort((a,b) => b.totalG - a.totalG)[0] : null;
 
+    // Tie helpers — same pattern as all-time page
+    const tickerNamesStr = (name, tied) => {
+      if (tied <= 1) return esc(name);
+      if (tied === 2) return esc(name) + ' & 1 other';
+      return tied + '-way tie';
+    };
+    const tieStr = tickerNamesStr;
+    const moverUpTied = biggestMoverUp && rankChangeMap ? Object.values(rankChangeMap).filter(v => v === -(biggestMoverUp.change)).length : 1;
+    const moverDownTied = biggestMoverDown && rankChangeMap ? Object.values(rankChangeMap).filter(v => v === Math.abs(biggestMoverDown.change)).length : 1;
+
     const cards =
       (mostTransIn ? '<div class="stat-card stat-card-green" data-widget="trans-in"><div class="s-label">📈 GW' + gwLabel + ' Most Transferred In</div><div class="s-value">' + esc(mostTransIn.web_name) + '<br>' + mostTransIn.transfers_in_event.toLocaleString() + ' transfers</div></div>' : '') +
       (mostTransOut ? '<div class="stat-card stat-card-red" data-widget="trans-out"><div class="s-label">📉 GW' + gwLabel + ' Most Transferred Out</div><div class="s-value">' + esc(mostTransOut.web_name) + '<br>' + mostTransOut.transfers_out_event.toLocaleString() + ' transfers</div></div>' : '') +
       (mostCaptained ? '<div class="stat-card stat-card-gold"><div class="s-label">©️ GW' + gwLabel + ' Most Captained</div><div class="s-value">' + esc(mostCaptained.name) + '<br>' + mostCaptained.count + ' mgrs</div></div>' : '') +
-      (biggestMoverUp ? '<div class="stat-card stat-card-green"><div class="s-label">🚀 GW' + gwLabel + ' Biggest Mover Up</div><div class="s-value">' + esc(biggestMoverUp.name) + (biggestMoverUp.change !== 0 ? '<br>▲' + biggestMoverUp.change + ' spots' : '') + '</div></div>' : '') +
-      (biggestMoverDown ? '<div class="stat-card stat-card-red"><div class="s-label">📉 GW' + gwLabel + ' Biggest Mover Down</div><div class="s-value">' + esc(biggestMoverDown.name) + (biggestMoverDown.change !== 0 ? '<br>▼' + Math.abs(biggestMoverDown.change) + ' spots' : '') + '</div></div>' : '') +
+      (biggestMoverUp ? '<div class="stat-card stat-card-green"><div class="s-label">🚀 GW' + gwLabel + ' Biggest Mover Up</div><div class="s-value">' + tieStr(esc(biggestMoverUp.name), moverUpTied) + (biggestMoverUp.change !== 0 ? '<br>▲' + biggestMoverUp.change + ' spots' : '') + '</div></div>' : '') +
+      (biggestMoverDown ? '<div class="stat-card stat-card-red"><div class="s-label">📉 GW' + gwLabel + ' Biggest Mover Down</div><div class="s-value">' + tieStr(esc(biggestMoverDown.name), moverDownTied) + (biggestMoverDown.change !== 0 ? '<br>▼' + Math.abs(biggestMoverDown.change) + ' spots' : '') + '</div></div>' : '') +
       (completedGWsForPool > 0 || isSeasonOver ? '<div class="stat-card" style="height:110px;"><div class="s-label">' + (isSeasonOver ? '💵 Total Payouts' : '💵 Payouts So Far') + '</div><div class="s-value big-value">$' + totalPool + '</div></div>' : '') +
       '<div class="stat-card stat-card-guinness" style="height:110px;"><div class="s-label">🍺 Guinness Chugged</div><div class="s-value big-value">' + rows2.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
-      (mostGuinness && mostGuinness.totalG > 0 ? '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Most Guinness</div><div class="s-value">' + esc(mostGuinness.name) + '<br>' + mostGuinness.totalG + '</div></div>' : '') +
-      (mostTop4 && mostTop4.top4 > 0 ? '<div class="stat-card stat-card-green"><div class="s-label">🏆 Most Top 4 Finishes</div><div class="s-value">' + esc(mostTop4.name) + '<br>' + mostTop4.top4 + ' times</div></div>' : '') +
-      (mostBottom2 && mostBottom2.bottom2 > 0 ? '<div class="stat-card stat-card-red"><div class="s-label">💀 Most Bottom 2 Finishes</div><div class="s-value">' + esc(mostBottom2.name) + '<br>' + mostBottom2.bottom2 + ' times</div></div>' : '') +
-      '<div class="stat-card stat-card-green"><div class="s-label">🟢 Highest GW Score</div><div class="s-value">' + esc(tickerInsights.highest.manager) + '<br>GW' + tickerInsights.highest.gw + ' · ' + tickerInsights.highest.points + ' pts' + '</div></div>' +
-      '<div class="stat-card stat-card-red"><div class="s-label">🔴 Lowest GW Score</div><div class="s-value">' + esc(tickerInsights.lowest.manager) + '<br>GW' + tickerInsights.lowest.gw + ' · ' + tickerInsights.lowest.points + ' pts' + '</div></div>' +
+      (mostGuinness && mostGuinness.totalG > 0 ? '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Most Guinness</div><div class="s-value">' + tieStr(esc(mostGuinness.name), rows2.filter(m => m.totalG === mostGuinness.totalG).length) + '<br>' + mostGuinness.totalG + '</div></div>' : '') +
+      (mostTop4 && mostTop4.top4 > 0 ? '<div class="stat-card stat-card-green"><div class="s-label">🏆 Most Top 6 Finishes</div><div class="s-value">' + tieStr(esc(mostTop4.name), rows2.filter(m => m.top4 === mostTop4.top4).length) + '<br>' + mostTop4.top4 + ' times</div></div>' : '') +
+      (mostBottom2 && mostBottom2.bottom2 > 0 ? '<div class="stat-card stat-card-red"><div class="s-label">💀 Most Bottom 4 Finishes</div><div class="s-value">' + tieStr(esc(mostBottom2.name), rows2.filter(m => m.bottom2 === mostBottom2.bottom2).length) + '<br>' + mostBottom2.bottom2 + ' times</div></div>' : '') +
+      '<div class="stat-card stat-card-green"><div class="s-label">🟢 Highest GW Score</div><div class="s-value">' + tieStr(esc(tickerInsights.highest.manager), tickerInsights.highest.tied) + '<br>GW' + tickerInsights.highest.gw + ' · ' + tickerInsights.highest.points + ' pts' + '</div></div>' +
+      '<div class="stat-card stat-card-red"><div class="s-label">🔴 Lowest GW Score</div><div class="s-value">' + tieStr(esc(tickerInsights.lowest.manager), tickerInsights.lowest.tied) + '<br>GW' + tickerInsights.lowest.gw + ' · ' + tickerInsights.lowest.points + ' pts' + '</div></div>' +
       '<div class="stat-card"><div class="s-label">👑 Biggest Win Margin</div><div class="s-value">' + esc(tickerInsights.biggestMargin.manager) + '<br>GW' + tickerInsights.biggestMargin.gw + ' · ' + tickerInsights.biggestMargin.margin + ' pts' + '</div></div>' +
       (topMoney && topMoneyValue > 0 ? '<div class="stat-card"><div class="s-label">💰 Top Weekly Earner</div><div class="s-value">' + esc(topMoney.name) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') + '</div></div>' : '') +
       (isSeasonOver ? '<div class="stat-card stat-card-gold"><div class="s-label">🍺🎬 Rolling Can Rolling Can Award</div><div class="s-value">Jack Bernatchez<br>$50</div></div>' : '');
@@ -2525,8 +2534,8 @@ async function init() {
       (!isSeasonOver && (state.isLive || (window._playedCache || {})[currentGW]) ? '<th style="width:60px" ' + thClass('played') + ' data-col="played" title="Players played / total">Played</th>' : '') +
       (!isSeasonOver ? '<th style="width:90px" ' + thClass('captain') + ' data-col="captain">Captain</th>' : '') +
       '<th style="width:70px" ' + thClass('pts') + ' data-col="pts">Total PTS</th>' +
-      '<th style="width:60px;text-align:center" ' + thClass('top4') + ' data-col="top4" title="Top-4 finishes">Top 4</th>' +
-      '<th style="width:60px;text-align:center" ' + thClass('bot2') + ' data-col="bot2" title="Bottom-2 finishes">Bot 2</th>' +
+      '<th style="width:60px;text-align:center" ' + thClass('top4') + ' data-col="top4" title="Top-6 finishes">Top 6</th>' +
+      '<th style="width:60px;text-align:center" ' + thClass('bot2') + ' data-col="bot2" title="Bottom-4 finishes">Bot 4</th>' +
       '<th style="width:80px" ' + thClass('earned') + ' data-col="earned">Earned</th>' +
       '<th style="width:70px;text-align:center" ' + thClass('gmisses') + ' data-col="gmisses" title="Missed Guinness shotguns owed">🍺 Owes</th>' +
       '<th style="width:70px;text-align:center" ' + thClass('missed') + ' data-col="missed" title="Shotguns missed this season">🍺 Missed</th>' +
@@ -2545,7 +2554,7 @@ async function init() {
       gwRankMap[m.id] = gwRank;
     });
 
-    // Bottom 2 map — last 2 unique score groups
+    // Bottom 4 map — last 2 unique score groups
     const gwBottomMap = {};
     const n = gwRanked.length;
     if (!allGWZero && n >= 2) {
@@ -2605,7 +2614,7 @@ async function init() {
           const prize = prizes[rank];
           const rankSuffix = rank===1?'st':rank===2?'nd':'rd';
           const tip = medal ? ' <span class="tip" style="font-size:13px;">' + medal + '<span class="tip-text">' + rank + rankSuffix + ' place · Payout: ' + prize + '</span></span>' : '';
-          const beerTip = !allGWZero && gwBottomMap[m.id] ? ' <span class="tip" style="font-size:13px;">🍺<span class="tip-text">Bottom 2 · Shotgun duty!</span></span>' : '';
+          const beerTip = !allGWZero && gwBottomMap[m.id] ? ' <span class="tip" style="font-size:13px;">🍺<span class="tip-text">Bottom 4 · Shotgun duty!</span></span>' : '';
           const hitBadge = m.gwHit > 0 ? '<span class="hit-cost">(-' + m.gwHit + ')</span>' : '';
           return '<span class="pts-val">' + m.gwRawPts + '</span>' + hitBadge + tip + beerTip;
         })() + '</td>' : '') +
@@ -2666,8 +2675,8 @@ async function init() {
       { key: 'pts', label: 'Total Pts' },
       ...(!isSeasonOver ? [{ key: 'gwpts', label: 'GW Pts' }] : []),
       { key: 'earned', label: 'Earned' },
-      { key: 'top4', label: 'Top 4' },
-      { key: 'bottom2', label: 'Bot 2' },
+      { key: 'top4', label: 'Top 6' },
+      { key: 'bottom2', label: 'Bot 4' },
       { key: 'totalG', label: 'Total 🍺' },
     ];
     if (state.isLive && !hasLiveScores) {
@@ -2782,8 +2791,8 @@ async function init() {
             + '<span style="color:' + valColor + ';">' + value + '</span>'
             + '</span>';
         };
-        if (m.top4 > 0) html += chip('Top 4:', m.top4, 'var(--green)', 'var(--green-dim)', true);
-        if (m.bottom2 > 0) html += chip('Bot 2:', m.bottom2, 'var(--red)', 'var(--red-dim)', true);
+        if (m.top4 > 0) html += chip('Top 6:', m.top4, 'var(--green)', 'var(--green-dim)', true);
+        if (m.bottom2 > 0) html += chip('Bot 4:', m.bottom2, 'var(--red)', 'var(--red-dim)', true);
         if (m.totalG > 0) html += chip('Total 🍺:', m.totalG, 'var(--amber)', 'var(--bg3)', true);
         if (m.gmisses > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;">'
           + '<span style="color:var(--red);">⚠️ Owes:</span>'
@@ -2814,7 +2823,7 @@ async function init() {
         html += '<div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);">' + esc(km.team) + '</div>';
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--text3);background:var(--bg3);border-radius:6px;padding:3px 8px;">$0.00</span>';
-        html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--red);">Bot 2:</span><span style="color:var(--text);">2</span></span>';
+        html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--red);">Bot 4:</span><span style="color:var(--text);">2</span></span>';
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--amber);">Total 🍺:</span><span style="color:var(--text);">5</span></span>';
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--red);">⚠️ Owes:</span><span style="color:var(--text);">4</span></span>';
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--red);">Missed:</span><span style="color:var(--text);">3</span></span>';
@@ -2956,7 +2965,7 @@ async function init() {
         pts:     { label: 'pts',    fmt: v => v, color: () => 'var(--text)' },
         gwpts:   { label: 'gw pts', fmt: v => v !== null && v !== undefined ? v : '—', color: v => v > 0 ? 'var(--theme)' : 'var(--text3)' },
         earned:  { label: 'earned', fmt: v => '$' + (+v).toFixed(2), color: v => v > 0 ? 'var(--green)' : 'var(--text3)' },
-        top4:    { label: 'top 4',  fmt: v => v || '0', color: v => v > 0 ? 'var(--green)' : 'var(--text3)' },
+        top4:    { label: 'top 6',  fmt: v => v || '0', color: v => v > 0 ? 'var(--green)' : 'var(--text3)' },
         bottom2: { label: 'bot 2',  fmt: v => v || '0', color: v => v > 0 ? 'var(--red)' : 'var(--text3)' },
         totalG:  { label: '🍺 total', fmt: v => v || '0', color: v => v > 0 ? 'var(--amber)' : 'var(--text3)' },
       };
@@ -5125,7 +5134,7 @@ async function buildPrompt(gw) {
 ${leagueContext}
 League rules:
 - Weekly prizes: 1st = $30, 2nd = $15, 3rd = $10, 4th = $5
-- The bottom 2 managers each week must shotgun a Guinness before 7:30am ET the following Saturday. No exceptions.
+- The bottom 4 managers each week must shotgun a Guinness before 7:30am ET the following Saturday. No exceptions.
 
 GW${gw} results (includes captain, chip, and transfer data where available):
 ${summaryLines}
@@ -5177,7 +5186,7 @@ One headline per line, each starting with a relevant emoji, punchy and funny, on
 - 2nd place finisher(s) — use 🥈
 - 3rd place finisher(s) — use 🥉
 - 4th place finisher(s) — use 4️⃣
-- Bottom 2 / shotgun duty finisher(s) — use 🍺
+- Bottom 4 / shotgun duty finisher(s) — use 🍺
 
 No dashes, no bullet points — just emoji then headline on each line. Each headline should be punchy, funny, reference chips/captains/key moments where relevant.
 
@@ -5200,10 +5209,10 @@ Third place. Mention something specific about their team — a captain, transfer
 Fourth place. Reference their captain or a notable transfer. They scraped into the money — have fun with that if it feels right, but don't force the dollar amount.
 
 **🍺 SHOTGUN DUTY — [funny title]**
-Ruthless but good-natured roast of the bottom 2. Reference what went wrong — bad captain, transfer that backfired, chip that flopped. Name both managers. Call out repeat offenders with a funny nickname. Remind them: 7:30am Saturday, no exceptions.
+Ruthless but good-natured roast of the bottom 4. Reference what went wrong — bad captain, transfer that backfired, chip that flopped. Name both managers. Call out repeat offenders with a funny nickname. Remind them: 7:30am Saturday, no exceptions.
 
 PACIFICO IMPULSE CAPTAIN OF THE WEEK (optional, woven into the captain discussion):
-If any manager in the top 4 captained someone truly unusual — low ownership (<15% of league), unexpected, or a bold left-field pick — and it paid off, work the "Pacifico Impulse Captain of the Week" award naturally into the part of that manager's section where you're talking about their captain. It should flow directly from the captain discussion, not be tacked on at the end. Make it feel like a prestigious honor being bestowed in the moment. If nobody qualifies, skip it entirely. Do not force it or give it its own section.
+If any manager in the top 6 captained someone truly unusual — low ownership (<15% of league), unexpected, or a bold left-field pick — and it paid off, work the "Pacifico Impulse Captain of the Week" award naturally into the part of that manager's section where you're talking about their captain. It should flow directly from the captain discussion, not be tacked on at the end. Make it feel like a prestigious honor being bestowed in the moment. If nobody qualifies, skip it entirely. Do not force it or give it its own section.
 
 Tone: funny, punchy, group-chat energy. Each section 2-4 sentences. No extra commentary outside the sections.`
   }
