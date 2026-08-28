@@ -1361,7 +1361,17 @@ async function init() {
         const currentDeadline = currentGWEvent ? new Date(currentGWEvent.deadline_time).getTime() : null;
         state.isLive = currentGWEvent && !currentGWEvent.finished && !currentGWEvent.data_checked && currentDeadline && now >= currentDeadline;
         if (state.isLive) {
+          const rb = document.getElementById('refresh-btn');
+          if (rb) rb.style.display = 'flex';
+        }
+        if (state.isLive) {
           state.liveGW = currentGWEvent.id;
+          state.currentGW = state.liveGW;
+          // Clear any stale cache from previous GW
+          try {
+            const staleKey = 'ff_live_scores_v2_' + (state.liveGW - 1);
+            localStorage.removeItem(staleKey);
+          } catch(e) {}
           try {
             const fixtures = await fetchFPL('fixtures/?event=' + currentGWEvent.id);
             if (fixtures.length > 0 && fixtures.every(f => f.finished && f.data_checked !== false)) {
@@ -2034,7 +2044,7 @@ async function init() {
         const saved = localStorage.getItem('ff_live_scores_v2_' + currentGW);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Date.now() - parsed.ts < 60 * 1000) window._liveScoreCacheGW[currentGW] = parsed.data;
+          if (Date.now() - parsed.ts < 90 * 1000) window._liveScoreCacheGW[currentGW] = parsed.data;
         }
       } catch(e) {}
     }
@@ -2049,13 +2059,78 @@ async function init() {
        Date.now() - (window._lastMinutesFetch||0) > 2 * 60 * 1000);
     if (shouldRefreshMinutes) {
       window._lastMinutesFetch = Date.now();
-      fetchFPL('event/' + currentGW + '/live/?t=' + Date.now()).then(liveData => {
+      fetchFPL('event/' + currentGW + '/live/?t=' + Date.now()).then(async liveData => {
         if (!window._playerPtsCache) window._playerPtsCache = {};
         if (!window._playerMinutesCache) window._playerMinutesCache = {};
         liveData.elements.forEach(e => {
           window._playerPtsCache[e.id] = e.stats.total_points;
           window._playerMinutesCache[e.id] = e.stats.minutes;
         });
+        // Fetch picks for managers not yet cached (in small batches)
+        const missing = state.managers.filter(m => !window._picksCache?.[m.id + '_' + currentGW]);
+        if (missing.length > 0 && !window._picksFetchInProgress) {
+          const BATCH = 5;
+          for (let i = 0; i < missing.length; i += BATCH) {
+            const batch = missing.slice(i, i + BATCH);
+            await Promise.all(batch.map(async m => {
+              try {
+                const picks = await fetchFPL('entry/' + m.id + '/event/' + currentGW + '/picks/');
+                if (!window._picksCache) window._picksCache = {};
+                window._picksCache[m.id + '_' + currentGW] = picks;
+              } catch(e) {}
+            }));
+          }
+        }
+        // Recompute scores from picks and update cache + cards in-place
+        if (window._picksCache && window._liveScoreCacheGW?.[currentGW]) {
+          Object.entries(window._picksCache).forEach(([key, picks]) => {
+            if (!key.endsWith('_' + currentGW) || !picks?.picks) return;
+            const mid = parseInt(key.split('_')[0]);
+            const isBB = picks.active_chip === 'bboost';
+            const maxPos = isBB ? 15 : 11;
+            const startingEls = picks.picks.filter(p => p.position <= maxPos).map(p => ({...p}));
+            const benchEls = picks.picks.filter(p => p.position > maxPos);
+            const getElType = id => (state.bootstrapElements||[]).find(e=>e.id===id)?.element_type || 0;
+            const elDone = id => { const el=(state.bootstrapElements||[]).find(e=>e.id===id); if(!el) return false; const f=(window._fixturesByTeam||{})[el.team]; if(!f) return false; if(f.finished||f.finished_provisional) return true; if(f.started){const t=(state.bootstrapElements||[]).filter(e=>e.team===el.team&&e.id!==id); if(t.some(e=>(window._playerMinutesCache[e.id]||0)>=1)) return true;} return false; };
+            const usedBench = new Set();
+            if (!isBB && !picks.automatic_subs?.length) {
+              for (let si = 0; si < startingEls.length; si++) {
+                const s = startingEls[si];
+                if ((window._playerMinutesCache[s.element]||0) > 0) continue;
+                if (!elDone(s.element)) continue;
+                const sType = getElType(s.element);
+                const sub = benchEls.find(b => !usedBench.has(b.element) && (window._playerMinutesCache[b.element]||0) > 0 && getElType(b.element) > (sType===1?1:0) && (sType!==1||getElType(b.element)===1));
+                if (sub) { startingEls[si] = {...sub, multiplier:s.multiplier}; usedBench.add(sub.element); }
+              }
+            }
+            let rawPts = 0, played = 0, remaining = 0;
+            startingEls.forEach(p => {
+              rawPts += (window._playerPtsCache[p.element]||0) * p.multiplier;
+              if ((window._playerMinutesCache[p.element]||0) > 0) played++; else remaining++;
+            });
+            const hit = picks.entry_history?.event_transfers_cost || 0;
+            if (!window._lastManualRefresh || Date.now() - window._lastManualRefresh > 30000) {
+              window._liveScoreCacheGW[currentGW][mid] = { rawPts, netPts: rawPts-hit, hit, played, remaining };
+              // Update card score in-place without full re-render
+              const card = document.querySelector('[data-manager-id="' + mid + '"]');
+              if (card) {
+                const gwPtsEl = card.querySelector('.s-card-gwpts');
+                const playedEl = card.querySelector('.s-card-played');
+                const totalEl = card.querySelector('.s-card-total');
+                const prevHist = (state.gwHistory[mid] || []).filter(h => h.event < currentGW).sort((a,b) => b.event - a.event)[0];
+                const seasonTotal = (prevHist ? prevHist.total_points : 0) + (rawPts - hit);
+                if (gwPtsEl) gwPtsEl.textContent = 'GW ' + rawPts + 'pts';
+                if (totalEl) totalEl.textContent = seasonTotal;
+                if (playedEl) {
+                  playedEl.textContent = played + '/' + (played + remaining) + (remaining === 0 ? ' ✓' : '');
+                  playedEl.style.color = remaining === 0 ? 'var(--text3)' : 'var(--amber)';
+                }
+              }
+            }
+          });
+        }
+        // Save updated cache to localStorage
+        try { localStorage.setItem('ff_live_scores_v2_' + currentGW, JSON.stringify({ data: window._liveScoreCacheGW[currentGW], ts: Date.now() })); } catch(e) {}
       }).catch(() => {});
     }
     if (shouldFetchLive) {
@@ -2776,11 +2851,11 @@ async function init() {
       html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
       if (earned >= 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + (earned > 0 ? 'var(--green)' : 'var(--text3)') + ';background:' + (earned > 0 ? 'var(--green-dim)' : 'var(--bg3)') + ';border-radius:6px;padding:3px 8px;">$' + earned.toFixed(2) + '</span>';
       if (!isSeasonOver && m.gwLatestPts !== null) {
-        html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + (m.gwRawPts||0) + 'pts</span>';
+        html += '<span class="s-card-gwpts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + (m.gwRawPts||0) + 'pts</span>';
         if (state.isLive && m.played !== null) {
           const total = m.played + m.remaining;
           const allPlayed = m.remaining === 0;
-          html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + (allPlayed ? 'var(--text3)' : 'var(--amber)') + ';background:var(--bg3);border-radius:6px;padding:3px 8px;">' + m.played + '/' + total + (allPlayed ? ' ✓' : '') + '</span>';
+          html += '<span class="s-card-played" style="font-size:11px;font-family:var(--font-mono);color:' + (allPlayed ? 'var(--text3)' : 'var(--amber)') + ';background:var(--bg3);border-radius:6px;padding:3px 8px;">' + m.played + '/' + total + (allPlayed ? ' ✓' : '') + '</span>';
         }
       }
       if (state.isLive && m._prize > 0) {
@@ -2817,7 +2892,7 @@ async function init() {
       html += '</div>'; // close chips
       html += '</div>'; // close name+chips column
       html += '<div style="text-align:right;flex-shrink:0;align-self:center;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">';
-      html += '<div class="sc-right-val" style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:var(--text);">' + m.total + '</div>';
+      html += '<div class="sc-right-val s-card-total" style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:var(--text);">' + m.total + '</div>';
       html += '<div class="sc-right-label" style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">pts</div>';
       html += '</div>';
       html += '</div>'; // close top row
@@ -9240,6 +9315,14 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
 
   // Prevent browser from restoring scroll before sticky offsets are calculated
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+  // Show scroll-top immediately if on current tab, refresh only when live confirmed later
+  requestAnimationFrame(() => {
+    const hash = window.location.hash;
+    const isCurrentTab = !hash || hash === '#current' || hash === '#standings' || hash.startsWith('#standings/');
+    const scrollTopBtn = document.getElementById('scroll-top-btn');
+    if (scrollTopBtn && isCurrentTab) scrollTopBtn.style.display = 'flex';
+  });
 
   window._ssHistory = () => { history.replaceState(null,'','#alltime'); showLeagueHistory(); };
   function updateSeasonLabel(text, isLive) {
