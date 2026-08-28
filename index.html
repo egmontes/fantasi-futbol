@@ -1558,15 +1558,15 @@ async function init() {
             loadCupData(true).catch(() => {});
           };
 
-          loadCupStatic().then(() => renderStandings());
-          renderStandings();
+          loadCupStatic().then(() => _renderStandingsDebounced());
+          _renderStandingsDebounced();
           updateExportBtn(state.latestGW);
-          loadGWFromCache(38).then(() => renderStandings());
+          loadGWFromCache(38).then(() => _renderStandingsDebounced());
         } else {
           // Partial — fall back to API for missing GWs
           await loadAllHistory(false);
           state.historyLoaded = true;
-          renderStandings();
+          _renderStandingsDebounced();
           updateExportBtn(state.latestGW);
         }
       } else {
@@ -1578,7 +1578,7 @@ async function init() {
           loadAllHistory(state.isLive),
         ]);
         state.historyLoaded = true;
-        renderStandings();
+        _renderStandingsDebounced();
         // Show export button when GW is complete (not live)
         if (!state.isLive) {
           const exportBtn = document.getElementById('export-gw-btn');
@@ -1590,7 +1590,7 @@ async function init() {
           loadGWFromCache(state.latestGW).then(loaded => {
             if (loaded) {
               updateExportBtn(state.latestGW);
-              renderStandings();
+              _renderStandingsDebounced();
             }
           });
         }
@@ -1958,6 +1958,12 @@ async function init() {
 
   const standingsSort = { col: 'pts', dir: 'desc' };
 
+  let _renderStandingsDebounceTimer = null;
+  const _renderStandingsDebounced = () => {
+    clearTimeout(_renderStandingsDebounceTimer);
+    _renderStandingsDebounceTimer = setTimeout(() => renderStandings(), 150);
+  };
+
   async function renderStandings() {
     if (window._renderStandingsInProgress) return;
     window._renderStandingsInProgress = true;
@@ -2031,14 +2037,7 @@ async function init() {
 
     // If live, fetch real-time player scores — use cache, fire in background if missing
     if (!window._liveScoreCacheGW) window._liveScoreCacheGW = {};
-    // Clear stale live score cache for current GW on each page load
-    // (history can update and cache may be stale from previous session)
-    if (!window._liveScoreClearedThisSession) {
-      window._liveScoreClearedThisSession = true;
-      localStorage.removeItem('ff_live_scores_v2_' + currentGW);
-      delete window._liveScoreCacheGW[currentGW];
-    }
-    // Restore live scores from localStorage if available and fresh (< 15min)
+    // Restore live scores from localStorage if available and fresh
     if (!window._liveScoreCacheGW[currentGW]) {
       try {
         const saved = localStorage.getItem('ff_live_scores_v2_' + currentGW);
@@ -2081,9 +2080,9 @@ async function init() {
             }));
           }
         }
-        // Recompute scores from picks and update cache + cards in-place
-        if (window._picksCache && window._liveScoreCacheGW?.[currentGW]) {
-          Object.entries(window._picksCache).forEach(([key, picks]) => {
+        // Collect all card updates then apply in one frame
+        const cardUpdates = [];
+        Object.entries(window._picksCache).forEach(([key, picks]) => {
             if (!key.endsWith('_' + currentGW) || !picks?.picks) return;
             const mid = parseInt(key.split('_')[0]);
             const isBB = picks.active_chip === 'bboost';
@@ -2111,25 +2110,28 @@ async function init() {
             const hit = picks.entry_history?.event_transfers_cost || 0;
             if (!window._lastManualRefresh || Date.now() - window._lastManualRefresh > 30000) {
               window._liveScoreCacheGW[currentGW][mid] = { rawPts, netPts: rawPts-hit, hit, played, remaining };
-              // Update card score in-place without full re-render
-              const card = document.querySelector('[data-manager-id="' + mid + '"]');
-              if (card) {
-                const gwPtsEl = card.querySelector('.s-card-gwpts');
-                const playedEl = card.querySelector('.s-card-played');
-                const totalEl = card.querySelector('.s-card-total');
-                const prevHist = (state.gwHistory[mid] || []).filter(h => h.event < currentGW).sort((a,b) => b.event - a.event)[0];
-                const seasonTotal = (prevHist ? prevHist.total_points : 0) + (rawPts - hit);
-                if (gwPtsEl) gwPtsEl.textContent = 'GW ' + rawPts + 'pts';
-                if (totalEl) totalEl.textContent = seasonTotal;
-                if (playedEl) {
-                  playedEl.textContent = played + '/' + (played + remaining) + (remaining === 0 ? ' ✓' : '');
-                  playedEl.style.color = remaining === 0 ? 'var(--text3)' : 'var(--amber)';
-                }
-              }
+              const prevHist = (state.gwHistory[mid] || []).filter(h => h.event < currentGW).sort((a,b) => b.event - a.event)[0];
+              const seasonTotal = (prevHist ? prevHist.total_points : 0) + (rawPts - hit);
+              cardUpdates.push({ mid, rawPts, hit, played, remaining, seasonTotal });
             }
           });
-        }
-        // Save updated cache to localStorage
+        // Apply all updates in one animation frame
+        requestAnimationFrame(() => {
+          cardUpdates.forEach(({ mid, rawPts, played, remaining, seasonTotal }) => {
+            const card = document.querySelector('[data-manager-id="' + mid + '"]');
+            if (!card) return;
+            const gwPtsEl = card.querySelector('.s-card-gwpts');
+            const playedEl = card.querySelector('.s-card-played');
+            const totalEl = card.querySelector('.s-card-total');
+            if (gwPtsEl) gwPtsEl.textContent = 'GW ' + rawPts + 'pts';
+            if (totalEl) totalEl.textContent = seasonTotal;
+            if (playedEl) {
+              playedEl.textContent = played + '/' + (played + remaining) + (remaining === 0 ? ' ✓' : '');
+              playedEl.style.color = remaining === 0 ? 'var(--text3)' : 'var(--amber)';
+            }
+          });
+        });
+        // Save updated cache
         try { localStorage.setItem('ff_live_scores_v2_' + currentGW, JSON.stringify({ data: window._liveScoreCacheGW[currentGW], ts: Date.now() })); } catch(e) {}
       }).catch(() => {});
     }
@@ -6682,11 +6684,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         await loadAllHistory(false);
         await loadGuinnessDebts();
       } else {
-        // Same GW — only live scores can change (no transfers/chips mid-week)
-        const currentGW = state.isLive ? state.liveGW : state.latestGW;
-        if (window._liveScoreCacheGW) delete window._liveScoreCacheGW[currentGW];
+        // Same GW — live scores remain valid, background refresh will update them
         window._liveScoreFetchInProgress = false;
-        // Live scores will be re-fetched automatically by renderStandings
       }
 
       // Rebuild GW dropdown
