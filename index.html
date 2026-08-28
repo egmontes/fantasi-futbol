@@ -1964,6 +1964,96 @@ async function init() {
     _renderStandingsDebounceTimer = setTimeout(() => renderStandings(), 150);
   };
 
+  window._sortWeeklyTable = function(col) {
+    const gw = state.weeklyCurrentGW || state.latestGW;
+    if (!state.weeklySort) state.weeklySort = {};
+    if (!state.weeklySort[gw]) state.weeklySort[gw] = { col: 'gwpts', dir: 'desc' };
+    if (state.weeklySort[gw].col === col) {
+      state.weeklySort[gw].dir = state.weeklySort[gw].dir === 'desc' ? 'asc' : 'desc';
+    } else {
+      state.weeklySort[gw].col = col;
+      state.weeklySort[gw].dir = 'desc';
+    }
+    renderWeekly(gw);
+  };
+
+  window._onWeeklyManagerSearch = function(val) {
+    const dropdown = document.getElementById('weekly-manager-dropdown');
+    if (!dropdown) return;
+    const q = val.toLowerCase().trim();
+    if (!q) { dropdown.style.display = 'none'; return; }
+    const matches = state.managers.filter(m => m.name.toLowerCase().includes(q)).slice(0, 8);
+    if (!matches.length) { dropdown.style.display = 'none'; return; }
+    dropdown.innerHTML = matches.map(m =>
+      `<div onclick="window._scrollToWeeklyManager('${m.name.replace(/'/g,"\\'")}\')" style="padding:8px 12px;font-size:13px;font-family:var(--font-mono);color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">${m.name}</div>`
+    ).join('');
+    dropdown.style.display = 'block';
+  };
+
+  window._scrollToWeeklyManager = function(name) {
+    const input = document.getElementById('weekly-manager-search');
+    const dropdown = document.getElementById('weekly-manager-dropdown');
+    if (input) input.value = name;
+    if (dropdown) dropdown.style.display = 'none';
+    const rows = document.querySelectorAll('#weekly-table tbody tr');
+    for (const row of rows) {
+      if (row.textContent.includes(name)) {
+        const top = row.getBoundingClientRect().top + window.scrollY;
+        const offset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sticky-toggle-top') || '120') + 60;
+        const dist = top - offset - window.scrollY;
+        const duration = Math.min(600, Math.max(200, Math.abs(dist) * 0.3));
+        let startTime = null;
+        const ease = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+        const start = window.scrollY;
+        const step = ts => {
+          if (!startTime) startTime = ts;
+          const p = Math.min((ts - startTime) / duration, 1);
+          window.scrollTo(0, start + dist * ease(p));
+          if (p < 1) requestAnimationFrame(step);
+          else { row.style.transition='background 0.3s'; row.style.background='rgba(85,226,233,0.1)'; setTimeout(()=>row.style.background='',1000); }
+        };
+        requestAnimationFrame(step);
+        break;
+      }
+    }
+  };
+
+  window._onWeeklyPlayerSearch = function(val) {
+    const dropdown = document.getElementById('weekly-player-dropdown');
+    if (!dropdown) return;
+    const q = val.toLowerCase().trim();
+    if (!q) {
+      dropdown.style.display = 'none';
+      document.querySelectorAll('#weekly-table tbody tr').forEach(r => r.style.opacity = '');
+      return;
+    }
+    const matches = Object.entries(state.bootstrapPlayers||{})
+      .filter(([id, name]) => name.toLowerCase().includes(q)).slice(0, 8);
+    if (!matches.length) { dropdown.style.display = 'none'; return; }
+    dropdown.innerHTML = matches.map(([id, name]) =>
+      `<div onclick="window._highlightWeeklyPlayer(${id},'${name.replace(/'/g,"\\'")}\')" style="padding:8px 12px;font-size:13px;font-family:var(--font-mono);color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">${name}</div>`
+    ).join('');
+    dropdown.style.display = 'block';
+  };
+
+  window._highlightWeeklyPlayer = function(playerId, playerName) {
+    const input = document.getElementById('weekly-player-search');
+    const dropdown = document.getElementById('weekly-player-dropdown');
+    if (input) { input.value = playerName; input.style.borderColor = 'var(--theme)'; }
+    if (dropdown) dropdown.style.display = 'none';
+    const gw = state.currentGW;
+    const rows = document.querySelectorAll('#weekly-table tbody tr');
+    let owners = 0;
+    rows.forEach(row => {
+      const mid = parseInt(row.dataset.managerId);
+      const picks = window._picksCache?.[mid + '_' + gw];
+      const hasPlayer = picks?.picks?.some(p => p.element === parseInt(playerId));
+      row.style.opacity = hasPlayer ? '1' : '0.35';
+      if (hasPlayer) owners++;
+    });
+    if (input) input.placeholder = owners + '/' + rows.length + ' (' + Math.round(owners/rows.length*100) + '%)';
+  };
+
   async function renderStandings() {
     if (window._renderStandingsInProgress) return;
     window._renderStandingsInProgress = true;
@@ -4319,6 +4409,7 @@ async function init() {
 
   async function renderWeekly(gw) {
     gw = parseInt(gw) || state.latestGW;
+    state.weeklyCurrentGW = gw;
     document.getElementById('weekly-content').innerHTML =
       `<div class="loading-state"><span class="spinner"></span>Loading GW${gw}...</div>`;
 
@@ -4375,17 +4466,35 @@ async function init() {
       const wthClass = c => 'class="sortable' + (wsort.col === c ? ' sort-' + wsort.dir : '') + '"';
 
       let html =
+        '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">' +
+        '<div style="position:relative;">' +
+        '<input id="weekly-manager-search" type="text" placeholder="👤 Jump to manager..." autocomplete="off"' +
+        ' style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;padding:8px 12px;font-size:16px;font-family:var(--font-mono);color:var(--text);outline:none;"' +
+        ' oninput="window._onWeeklyManagerSearch(this.value,event.target)"' +
+        ' onfocus="this.style.borderColor=\'var(--theme)\'"' +
+        ' onblur="setTimeout(()=>{const d=document.getElementById(\'weekly-manager-dropdown\');if(d)d.style.display=\'none\';this.style.borderColor=\'var(--theme-border)\'},200)">' +
+        '<div id="weekly-manager-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;margin-top:4px;z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.4);"></div>' +
+        '</div>' +
+        '<div style="position:relative;">' +
+        '<input id="weekly-player-search" type="text" placeholder="🔍 Highlight player owners..." autocomplete="off"' +
+        ' style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;padding:8px 12px;font-size:16px;font-family:var(--font-mono);color:var(--text);outline:none;"' +
+        ' oninput="window._onWeeklyPlayerSearch(this.value)"' +
+        ' onfocus="this.style.borderColor=\'var(--theme)\'"' +
+        ' onblur="setTimeout(()=>{const d=document.getElementById(\'weekly-player-dropdown\');if(d)d.style.display=\'none\';this.style.borderColor=\'var(--theme-border)\'},200)">' +
+        '<div id="weekly-player-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;margin-top:4px;z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.4);"></div>' +
+        '</div>' +
+        '</div>' +
         '<div class="table-outer"><div class="table-wrap"><table id="weekly-table">' +
         '<thead><tr>' +
         '<th style="width:52px">Rank</th>' +
-        '<th ' + wthClass('name') + ' data-col="name">Manager</th>' +
-        '<th style="width:70px" ' + wthClass('gwpts') + ' data-col="gwpts">GW pts</th>' +
-        '<th style="width:90px" ' + wthClass('captain') + ' data-col="captain">Captain</th>' +
-        '<th style="width:100px" ' + wthClass('prize') + ' data-col="prize">Result</th>' +
-        '<th style="width:70px" ' + wthClass('total') + ' data-col="total">Total GW' + gw + '</th>' +
-        '<th style="width:56px;text-align:center" ' + wthClass('hits') + ' data-col="hits">Hits</th>' +
-        '<th style="width:60px;text-align:center" ' + wthClass('bench') + ' data-col="bench">Bench</th>' +
-        '<th style="width:80px;text-align:center" title="Beers owed this week">🍺 Beers This Week</th>' +
+        '<th style="width:auto">Manager</th>' +
+        '<th style="width:70px">GW pts</th>' +
+        '<th style="width:90px">Captain</th>' +
+        '<th style="width:100px">Result</th>' +
+        '<th style="width:70px">Total GW' + gw + '</th>' +
+        '<th style="width:56px;text-align:center">Hits</th>' +
+        '<th style="width:60px;text-align:center">Bench</th>' +
+        '<th style="width:80px;text-align:center" title="Beers owed this week">🍺 Beers</th>' +
         '<th style="width:80px;text-align:center" title="Missed shotgun this gameweek">❌ Missed</th>' +
         '</tr></thead><tbody>';
 
@@ -4437,18 +4546,15 @@ async function init() {
           return idx + 1;
         })();
 
-        html += '<tr class="' + rowCls + '">' +
+        html += '<tr class="' + rowCls + '" data-manager-id="' + m.id + '">' +
           '<td>' + (() => {
           let indicator = '';
           if (gw > 1) {
             const getSeasonRank = (upToGW, managerId) => {
               const sorted = state.managers.map(m2 => {
                 const hist = state.gwHistory[m2.id] || [];
-                // Try to find a direct entry for upToGW or earlier
                 const entry = [...hist].filter(h => h.event <= upToGW).sort((a, b) => b.event - a.event)[0];
                 if (entry) return { id: m2.id, total: entry.total_points };
-                // If no entry for upToGW but we have the next GW (e.g. only GW34 cached),
-                // derive total at upToGW = total_points - points of the next entry
                 const nextEntry = hist.find(h => h.event === upToGW + 1);
                 if (nextEntry) return { id: m2.id, total: nextEntry.total_points - nextEntry.points };
                 return { id: m2.id, total: 0 };
@@ -4491,11 +4597,11 @@ async function init() {
         { key: 'transferCost', label: 'Hits' },
       ];
       html += '<div class="weekly-cards">';
-      html += '<div id="gw-cards-sort-bar" style="display:flex;gap:0;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:4px 0;width:100%;">';
-      html += '';
+      html += '<div id="gw-cards-sort-bar" style="display:flex;gap:0;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--border);padding:4px 0;width:100%;">';
       gwSortOptions.forEach((opt, i) => {
-        const isActive = i === 0;
-        html += '<button onclick="window._sortGWCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
+        const isActive = opt.key === (window._gwCardSortKey || 'gwPoints');
+        const dir = window._gwCardSortDir || 'desc';
+        html += '<button onclick="window._sortGWCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="flex:1;border-radius:8px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:' + (isActive?'var(--theme-dim)':'transparent') + ';color:' + (isActive?'var(--theme)':'var(--text3)') + ';font-weight:' + (isActive?'700':'400') + ';padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + (isActive ? (dir === 'desc' ? ' ↓' : ' ↑') : '') + '</button>';
       });
       html += '</div>';
 
