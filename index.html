@@ -1985,7 +1985,7 @@ async function init() {
       document.getElementById('weekly-toggle-bar').style.display = 'none';
       return;
     }
-    const completedGWs = state.isLive ? state.latestGW - 1 : state.latestGW;
+    const completedGWs = state.isLive ? state.liveGW - 1 : state.latestGW;
     const stats = completedGWs > 0 ? computeSeasonStats(completedGWs) : (() => { const s = {}; state.managers.forEach(m => { s[m.id] = { top4: 0, bottom2: 0, moneyWon: 0 }; }); return s; })();
     const completedGWsForPool = state.isLive ? state.latestGW - 1 : state.latestGW;
     const weeklyPool = completedGWsForPool * 65;
