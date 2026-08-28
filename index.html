@@ -742,7 +742,7 @@
       </span>
       <span id="weekly-tab-live" style="font-size:9px;color:var(--red);display:none;">● Live</span>
     </button>
-    <button class="tab-btn" data-tab="cup" id="cup-tab-btn" style="flex:1;">Cup 🏆</button>
+    <button class="tab-btn" data-tab="cup" id="cup-tab-btn" style="flex:1;display:none;">Cup 🏆</button>
   </div>
   <div id="weekly-tab-wrapper" style="position:relative;">
     <div id="weekly-tab-menu" class="tab-dropdown-menu" style="display:none;"></div>
@@ -1537,7 +1537,12 @@ async function init() {
             if (window._allCupMatches?.length) return;
             try {
               const r = await fetch(`data/${CURRENT_SEASON}/cup-matches.json`);
-              if (r.ok) { window._allCupMatches = await r.json(); return; }
+              if (r.ok) {
+                window._allCupMatches = await r.json();
+                const cupBtn = document.getElementById('cup-tab-btn');
+                if (cupBtn && window._allCupMatches?.length) cupBtn.style.display = '';
+                return;
+              }
             } catch(e) {}
             // Fall back to API
             loadCupData(true).catch(() => {});
@@ -5595,7 +5600,11 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       if (allMatches.length === 0 && window._allCupMatches?.length > 0) {
         allMatches = window._allCupMatches;
       }
-      if (allMatches.length > 0) window._allCupMatches = allMatches;
+      if (allMatches.length > 0) {
+        window._allCupMatches = allMatches;
+        const cupBtn = document.getElementById('cup-tab-btn');
+        if (cupBtn) cupBtn.style.display = '';
+      }
       if (silent) {
         renderStandings();
       } else {
