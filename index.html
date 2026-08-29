@@ -2925,7 +2925,8 @@ async function init() {
         if (kluis > 0) html += '<span class="badge" style="background:rgba(255,215,0,0.12);color:#FFD700;border:1px solid rgba(255,215,0,0.3);display:inline-flex;flex-direction:column;align-items:center;padding:2px 5px;line-height:1.3;flex-shrink:0;"><span style="font-size:11px;">🎬</span><span style="font-size:9px;">$' + kluis + '</span></span>';
       }
       html += '</div>';
-      html += '<div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);">' + esc(m.team) + '</div>';
+      const chipBadgeHtml = buildChipBadges(m.id, m.chip || null, currentGW);
+      html += '<div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);display:flex;align-items:center;gap:4px;flex-wrap:wrap;">' + esc(m.team) + (chipBadgeHtml ? '<span style="display:inline-flex;gap:3px;align-items:center;">' + chipBadgeHtml + '</span>' : '') + '</div>';
       // Stats chips left-aligned under name
       html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
       if (earned >= 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + (earned > 0 ? 'var(--green)' : 'var(--text3)') + ';background:' + (earned > 0 ? 'var(--green-dim)' : 'var(--bg3)') + ';border-radius:6px;padding:3px 8px;">$' + earned.toFixed(2) + '</span>';
@@ -2943,11 +2944,6 @@ async function init() {
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;">' + prizeEmoji + ' $' + m._prize.toFixed(2) + '</span>';
       }
       if (state.isLive && m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;">🍺 Shotgun</span>';
-      if (m.chip) {
-        const chipLabels = { bboost: 'BB', '3xc': 'TC', wildcard: 'WC', freehit: 'FH' };
-        const chipLabel = chipLabels[m.chip] || m.chip.toUpperCase();
-        html += '<span style="font-size:11px;font-family:var(--font-mono);color:#FFD700;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.3);border-radius:6px;padding:3px 8px;">' + chipLabel + '</span>';
-      }
       if (!isSeasonOver && m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">©' + esc(m.captain.name) + '</span>';
       if (state.historyLoaded) {
         const chip = (label, value, activeColor, activeBg, active) => {
@@ -4253,7 +4249,7 @@ async function init() {
       if (isActive) {
         return '<span class="badge-chip" style="white-space:nowrap;">' + label + '</span>';
       } else if (usedPast) {
-        return '<span style="font-size:10px;font-family:var(--font-mono);font-weight:600;padding:2px 5px;border-radius:99px;display:inline-block;margin-top:3px;letter-spacing:0.02em;background:rgba(100,100,100,0.15);color:var(--text3);border:1px solid rgba(255,255,255,0.08);text-decoration:line-through;white-space:nowrap;">' + label + '</span>';
+        return '<span style="font-size:10px;font-family:var(--font-mono);font-weight:600;padding:2px 5px;border-radius:99px;display:inline-block;margin-top:3px;letter-spacing:0.02em;background:rgba(100,100,100,0.15);color:var(--text3);border:1px solid rgba(255,255,255,0.15);text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:rgba(255,255,255,0.5);white-space:nowrap;">' + label + '</span>';
       } else {
         return '<span style="font-size:10px;font-family:var(--font-mono);font-weight:600;padding:2px 5px;border-radius:99px;display:inline-block;margin-top:3px;letter-spacing:0.02em;background:rgba(100,100,100,0.1);color:var(--text3);border:1px solid rgba(255,255,255,0.06);white-space:nowrap;">' + label + '</span>';
       }
