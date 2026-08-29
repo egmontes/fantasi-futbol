@@ -3699,6 +3699,24 @@ async function init() {
             const hit = picks.entry_history?.event_transfers_cost || 0;
             const totalPts = computedTotal - hit;
 
+            // Update the card score immediately with drawer's fresh data
+            const drawerCurrentGW = state.isLive ? state.liveGW : state.currentGW;
+            if (state.isLive && window._liveScoreCacheGW?.[drawerCurrentGW]) {
+              const cached = window._liveScoreCacheGW[drawerCurrentGW][managerId];
+              if (cached && cached.rawPts !== computedTotal) {
+                window._liveScoreCacheGW[drawerCurrentGW][managerId] = { ...cached, rawPts: computedTotal, netPts: totalPts };
+                const card = document.querySelector('[data-manager-id="' + managerId + '"]');
+                if (card) {
+                  const gwPtsEl = card.querySelector('.s-card-gwpts');
+                  const totalEl = card.querySelector('.s-card-total');
+                  const prevHist = (state.gwHistory[managerId] || []).filter(h => h.event < drawerCurrentGW).sort((a,b) => b.event - a.event)[0];
+                  const seasonTotal = (prevHist ? prevHist.total_points : 0) + totalPts;
+                  if (gwPtsEl) gwPtsEl.textContent = 'GW ' + computedTotal + 'pts';
+                  if (totalEl) totalEl.textContent = seasonTotal;
+                }
+              }
+            }
+
             let html = '<div class="manager-drawer-inner" style="flex-direction:column;align-items:stretch;padding:0.75rem 1.5rem;">';
             html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">';
             html += '<span style="font-size:11px;color:var(--theme);text-transform:uppercase;letter-spacing:0.06em;">Starting XI' + (isBB ? ' + Bench (BB)' : '') + '</span>';
