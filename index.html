@@ -3816,6 +3816,8 @@ async function init() {
                   const seasonTotal = (prevHist ? prevHist.total_points : 0) + totalPts;
                   if (gwPtsEl) gwPtsEl.textContent = 'GW ' + computedTotal + 'pts';
                   if (totalEl) totalEl.textContent = seasonTotal;
+                  // Trigger background refresh to sync all other cards
+                  window._lastMinutesFetch = 0;
                 }
               }
             }
