@@ -957,10 +957,12 @@
   const PRIZE_MAP = { 1: 30, 2: 15, 3: 10, 4: 5 };
   const FPL_BASE = 'https://fantasy.premierleague.com/api/';
 
+  const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   const PROXIES = [
+    t => 'https://proxy.cors.sh/' + t,
     t => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(t),
     t => 'https://api.codetabs.com/v1/proxy?quest=' + t,
-    t => 'https://proxy.cors.sh/' + t,
+    t => 'https://corsproxy.io/?' + encodeURIComponent(t),
   ];
 
 
@@ -1174,7 +1176,29 @@
     return Math.max(0, bottom2Count - missed + madeUp);
   }
 
-  async function fetchFPL(path, retries = 3) {
+  // Request queue — max 3 concurrent FPL requests to avoid rate limiting
+  let _activeRequests = 0;
+  const _requestQueue = [];
+  function fetchFPLQueued(path) {
+    return new Promise((resolve, reject) => {
+      _requestQueue.push({ path, resolve, reject });
+      _processQueue();
+    });
+  }
+  function _processQueue() {
+    while (_activeRequests < 1 && _requestQueue.length > 0) {
+      const { path, resolve, reject } = _requestQueue.shift();
+      _activeRequests++;
+      console.log(`[FPL] Starting: ${path.split('/').slice(-3).join('/')} | queue: ${_requestQueue.length} remaining`);
+      const start = Date.now();
+      fetchFPL(path)
+        .then(data => { console.log(`[FPL] ✓ ${path.split('/').slice(-3).join('/')} in ${Date.now()-start}ms`); resolve(data); })
+        .catch(err => { console.warn(`[FPL] ✗ ${path.split('/').slice(-3).join('/')} FAILED in ${Date.now()-start}ms:`, err.message); reject(err); })
+        .finally(() => { _activeRequests--; _processQueue(); });
+    }
+  }
+
+  async function fetchFPL(path, retries = 1) {
     const target = FPL_BASE + path;
 
     // If we have a known working proxy, try it first with a short timeout
@@ -1184,7 +1208,7 @@
         if (res.status === 429) {
           // Rate limited — wait and retry
           if (retries > 0) {
-            await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
+            await new Promise(r => setTimeout(r, 500 + Math.random() * 500));
             return fetchFPL(path, retries - 1);
           }
           throw new Error('Rate limited');
@@ -1209,7 +1233,7 @@
             if (settled) return;
             settled = true;
             state.workingProxy = i;
-            try { localStorage.setItem('ff_working_proxy', i); } catch(e) {}
+            try { localStorage.setItem('ff_working_proxy', i); localStorage.setItem('ff_working_proxy_ts', Date.now()); } catch(e) {}
             resolve(data);
           })
           .catch(() => {
@@ -1776,7 +1800,7 @@ async function init() {
       const batch = managers.slice(i, i + BATCH);
       await Promise.all(batch.map(async m => {
         try {
-          const h = await fetchFPL('entry/' + m.id + '/history/');
+          const h = await fetchFPLQueued('entry/' + m.id + '/history/');
           state.gwHistory[m.id] = h.current;
           // Store chip usage per GW from history chips array
           if (!state.chipsHistory) state.chipsHistory = {};
@@ -1799,7 +1823,7 @@ async function init() {
       for (const m of failed) {
         await new Promise(r => setTimeout(r, 600));
         try {
-          const h = await fetchFPL('entry/' + m.id + '/history/');
+          const h = await fetchFPLQueued('entry/' + m.id + '/history/');
           state.gwHistory[m.id] = h.current;
           if (!state.chipsHistory) state.chipsHistory = {};
           state.chipsHistory[m.id] = {};
@@ -2151,7 +2175,7 @@ async function init() {
                       return;
                     }
                     try {
-                      const picks = await fetchFPL('entry/' + m.id + '/event/' + _cGW + '/picks/');
+                      const picks = await fetchFPLQueued('entry/' + m.id + '/event/' + _cGW + '/picks/');
                       if (!window._picksCache) window._picksCache = {};
                       window._picksCache[m.id + '_' + _cGW] = picks;
                       const isBB = picks.active_chip === 'bboost';
@@ -2182,7 +2206,7 @@ async function init() {
                   for (const m of failed) {
                     await new Promise(r => setTimeout(r, 500));
                     try {
-                      const picks = await fetchFPL('entry/' + m.id + '/event/' + _cGW + '/picks/');
+                      const picks = await fetchFPLQueued('entry/' + m.id + '/event/' + _cGW + '/picks/');
                       window._picksCache[m.id + '_' + _cGW] = picks;
                       const isBB = picks.active_chip === 'bboost';
                       const maxPos = isBB ? 15 : 11;
@@ -2319,7 +2343,7 @@ async function init() {
             const batch = missing.slice(i, i + BATCH);
             await Promise.all(batch.map(async m => {
               try {
-                const picks = await fetchFPL('entry/' + m.id + '/event/' + currentGW + '/picks/');
+                const picks = await fetchFPLQueued('entry/' + m.id + '/event/' + currentGW + '/picks/');
                 if (!window._picksCache) window._picksCache = {};
                 window._picksCache[m.id + '_' + currentGW] = picks;
               } catch(e) {}
@@ -2482,7 +2506,7 @@ async function init() {
                   await Promise.all(batch.map(async m => {
                     if (window._picksCache?.[m.id + '_' + currentGW]) return; // already have it
                     try {
-                      const picks = await fetchFPL('entry/' + m.id + '/event/' + currentGW + '/picks/');                      if (!window._picksCache) window._picksCache = {};
+                      const picks = await fetchFPLQueued('entry/' + m.id + '/event/' + currentGW + '/picks/');                      if (!window._picksCache) window._picksCache = {};
                       window._picksCache[m.id + '_' + currentGW] = picks;
                       // Update loading progress message
                       const loaded = Object.keys(window._picksCache || {}).filter(k => k.endsWith('_' + currentGW)).length;
@@ -3373,7 +3397,7 @@ async function init() {
     });
 
     // Background fetch for transfer data if not cached yet — updates ticker after load
-    if (needsTransferFetch) {
+    if (needsTransferFetch && !window._picksFetchInProgress) {
       window._transferFetchInProgress = transCacheKey;
       (async () => {
         try {
@@ -3383,7 +3407,7 @@ async function init() {
             const batch = state.managers.slice(i, i + BATCH);
             await Promise.all(batch.map(async m => {
               try {
-                const data = await fetchFPL('entry/' + m.id + '/transfers/');
+                const data = await fetchFPLQueued('entry/' + m.id + '/transfers/');
                 data.filter(t => t.event === gwLabel).forEach(t => {
                   transIn[t.element_in] = (transIn[t.element_in] || 0) + 1;
                   transOut[t.element_out] = (transOut[t.element_out] || 0) + 1;
@@ -3468,7 +3492,7 @@ async function init() {
           return;
         }
         try {
-          const picks = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/');
+          const picks = await fetchFPLQueued('entry/' + m.id + '/event/' + gw + '/picks/');
           window._picksCache[key] = picks;
           computePlayedFromPicks(picks, m.id, gw, startedTeams, playerMinutes);
         } catch(e) {}
@@ -4263,7 +4287,7 @@ async function init() {
         const batch = state.managers.slice(i, i + BATCH);
         await Promise.all(batch.map(async m => {
           try {
-            const picks = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/');
+            const picks = await fetchFPLQueued('entry/' + m.id + '/event/' + gw + '/picks/');
             let pts = 0;
             picks.picks.forEach(p => {
               const playerPts = liveScores[p.element] || 0;
@@ -4509,7 +4533,7 @@ async function init() {
         // Only fetch if not in cache — wait a bit to avoid rate limiting
         await new Promise(r => setTimeout(r, 100));
         try {
-          const d = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/');
+          const d = await fetchFPLQueued('entry/' + m.id + '/event/' + gw + '/picks/');
           window._picksCache = window._picksCache || {};
           window._picksCache[m.id + '_' + gw] = d;
           picksRes.push({ status: 'fulfilled', value: { managerId: m.id, data: d } });
@@ -5064,7 +5088,7 @@ async function init() {
       const batch = state.managers.slice(i, i + BATCH);
       await Promise.all(batch.map(async m => {
         try {
-          const picks = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/');
+          const picks = await fetchFPLQueued('entry/' + m.id + '/event/' + gw + '/picks/');
           picks.picks.forEach(p => {
             owned[p.element] = (owned[p.element] || 0) + 1;
             if (p.is_captain) captained[p.element] = (captained[p.element] || 0) + 1;
@@ -8126,8 +8150,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         await Promise.all(batch.map(async m => {
           try {
             const [picks, transfers] = await Promise.all([
-              fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/'),
-              fetchFPL('entry/' + m.id + '/transfers/')
+              fetchFPLQueued('entry/' + m.id + '/event/' + gw + '/picks/'),
+              fetchFPLQueued('entry/' + m.id + '/transfers/')
             ]);
             const hist = (state.gwHistory[m.id] || []).find(h => h.event === gw);
             const gwTransfers = transfers.filter(t => t.event === gw);
@@ -9540,7 +9564,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
           const batch = missingPicks.slice(i, i + BATCH);
           await Promise.all(batch.map(async m => {
             try {
-              const picks = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/');
+              const picks = await fetchFPLQueued('entry/' + m.id + '/event/' + gw + '/picks/');
               if (!window._picksCache) window._picksCache = {};
               window._picksCache[m.id + '_' + gw] = picks;
               const isBB = picks.active_chip === 'bboost';
@@ -9651,8 +9675,12 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
 
   // Load cached picks from localStorage (picks don't change after deadline)
   try {
-    const savedProxy = localStorage.getItem('ff_working_proxy');
-    if (savedProxy !== null) state.workingProxy = parseInt(savedProxy);
+    if (!isLocalhost) {
+      const savedProxy = localStorage.getItem('ff_working_proxy');
+      if (savedProxy !== null) state.workingProxy = parseInt(savedProxy);
+      const proxyTs = parseInt(localStorage.getItem('ff_working_proxy_ts') || '0');
+      if (Date.now() - proxyTs > 60 * 60 * 1000) { state.workingProxy = null; localStorage.removeItem('ff_working_proxy'); }
+    }
   } catch(e) {}
   try {
     const cachedPicks = localStorage.getItem('ff_picks_cache_gw' + (state.liveGW || state.latestGW));
