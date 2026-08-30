@@ -960,8 +960,6 @@
   const PROXIES = [
     t => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(t),
     t => 'https://api.codetabs.com/v1/proxy?quest=' + t,
-    t => 'https://corsproxy.io/?' + encodeURIComponent(t),
-    t => 'https://corsproxy.io/?url=' + encodeURIComponent(t),
     t => 'https://proxy.cors.sh/' + t,
   ];
 
@@ -1211,6 +1209,7 @@
             if (settled) return;
             settled = true;
             state.workingProxy = i;
+            try { localStorage.setItem('ff_working_proxy', i); } catch(e) {}
             resolve(data);
           })
           .catch(() => {
@@ -2092,7 +2091,8 @@ async function init() {
     const liveScores = window._liveScoreCacheGW?.[currentGW];
     const hasLiveScoresNow = liveScores && Object.keys(liveScores).length >= state.managers.length;
     const loadingTooLong = window._liveLoadStartTime && (Date.now() - window._liveLoadStartTime > 60000);
-    if (state.isLive && !hasLiveScoresNow && !loadingTooLong) {
+    const isManualRefresh = window._lastManualRefresh && (Date.now() - window._lastManualRefresh < 30000);
+    if (state.isLive && !hasLiveScoresNow && !loadingTooLong && !isManualRefresh) {
       if (!window._liveLoadStartTime) window._liveLoadStartTime = Date.now();
       document.getElementById('standings-content').innerHTML =
         '<div class="loading-state"><span class="spinner"></span><div style="text-align:center"><div id="live-load-msg">Fetching live scores...</div><div id="live-load-sub" style="font-size:11px;color:var(--text3);margin-top:6px;font-family:var(--font-mono);">GW' + currentGW + ' · 0/' + state.managers.length + ' managers</div></div></div>';
@@ -2131,7 +2131,7 @@ async function init() {
             const _cGW = currentGW;
             (async () => {
               try {
-                const BATCH = 5;
+                const BATCH = 8;
                 for (let i = 0; i < state.managers.length; i += BATCH) {
                   const batch = state.managers.slice(i, i + BATCH);
                   await Promise.all(batch.map(async m => {
@@ -2172,7 +2172,7 @@ async function init() {
                       if (msg) msg.textContent = n < state.managers.length * 0.5 ? 'Fetching picks...' : n < state.managers.length * 0.95 ? 'Almost there...' : 'Building standings...';
                     } catch(e) {}
                   }));
-                  if (i + BATCH < state.managers.length) await new Promise(r => setTimeout(r, 300));
+                  if (i + BATCH < state.managers.length) await new Promise(r => setTimeout(r, 150));
                 }
               } finally {
                 // Retry any managers that failed
@@ -2199,7 +2199,12 @@ async function init() {
                   }
                 }
                 window._picksFetchInProgress = false;
-                try { localStorage.setItem('ff_live_scores_v2_' + _cGW, JSON.stringify({ data: window._liveScoreCacheGW[_cGW], ts: Date.now() })); } catch(e) {}
+                try {
+                  localStorage.setItem('ff_live_scores_v2_' + _cGW, JSON.stringify({ data: window._liveScoreCacheGW[_cGW], ts: Date.now() }));
+                  // Cache picks — they don't change after deadline
+                  localStorage.setItem('ff_picks_cache_gw' + _cGW, JSON.stringify(window._picksCache));
+                  localStorage.setItem('ff_picks_cache_ts_gw' + _cGW, Date.now().toString());
+                } catch(e) {}
                 renderStandings();
               }
             })();
@@ -2269,6 +2274,24 @@ async function init() {
           if (Date.now() - parsed.ts < 90 * 1000) window._liveScoreCacheGW[currentGW] = parsed.data;
         }
       } catch(e) {}
+    }
+    // If we have cached picks + player pts but no live scores, compute scores immediately
+    if (!window._liveScoreCacheGW[currentGW] && window._picksCache && window._playerPtsCache &&
+        Object.keys(window._picksCache).filter(k => k.endsWith('_' + currentGW)).length > 0 &&
+        Object.keys(window._playerPtsCache).length > 0) {
+      window._liveScoreCacheGW[currentGW] = {};
+      state.managers.forEach(m => {
+        const picks = window._picksCache[m.id + '_' + currentGW];
+        if (!picks?.picks) return;
+        const isBB = picks.active_chip === 'bboost';
+        const maxPos = isBB ? 15 : 11;
+        let rawPts = 0;
+        picks.picks.filter(p => p.position <= maxPos).forEach(p => { rawPts += (window._playerPtsCache[p.element] || 0) * p.multiplier; });
+        const hit = picks.entry_history?.event_transfers_cost || 0;
+        const played = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) > 0).length;
+        const remaining = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) === 0).length;
+        window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
+      });
     }
     let liveScoreMap = window._liveScoreCacheGW[currentGW] || {};
     // Fetch live scores if: live GW, OR GW just ended (latestGW matches and history may be stale)
@@ -9625,6 +9648,19 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     const scrollTopBtn = document.getElementById('scroll-top-btn');
     if (scrollTopBtn && isCurrentTab) scrollTopBtn.style.display = 'flex';
   });
+
+  // Load cached picks from localStorage (picks don't change after deadline)
+  try {
+    const savedProxy = localStorage.getItem('ff_working_proxy');
+    if (savedProxy !== null) state.workingProxy = parseInt(savedProxy);
+  } catch(e) {}
+  try {
+    const cachedPicks = localStorage.getItem('ff_picks_cache_gw' + (state.liveGW || state.latestGW));
+    const cachedPicksTs = parseInt(localStorage.getItem('ff_picks_cache_ts_gw' + (state.liveGW || state.latestGW)) || '0');
+    if (cachedPicks && Date.now() - cachedPicksTs < 24 * 60 * 60 * 1000) {
+      window._picksCache = { ...(window._picksCache || {}), ...JSON.parse(cachedPicks) };
+    }
+  } catch(e) {}
 
   window._ssHistory = () => { history.replaceState(null,'','#alltime'); showLeagueHistory(); };
   function updateSeasonLabel(text, isLive) {
