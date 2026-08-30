@@ -3034,7 +3034,7 @@ async function init() {
         const hasPicks = !!window._picksCache?.[m.id + '_' + currentGW];
         const gwPtsDisplay = (!hasPicks && state.isLive) ? '...' : (m.gwRawPts || 0) + 'pts';
         html += '<span class="s-card-gwpts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + gwPtsDisplay + '</span>';
-        if (state.isLive && m.played !== null) {
+        if (state.isLive && m.played !== null && hasPicks) {
           const total = m.played + m.remaining;
           const allPlayed = m.remaining === 0;
           html += '<span class="s-card-played" style="font-size:11px;font-family:var(--font-mono);color:' + (allPlayed ? 'var(--text3)' : 'var(--amber)') + ';background:var(--bg3);border-radius:6px;padding:3px 8px;">' + m.played + '/' + total + (allPlayed ? ' ✓' : '') + '</span>';
@@ -9443,6 +9443,32 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         const hit = picks.entry_history?.event_transfers_cost || 0;
         window._liveScoreCacheGW[gw][mid] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
       });
+
+      // Fetch picks for managers that don't have them cached
+      const missingPicks = state.managers.filter(m => !window._picksCache?.[m.id + '_' + gw]);
+      if (missingPicks.length > 0) {
+        const BATCH = 5;
+        for (let i = 0; i < missingPicks.length; i += BATCH) {
+          const batch = missingPicks.slice(i, i + BATCH);
+          await Promise.all(batch.map(async m => {
+            try {
+              const picks = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/');
+              if (!window._picksCache) window._picksCache = {};
+              window._picksCache[m.id + '_' + gw] = picks;
+              const isBB = picks.active_chip === 'bboost';
+              const maxPos = isBB ? 15 : 11;
+              let rawPts = 0;
+              picks.picks.filter(p => p.position <= maxPos).forEach(p => {
+                rawPts += (window._playerPtsCache[p.element] || 0) * p.multiplier;
+              });
+              if (isBB) picks.picks.filter(p => p.position > 11).forEach(p => { rawPts += (window._playerPtsCache[p.element] || 0); });
+              const hit = picks.entry_history?.event_transfers_cost || 0;
+              window._liveScoreCacheGW[gw][m.id] = { rawPts, netPts: rawPts - hit, hit, played: 0, remaining: 11 };
+            } catch(e) {}
+          }));
+          if (i + BATCH < missingPicks.length) await new Promise(r => setTimeout(r, 200));
+        }
+      }
 
       // Mark live fetch as complete so renderStandings doesn't re-fetch and overwrite
       window._liveScoreFetchInProgress = false;
