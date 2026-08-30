@@ -3578,7 +3578,7 @@ async function init() {
               return badges ? { badges, bonusStr } : { badges: '', bonusStr };
             };
 
-            const startingPicks = picks.picks.filter(p => p.position <= (isBB ? 15 : 11)).map(p => ({...p}));
+            const startingPicks = picks.picks.filter(p => p.position <= 11).map(p => ({...p}));
             const benchPicks = picks.picks.filter(p => p.position > 11).map(p => ({...p}));
 
             // Auto-subs: confirmed (post-GW) or predicted (live)
@@ -3718,7 +3718,7 @@ async function init() {
             const computedTotal = startingPicks.reduce((sum, p) => {
               const pts = playerPts[p.element] ?? 0;
               return sum + pts * p.multiplier;
-            }, 0);
+            }, 0) + (isBB ? benchPicks.reduce((sum, p) => sum + (playerPts[p.element] ?? 0), 0) : 0);
             const hit = picks.entry_history?.event_transfers_cost || 0;
             const totalPts = computedTotal - hit;
 
@@ -3748,7 +3748,8 @@ async function init() {
             startingPicks.forEach(p => { html += renderPick(p, false); });
 
             if (benchPicks.length > 0) {
-              html += '<div style="font-size:11px;color:var(--theme);text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 6px;">Bench' + (isBB ? ' (Boost Active)' : '') + '</div>';
+              const benchPts = benchPicks.reduce((sum, p) => sum + (playerStats[p.element]?.total_points || 0), 0);
+              html += '<div style="font-size:11px;color:var(--theme);text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 6px;">Bench' + (isBB ? ' <span style="color:var(--amber);">· BB Active · +' + benchPts + ' pts</span>' : '') + '</div>';
               benchPicks.forEach(p => { html += renderPick(p, !isBB); });
             }
 
