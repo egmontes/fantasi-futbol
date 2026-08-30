@@ -2090,8 +2090,8 @@ async function init() {
 
     // Show loading until we have live scores (so cards show correct data immediately)
     const liveScores = window._liveScoreCacheGW?.[currentGW];
-    const hasLiveScoresNow = liveScores && Object.keys(liveScores).length >= Math.ceil(state.managers.length * 0.8);
-    const loadingTooLong = window._liveLoadStartTime && (Date.now() - window._liveLoadStartTime > 30000);
+    const hasLiveScoresNow = liveScores && Object.keys(liveScores).length >= state.managers.length;
+    const loadingTooLong = window._liveLoadStartTime && (Date.now() - window._liveLoadStartTime > 60000);
     if (state.isLive && !hasLiveScoresNow && !loadingTooLong) {
       if (!window._liveLoadStartTime) window._liveLoadStartTime = Date.now();
       document.getElementById('standings-content').innerHTML =
@@ -2118,7 +2118,9 @@ async function init() {
                 rawPts += (window._playerPtsCache[p.element] || 0) * p.multiplier;
               });
               const hit = cached.entry_history?.event_transfers_cost || 0;
-              window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played: 0, remaining: 11 };
+              const _p = cached.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) > 0).length;
+              const _r = cached.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) === 0).length;
+              window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played: _p, remaining: _r };
             }
           });
           window._liveScoreFetchInProgress = false;
@@ -2143,7 +2145,9 @@ async function init() {
                       // BB bench already included via maxPos=15 above
                       const hit = picks.entry_history?.event_transfers_cost || 0;
                       if (!window._liveScoreCacheGW[_cGW]) window._liveScoreCacheGW[_cGW] = {};
-                      window._liveScoreCacheGW[_cGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played: 0, remaining: 11 };
+                      const _played = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) > 0).length;
+                      const _remaining = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) === 0).length;
+                      window._liveScoreCacheGW[_cGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played: _played, remaining: _remaining };
                       return;
                     }
                     try {
@@ -2157,7 +2161,9 @@ async function init() {
                       // BB bench already included via maxPos=15 above
                       const hit = picks.entry_history?.event_transfers_cost || 0;
                       if (!window._liveScoreCacheGW[_cGW]) window._liveScoreCacheGW[_cGW] = {};
-                      window._liveScoreCacheGW[_cGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played: 0, remaining: 11 };
+                      const _played = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) > 0).length;
+                      const _remaining = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) === 0).length;
+                      window._liveScoreCacheGW[_cGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played: _played, remaining: _remaining };
                       // Update progress
                       const n = Object.keys(window._liveScoreCacheGW[_cGW] || {}).length;
                       const sub = document.getElementById('live-load-sub');
@@ -2169,6 +2175,29 @@ async function init() {
                   if (i + BATCH < state.managers.length) await new Promise(r => setTimeout(r, 300));
                 }
               } finally {
+                // Retry any managers that failed
+                const failed = state.managers.filter(m => !window._liveScoreCacheGW[_cGW]?.[m.id]);
+                if (failed.length > 0) {
+                  console.log('Retrying ' + failed.length + ' failed managers...');
+                  for (const m of failed) {
+                    await new Promise(r => setTimeout(r, 500));
+                    try {
+                      const picks = await fetchFPL('entry/' + m.id + '/event/' + _cGW + '/picks/');
+                      window._picksCache[m.id + '_' + _cGW] = picks;
+                      const isBB = picks.active_chip === 'bboost';
+                      const maxPos = isBB ? 15 : 11;
+                      let rawPts = 0;
+                      picks.picks.filter(p => p.position <= maxPos).forEach(p => { rawPts += (window._playerPtsCache[p.element] || 0) * p.multiplier; });
+                      const hit = picks.entry_history?.event_transfers_cost || 0;
+                      const _rp = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) > 0).length;
+                      const _rr = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) === 0).length;
+                      window._liveScoreCacheGW[_cGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played: _rp, remaining: _rr };
+                      const n = Object.keys(window._liveScoreCacheGW[_cGW] || {}).length;
+                      const sub = document.getElementById('live-load-sub');
+                      if (sub) sub.textContent = 'GW' + _cGW + ' · ' + n + '/' + state.managers.length + ' managers';
+                    } catch(e) {}
+                  }
+                }
                 window._picksFetchInProgress = false;
                 try { localStorage.setItem('ff_live_scores_v2_' + _cGW, JSON.stringify({ data: window._liveScoreCacheGW[_cGW], ts: Date.now() })); } catch(e) {}
                 renderStandings();
@@ -9499,7 +9528,9 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
               });
               // BB bench already included via maxPos=15 above
               const hit = picks.entry_history?.event_transfers_cost || 0;
-              window._liveScoreCacheGW[gw][m.id] = { rawPts, netPts: rawPts - hit, hit, played: 0, remaining: 11 };
+              const _rp = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) > 0).length;
+              const _rr = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) === 0).length;
+              window._liveScoreCacheGW[gw][m.id] = { rawPts, netPts: rawPts - hit, hit, played: _rp, remaining: _rr };
             } catch(e) {}
           }));
           if (i + BATCH < missingPicks.length) await new Promise(r => setTimeout(r, 200));
