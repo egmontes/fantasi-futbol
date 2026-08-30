@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:,">
   <title>Fantasi Futbol</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -1175,15 +1176,23 @@
     return Math.max(0, bottom2Count - missed + madeUp);
   }
 
-  async function fetchFPL(path) {
+  async function fetchFPL(path, retries = 3) {
     const target = FPL_BASE + path;
 
     // If we have a known working proxy, try it first with a short timeout
     if (state.workingProxy !== null) {
       try {
         const res = await tryFetch(PROXIES[state.workingProxy](target));
+        if (res.status === 429) {
+          // Rate limited — wait and retry
+          if (retries > 0) {
+            await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
+            return fetchFPL(path, retries - 1);
+          }
+          throw new Error('Rate limited');
+        }
         if (res.ok) return res.json();
-      } catch(e) {}
+      } catch(e) { if (e.message === 'Rate limited') throw e; }
       state.workingProxy = null;
     }
 
@@ -1244,12 +1253,15 @@ async function init() {
     try {
       document.getElementById('page-loader-text').textContent = '🔌 Connecting to FPL...';
 
-      // When season is over, check if GW38 static file exists — if so skip bootstrap entirely
+      // When season is over, check if GW38 static file exists — skip during early GWs
       let skipBootstrap = false;
-      try {
-        const gw38Check = await fetch(`data/${CURRENT_SEASON}/gw38.json`, { method: 'HEAD' });
-        if (gw38Check.ok) skipBootstrap = true;
-      } catch(e) {}
+      const cachedLatestGW = parseInt(localStorage.getItem('ff_latest_gw') || '0');
+      if (cachedLatestGW >= 37) {
+        try {
+          const gw38Check = await fetch(`data/${CURRENT_SEASON}/gw38.json`, { method: 'HEAD' });
+          if (gw38Check.ok) skipBootstrap = true;
+        } catch(e) {}
+      }
 
       // Try cached bootstrap first (10-min TTL)
       const BOOTSTRAP_CACHE_KEY = 'ff_bootstrap';
@@ -1350,6 +1362,7 @@ async function init() {
 
         const finished = (bootstrap || state.bootstrap)?.events?.filter(e => e.finished || e.data_checked);
         state.latestGW = finished.length > 0 ? finished[finished.length - 1].id : 1;
+        try { localStorage.setItem('ff_latest_gw', state.latestGW); } catch(e) {}
         state.currentGW = state.latestGW;
 
         const nextGWEvent = (bootstrap || state.bootstrap)?.events?.find(e => e.id === state.latestGW + 1);
@@ -1526,13 +1539,12 @@ async function init() {
       // Restore tab + GW from URL hash
       const activeTab = restoreHashState();
 
-      // Show loading placeholder while history fetches
-      document.getElementById('standings-content').innerHTML =
-        '<div class="loading-state"><span class="spinner"></span><div style="text-align:center"><div>📊 Loading season data...</div><div style="font-size:11px;color:var(--text3);margin-top:6px;font-family:var(--font-mono);">Fetching ' + state.managers.length + ' managers\' history</div></div></div>';
+      // Render standings immediately with whatever we have
+      _renderStandingsDebounced();
       if (activeTab === 'cup') { if (window._allCupMatches?.length) renderCup(window._allCupMatches); else loadCupData(); }
       else if (activeTab === 'recap') setupRecapTab();
 
-      // Load history + guinness in background, then render everything at once
+      // Load history + guinness in background, then re-render
       loadGuinnessDebts();
 
       // When season is over, try loading full history from static GW files
@@ -1708,7 +1720,8 @@ async function init() {
   }
 
   async function loadAllHistory(forceRefresh = false) {
-    const BATCH = 5;
+    window._historyFetchInProgress = true;
+    const BATCH = 3;
     const CACHE_KEY = 'ff_history_gw' + state.latestGW;
     const CACHE_TS_KEY = 'ff_history_ts' + state.latestGW;
     const CHIPS_CACHE_KEY = 'ff_chips_gw' + state.latestGW;
@@ -1754,7 +1767,7 @@ async function init() {
       localStorage.removeItem('ff_history_ts' + g);
     }
 
-    // Fetch fresh from API in batches of 5
+    // Fetch fresh from API in batches of 3 with delay to avoid rate limiting
     const managers = state.managers;
     for (let i = 0; i < managers.length; i += BATCH) {
       const batch = managers.slice(i, i + BATCH);
@@ -1773,14 +1786,15 @@ async function init() {
           state.gwHistory[m.id] = [];
         }
       }));
-
+      if (i + BATCH < managers.length) await new Promise(r => setTimeout(r, 400));
     }
 
-    // Retry any managers that came back empty
+    // Retry any managers that came back empty — one at a time with delay
     const failed = managers.filter(m => (state.gwHistory[m.id] || []).length === 0);
     if (failed.length > 0) {
       console.log('Retrying', failed.length, 'failed managers...');
-      await Promise.all(failed.map(async m => {
+      for (const m of failed) {
+        await new Promise(r => setTimeout(r, 600));
         try {
           const h = await fetchFPL('entry/' + m.id + '/history/');
           state.gwHistory[m.id] = h.current;
@@ -1788,7 +1802,7 @@ async function init() {
           state.chipsHistory[m.id] = {};
           (h.chips || []).forEach(c => { state.chipsHistory[m.id][c.event] = c.name; });
         } catch(e) { console.warn('Retry failed for', m.id); }
-      }));
+      }
     }
 
     // Save to cache only if we have data for most managers
@@ -1805,6 +1819,7 @@ async function init() {
     } else {
       console.warn('History incomplete (' + managersWithData + '/' + state.managers.length + '), not caching');
     }
+    window._historyFetchInProgress = false;
   }
 
   // Returns sorted rows, each with a tieGroup number (same pts = same group)
@@ -1866,8 +1881,8 @@ async function init() {
 
     // --- BOTTOM shotgun ---
     if (n < 2) return prizes; // need at least 2 managers for shotgun
-    // Shotgun: bottom ~6% of managers (min 2, rounded)
     const numShotguns = is2025 ? 2 : 4;
+    if (n <= numShotguns) return prizes; // not enough managers for shotgun cutoff
     // Find the score cutoff — expand to include ties
     const cutoffScore = ranked[n - numShotguns].gwPoints;
     let shotgunStart = n - numShotguns;
@@ -2300,19 +2315,22 @@ async function init() {
           window._renderStandingsInProgress = false;
           renderStandings();
 
-          // Phase 2: Fetch picks in background for played/remaining counts
+          // Phase 2: Fetch picks in background — wait for history + transfers to finish first
           if (!window._picksFetchInProgress) {
             window._picksFetchInProgress = true;
             (async () => {
               try {
-                const BATCH = 5;
+                // Wait for history and transfer fetches to complete
+                while (window._transferFetchInProgress || window._historyFetchInProgress) {
+                  await new Promise(r => setTimeout(r, 500));
+                }
+                const BATCH = 3;
                 for (let i = 0; i < state.managers.length; i += BATCH) {
                   const batch = state.managers.slice(i, i + BATCH);
                   await Promise.all(batch.map(async m => {
                     if (window._picksCache?.[m.id + '_' + currentGW]) return; // already have it
                     try {
-                      const picks = await fetchFPL('entry/' + m.id + '/event/' + currentGW + '/picks/');
-                      if (!window._picksCache) window._picksCache = {};
+                      const picks = await fetchFPL('entry/' + m.id + '/event/' + currentGW + '/picks/');                      if (!window._picksCache) window._picksCache = {};
                       window._picksCache[m.id + '_' + currentGW] = picks;
                       // Update captain cache from picks
                       const captainPick = picks.picks.find(p => p.is_captain);
@@ -2386,6 +2404,8 @@ async function init() {
                       }
                     } catch(e) {}
                   }));
+                  // Small delay between batches to avoid rate limiting
+                  if (i + BATCH < state.managers.length) await new Promise(r => setTimeout(r, 300));
                 }
                 // Final re-render with complete sub-adjusted data
                 try { localStorage.setItem('ff_live_scores_v2_' + currentGW, JSON.stringify({ data: window._liveScoreCacheGW[currentGW], ts: Date.now() })); } catch(e) {}
@@ -3198,8 +3218,10 @@ async function init() {
       (async () => {
         try {
           const transIn = {}, transOut = {};
-          const BATCH = 5;
+          const BATCH = 3;
           for (let i = 0; i < state.managers.length; i += BATCH) {
+            // Wait if picks fetch is running to avoid hammering the API
+            while (window._picksFetchInProgress) await new Promise(r => setTimeout(r, 500));
             const batch = state.managers.slice(i, i + BATCH);
             await Promise.all(batch.map(async m => {
               try {
@@ -3210,6 +3232,7 @@ async function init() {
                 });
               } catch(e) {}
             }));
+            if (i + BATCH < state.managers.length) await new Promise(r => setTimeout(r, 500));
           }
           const topIn = Object.entries(transIn).sort((a, b) => b[1] - a[1])[0];
           const topOut = Object.entries(transOut).sort((a, b) => b[1] - a[1])[0];
