@@ -957,13 +957,25 @@
   const PRIZE_MAP = { 1: 30, 2: 15, 3: 10, 4: 5 };
   const FPL_BASE = 'https://fantasy.premierleague.com/api/';
 
-  const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   const PROXIES = [
     t => 'https://proxy.cors.sh/' + t,
-    t => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(t),
-    t => 'https://api.codetabs.com/v1/proxy?quest=' + t,
-    t => 'https://corsproxy.io/?' + encodeURIComponent(t),
   ];
+
+  async function fetchFPL(path, retries = 1) {
+    const target = FPL_BASE + path;
+    try {
+      const res = await tryFetch(PROXIES[0](target));
+      if (res.status === 429) throw new Error('HTTP 429 Too Many Requests');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    } catch(e) {
+      if (retries > 0) {
+        await new Promise(r => setTimeout(r, 500 + Math.random() * 500));
+        return fetchFPL(path, retries - 1);
+      }
+      throw e;
+    }
+  }
 
 
   // v2026.07.30
@@ -1014,7 +1026,7 @@
 
   async function tryFetch(url) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    const timeout = setTimeout(() => controller.abort(), 3000);
     try {
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
@@ -1186,64 +1198,39 @@
     });
   }
   function _processQueue() {
-    while (_activeRequests < 1 && _requestQueue.length > 0) {
-      const { path, resolve, reject } = _requestQueue.shift();
-      _activeRequests++;
-      console.log(`[FPL] Starting: ${path.split('/').slice(-3).join('/')} | queue: ${_requestQueue.length} remaining`);
-      const start = Date.now();
-      fetchFPL(path)
-        .then(data => { console.log(`[FPL] ✓ ${path.split('/').slice(-3).join('/')} in ${Date.now()-start}ms`); resolve(data); })
-        .catch(err => { console.warn(`[FPL] ✗ ${path.split('/').slice(-3).join('/')} FAILED in ${Date.now()-start}ms:`, err.message); reject(err); })
-        .finally(() => { _activeRequests--; _processQueue(); });
-    }
-  }
-
-  async function fetchFPL(path, retries = 1) {
-    const target = FPL_BASE + path;
-
-    // If we have a known working proxy, try it first with a short timeout
-    if (state.workingProxy !== null) {
-      try {
-        const res = await tryFetch(PROXIES[state.workingProxy](target));
-        if (res.status === 429) {
-          // Rate limited — wait and retry
-          if (retries > 0) {
-            await new Promise(r => setTimeout(r, 500 + Math.random() * 500));
-            return fetchFPL(path, retries - 1);
-          }
-          throw new Error('Rate limited');
+    while (_activeRequests < 3 && _requestQueue.length > 0) {
+    const { path, resolve, reject, attempt = 0 } = _requestQueue.shift();
+    _activeRequests++;
+    console.log(`[FPL] Starting: ${path.split('/').slice(-3).join('/')} | queue: ${_requestQueue.length} remaining | active: ${_activeRequests}`);
+    const start = Date.now();
+    let handled = false;
+    fetchFPL(path)
+      .then(data => {
+        console.log(`[FPL] ✓ ${path.split('/').slice(-3).join('/')} in ${Date.now()-start}ms`);
+        resolve(data);
+      })
+      .catch(err => {
+        if (attempt < 3) {
+          const delay = 1000 * Math.pow(2, attempt);
+          console.warn(`[FPL] Failed (attempt ${attempt+1}) — retrying ${path.split('/').slice(-3).join('/')} in ${delay}ms:`, err.message);
+          handled = true;
+          _activeRequests--;
+          setTimeout(() => {
+            _requestQueue.unshift({ path, resolve, reject, attempt: attempt + 1 });
+            _processQueue();
+          }, delay);
+          return;
         }
-        if (res.ok) return res.json();
-      } catch(e) { if (e.message === 'Rate limited') throw e; }
-      state.workingProxy = null;
-    }
-
-    // Race all proxies simultaneously — use whichever responds first with valid data
-    return new Promise((resolve, reject) => {
-      let settled = false;
-      let failed = 0;
-      const total = PROXIES.length;
-
-      PROXIES.forEach((proxy, i) => {
-        tryFetch(proxy(target))
-          .then(async res => {
-            if (settled) return;
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const data = await res.json();
-            if (settled) return;
-            settled = true;
-            state.workingProxy = i;
-            try { localStorage.setItem('ff_working_proxy', i); localStorage.setItem('ff_working_proxy_ts', Date.now()); } catch(e) {}
-            resolve(data);
-          })
-          .catch(() => {
-            failed++;
-            if (failed === total && !settled) {
-              reject(new Error('All proxies failed — FPL API may be temporarily unavailable. Please try again.'));
-            }
-          });
+        console.warn(`[FPL] ✗ ${path.split('/').slice(-3).join('/')} FAILED after ${attempt} attempts:`, err.message);
+        reject(err);
+      })
+      .finally(() => {
+        if (!handled) {
+          _activeRequests--;
+          _processQueue(); // immediately fill the slot
+        }
       });
-    });
+    } // end while
   }
 
   
@@ -2506,7 +2493,8 @@ async function init() {
                   await Promise.all(batch.map(async m => {
                     if (window._picksCache?.[m.id + '_' + currentGW]) return; // already have it
                     try {
-                      const picks = await fetchFPLQueued('entry/' + m.id + '/event/' + currentGW + '/picks/');                      if (!window._picksCache) window._picksCache = {};
+                      const picks = await fetchFPLQueued('entry/' + m.id + '/event/' + currentGW + '/picks/');
+                      if (!window._picksCache) window._picksCache = {};
                       window._picksCache[m.id + '_' + currentGW] = picks;
                       // Update loading progress message
                       const loaded = Object.keys(window._picksCache || {}).filter(k => k.endsWith('_' + currentGW)).length;
@@ -2514,6 +2502,7 @@ async function init() {
                       const msgEl = document.getElementById('live-load-msg');
                       if (subEl) subEl.textContent = 'GW' + currentGW + ' · ' + loaded + '/' + state.managers.length + ' managers';
                       if (msgEl) msgEl.textContent = loaded < state.managers.length * 0.5 ? 'Fetching picks...' : loaded < state.managers.length * 0.95 ? 'Almost there...' : 'Building standings...';
+                      try {
                       // Update captain cache from picks
                       const captainPick = picks.picks.find(p => p.is_captain);
                       const vcPick = picks.picks.find(p => p.is_vice_captain);
@@ -2584,7 +2573,8 @@ async function init() {
                       if (!window._lastManualRefresh || Date.now() - window._lastManualRefresh > 30000) {
                         window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
                       }
-                    } catch(e) {}
+                      } catch(scoreErr) { console.warn('[FPL] Score compute error for', m.id, scoreErr.message); }
+                    } catch(e) { console.warn('[FPL] Picks fetch error for', m.id, e.message); }
                   }));
                   // Small delay between batches to avoid rate limiting
                   if (i + BATCH < state.managers.length) await new Promise(r => setTimeout(r, 300));
@@ -2846,7 +2836,7 @@ async function init() {
 
     // If not cached, fetch in background after render
     const transferFetchInProgress = window._transferFetchInProgress === transCacheKey;
-    const needsTransferFetch = !window._transferCache[transCacheKey] && gwLabel > 1 && !transferFetchInProgress;
+    const needsTransferFetch = false; // disabled - 52 API calls for non-critical ticker widget
 
     const topMoney = topMoneyManager ? state.managers.find(m => m.id === parseInt(topMoneyManager, 10)) : null;
     const topMoneyValue = topMoneyManager ? stats[topMoneyManager].moneyWon : 0;
