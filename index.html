@@ -1582,15 +1582,19 @@ async function init() {
           updateExportBtn(state.latestGW);
         }
       } else {
-        // For live GW: render immediately with basic data, load history in background
+        // For live GW: load GW JSON files first (avoids 52 API history calls)
         renderStandings(); // Show basic standings right away
         
-        // Load live scores + chips in parallel (most important for live view)
-        const [_history] = await Promise.all([
-          loadAllHistory(state.isLive),
-        ]);
-        state.historyLoaded = true;
-        _renderStandingsDebounced();
+        // Try loading history from GW JSON files first — much faster than API
+        await loadHistoryFromGWFiles(CURRENT_SEASON);
+        if (state.historyLoaded) {
+          _renderStandingsDebounced();
+        } else {
+          // Fall back to API if GW files not available
+          await loadAllHistory(state.isLive);
+          state.historyLoaded = true;
+          _renderStandingsDebounced();
+        }
         // Show export button when GW is complete (not live)
         if (!state.isLive) {
           const exportBtn = document.getElementById('export-gw-btn');
@@ -2086,7 +2090,7 @@ async function init() {
 
     // Show loading until we have live scores (so cards show correct data immediately)
     const liveScores = window._liveScoreCacheGW?.[currentGW];
-    const hasLiveScoresNow = liveScores && Object.keys(liveScores).length >= state.managers.length * 0.8;
+    const hasLiveScoresNow = liveScores && Object.keys(liveScores).length >= Math.ceil(state.managers.length * 0.95);
     if (state.isLive && !hasLiveScoresNow) {
       document.getElementById('standings-content').innerHTML =
         '<div class="loading-state"><span class="spinner"></span><div style="text-align:center"><div>Loading live scores...</div><div style="font-size:11px;color:var(--text3);margin-top:6px;font-family:var(--font-mono);">GW' + currentGW + '</div></div></div>';
@@ -3027,7 +3031,9 @@ async function init() {
       html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
       if (earned >= 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + (earned > 0 ? 'var(--green)' : 'var(--text3)') + ';background:' + (earned > 0 ? 'var(--green-dim)' : 'var(--bg3)') + ';border-radius:6px;padding:3px 8px;">$' + earned.toFixed(2) + '</span>';
       if (!isSeasonOver && m.gwLatestPts !== null) {
-        html += '<span class="s-card-gwpts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + (m.gwRawPts||0) + 'pts</span>';
+        const hasPicks = !!window._picksCache?.[m.id + '_' + currentGW];
+        const gwPtsDisplay = (!hasPicks && state.isLive) ? '...' : (m.gwRawPts || 0) + 'pts';
+        html += '<span class="s-card-gwpts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + gwPtsDisplay + '</span>';
         if (state.isLive && m.played !== null) {
           const total = m.played + m.remaining;
           const allPlayed = m.remaining === 0;
@@ -6928,7 +6934,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     if (window._historyLoadInProgress) return; // already loading
     window._historyLoadInProgress = true;
     try {
-    const TOTAL_GWS = 38;
+    const TOTAL_GWS = season === CURRENT_SEASON ? (state.latestGW || 1) : 38;
     let loaded = 0;
     const BATCH = 5;
 
