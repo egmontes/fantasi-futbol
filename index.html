@@ -4812,7 +4812,7 @@ async function init() {
         html += '<div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(m.name) + '</div>';
         if (m._prize > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">' + (GW_RANK_EMOJI_H[rank] || '') + ' $' + m._prize.toFixed(2) + '</span>';
         if (m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">🍺 Shotgun</span>';
-        html += '</div>';        html += '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);display:flex;align-items:center;gap:4px;flex-wrap:wrap;">' + esc(m.team) + (chipHtml ? '<span style="margin-left:4px;display:inline-flex;gap:3px;align-items:center;">' + chipHtml + '</span>' : '') + '</div>';
+        html += '</div>';        html += '<div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);display:flex;align-items:center;gap:4px;flex-wrap:wrap;">' + esc(m.team) + (chipHtml ? '<span style="margin-left:4px;display:inline-flex;gap:3px;align-items:center;">' + chipHtml + '</span>' : '') + '</div>';
 
         // Row 1: Season stats (beers/misses only — prize already shown next to name)
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
@@ -4825,7 +4825,6 @@ async function init() {
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px;">';
         if (capStr) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">© ' + esc(capStr) + '</span>';
         if (m.transferCost > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;">-' + m.transferCost + ' hit</span>';
-        if (m.benchPoints > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--theme);">Bench:</span><span style="color:var(--text);">' + m.benchPoints + '</span></span>';
         html += '</div>';
 
         html += '</div>'; // close name col
