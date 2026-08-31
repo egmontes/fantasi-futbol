@@ -958,23 +958,28 @@
   const FPL_BASE = 'https://fantasy.premierleague.com/api/';
 
   const PROXIES = [
+    t => 'https://cors.sh/' + t,
     t => 'https://proxy.cors.sh/' + t,
+    t => 'https://corsproxy.dev/?' + t,
   ];
 
   async function fetchFPL(path, retries = 1) {
     const target = FPL_BASE + path;
-    try {
-      const res = await tryFetch(PROXIES[0](target));
-      if (res.status === 429) throw new Error('HTTP 429 Too Many Requests');
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      return res.json();
-    } catch(e) {
-      if (retries > 0) {
-        await new Promise(r => setTimeout(r, 500 + Math.random() * 500));
-        return fetchFPL(path, retries - 1);
-      }
-      throw e;
+    // Try each proxy in order until one works
+    for (let pi = 0; pi < PROXIES.length; pi++) {
+      try {
+        const res = await tryFetch(PROXIES[pi](target));
+        if (res.status === 429) continue; // try next proxy
+        if (!res.ok) continue;
+        return res.json();
+      } catch(e) { continue; }
     }
+    // All failed — retry with backoff
+    if (retries > 0) {
+      await new Promise(r => setTimeout(r, 500 + Math.random() * 500));
+      return fetchFPL(path, retries - 1);
+    }
+    throw new Error('All proxies failed');
   }
 
 
@@ -1201,18 +1206,13 @@
     while (_activeRequests < 3 && _requestQueue.length > 0) {
     const { path, resolve, reject, attempt = 0 } = _requestQueue.shift();
     _activeRequests++;
-    console.log(`[FPL] Starting: ${path.split('/').slice(-3).join('/')} | queue: ${_requestQueue.length} remaining | active: ${_activeRequests}`);
-    const start = Date.now();
     let handled = false;
     fetchFPL(path)
-      .then(data => {
-        console.log(`[FPL] ✓ ${path.split('/').slice(-3).join('/')} in ${Date.now()-start}ms`);
-        resolve(data);
-      })
+      .then(data => { resolve(data); })
       .catch(err => {
         if (attempt < 3) {
           const delay = 1000 * Math.pow(2, attempt);
-          console.warn(`[FPL] Failed (attempt ${attempt+1}) — retrying ${path.split('/').slice(-3).join('/')} in ${delay}ms:`, err.message);
+          console.warn(`[Q] retry attempt ${attempt+1} for ${path.split('/').slice(-4).join('/')}`);
           handled = true;
           _activeRequests--;
           setTimeout(() => {
@@ -1221,7 +1221,7 @@
           }, delay);
           return;
         }
-        console.warn(`[FPL] ✗ ${path.split('/').slice(-3).join('/')} FAILED after ${attempt} attempts:`, err.message);
+        console.warn(`[Q] GAVE UP: ${path.split('/').slice(-4).join('/')}`);
         reject(err);
       })
       .finally(() => {
@@ -1390,6 +1390,17 @@ async function init() {
         if (state.isLive) {
           state.liveGW = currentGWEvent.id;
           state.currentGW = state.liveGW;
+          // Load cached player pts/minutes now that we know the GW
+          try {
+            const _gw = state.liveGW;
+            const _pts = localStorage.getItem('ff_player_pts_' + _gw);
+            const _ptsTs = parseInt(localStorage.getItem('ff_player_pts_ts_' + _gw) || '0');
+            if (_pts && Date.now() - _ptsTs < 5 * 60 * 1000) {
+              window._playerPtsCache = JSON.parse(_pts);
+              const _mins = localStorage.getItem('ff_player_mins_' + _gw);
+              if (_mins) window._playerMinutesCache = JSON.parse(_mins);
+            }
+          } catch(e) {}
           // Clear any stale cache from previous GW
           try {
             const staleKey = 'ff_live_scores_v2_' + (state.liveGW - 1);
@@ -2101,9 +2112,28 @@ async function init() {
     // Show loading until we have live scores (so cards show correct data immediately)
     const liveScores = window._liveScoreCacheGW?.[currentGW];
     const hasLiveScoresNow = liveScores && Object.keys(liveScores).length >= state.managers.length;
+    const hasCachedPicks = window._picksCache && Object.keys(window._picksCache).filter(k => k.endsWith('_' + currentGW)).length >= state.managers.length;
     const loadingTooLong = window._liveLoadStartTime && (Date.now() - window._liveLoadStartTime > 60000);
     const isManualRefresh = window._lastManualRefresh && (Date.now() - window._lastManualRefresh < 30000);
-    if (state.isLive && !hasLiveScoresNow && !loadingTooLong && !isManualRefresh) {
+
+    // If we have cached picks, compute scores immediately and render — don't show loading screen
+    if (state.isLive && !hasLiveScoresNow && hasCachedPicks && window._playerPtsCache && Object.keys(window._playerPtsCache).length > 0) {
+      if (!window._liveScoreCacheGW[currentGW]) window._liveScoreCacheGW[currentGW] = {};
+      state.managers.forEach(m => {
+        if (window._liveScoreCacheGW[currentGW][m.id]) return;
+        const picks = window._picksCache[m.id + '_' + currentGW];
+        if (!picks?.picks) return;
+        const isBB = picks.active_chip === 'bboost';
+        const maxPos = isBB ? 15 : 11;
+        let rawPts = 0;
+        picks.picks.filter(p => p.position <= maxPos).forEach(p => { rawPts += (window._playerPtsCache[p.element] || 0) * p.multiplier; });
+        const hit = picks.entry_history?.event_transfers_cost || 0;
+        const played = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) > 0).length;
+        const remaining = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) === 0).length;
+        window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
+      });
+      // Fall through to render with computed scores
+    } else if (state.isLive && !hasLiveScoresNow && !loadingTooLong && !isManualRefresh) {
       if (!window._liveLoadStartTime) window._liveLoadStartTime = Date.now();
       document.getElementById('standings-content').innerHTML =
         '<div class="loading-state"><span class="spinner"></span><div style="text-align:center"><div id="live-load-msg">Fetching live scores...</div><div id="live-load-sub" style="font-size:11px;color:var(--text3);margin-top:6px;font-family:var(--font-mono);">GW' + currentGW + ' · 0/' + state.managers.length + ' managers</div></div></div>';
@@ -2118,6 +2148,13 @@ async function init() {
             window._playerPtsCache[e.id] = e.stats.total_points;
             window._playerMinutesCache[e.id] = e.stats.minutes;
           });
+          // Save to localStorage so next reload has fresh pts immediately
+          try {
+            const gw = currentGW;
+            localStorage.setItem('ff_player_pts_' + gw, JSON.stringify(window._playerPtsCache));
+            localStorage.setItem('ff_player_pts_ts_' + gw, Date.now().toString());
+            localStorage.setItem('ff_player_mins_' + gw, JSON.stringify(window._playerMinutesCache));
+          } catch(e) {}
           // Quick score estimate from bootstrap picks if available
           state.managers.forEach(m => {
             const cached = window._picksCache?.[m.id + '_' + currentGW];
@@ -2322,6 +2359,11 @@ async function init() {
           window._playerPtsCache[e.id] = e.stats.total_points;
           window._playerMinutesCache[e.id] = e.stats.minutes;
         });
+        try {
+          localStorage.setItem('ff_player_pts_' + currentGW, JSON.stringify(window._playerPtsCache));
+          localStorage.setItem('ff_player_pts_ts_' + currentGW, Date.now().toString());
+          localStorage.setItem('ff_player_mins_' + currentGW, JSON.stringify(window._playerMinutesCache));
+        } catch(e) {}
         // Fetch picks for managers not yet cached (in small batches)
         const missing = state.managers.filter(m => !window._picksCache?.[m.id + '_' + currentGW]);
         if (missing.length > 0 && !window._picksFetchInProgress) {
@@ -2498,81 +2540,24 @@ async function init() {
                       window._picksCache[m.id + '_' + currentGW] = picks;
                       // Update loading progress message
                       const loaded = Object.keys(window._picksCache || {}).filter(k => k.endsWith('_' + currentGW)).length;
+                      console.log(`[picks] ${loaded}/52 loaded — active: ${_activeRequests}, queue: ${_requestQueue.length}`);
                       const subEl = document.getElementById('live-load-sub');
                       const msgEl = document.getElementById('live-load-msg');
                       if (subEl) subEl.textContent = 'GW' + currentGW + ' · ' + loaded + '/' + state.managers.length + ' managers';
                       if (msgEl) msgEl.textContent = loaded < state.managers.length * 0.5 ? 'Fetching picks...' : loaded < state.managers.length * 0.95 ? 'Almost there...' : 'Building standings...';
                       try {
-                      // Update captain cache from picks
-                      const captainPick = picks.picks.find(p => p.is_captain);
-                      const vcPick = picks.picks.find(p => p.is_vice_captain);
-                      if (captainPick && state.bootstrapPlayers[captainPick.element]) {
-                        if (!_captainCache[currentGW]) _captainCache[currentGW] = {};
-                        _captainCache[currentGW][m.id] = { name: state.bootstrapPlayers[captainPick.element], isVC: false };
-                      }
-                      if (picks.active_chip) {
-                        if (!_chipCache[currentGW]) _chipCache[currentGW] = {};
-                        _chipCache[currentGW][m.id] = picks.active_chip;
-                      }
-                      // Update tempMap with accurate data, applying predicted auto-subs
+                      // Fast estimate: just sum points, no sub logic (phase 2 will do proper computation)
                       const isBB = picks.active_chip === 'bboost' || (state.chipsHistory?.[m.id]?.[currentGW] === 'bboost');
                       const maxPos = isBB ? 15 : 11;
-                      const startingEls = picks.picks.filter(p => p.position <= maxPos).map(p => ({...p}));
-                      const benchEls = picks.picks.filter(p => p.position > maxPos).map(p => ({...p}));
-                      const getElType = id => (state.bootstrapElements||[]).find(e=>e.id===id)?.element_type || 0;
-                      const elTeamFinished = id => {
-                        const el = (state.bootstrapElements||[]).find(e=>e.id===id);
-                        if (!el) return false;
-                        const f = (window._fixturesByTeam||{})[el.team];
-                        if (!f) return false;
-                        return f.finished || f.finished_provisional;
-                      };
-                      // Apply predicted subs if no confirmed subs yet
-                      const usedBench = new Set();
-                      if (!isBB && !picks.automatic_subs?.length) {
-                        for (let si = 0; si < startingEls.length; si++) {
-                          const starter = startingEls[si];
-                          if (starter.is_captain || starter.is_vice_captain) continue;
-                          if ((playerMinutes[starter.element] || 0) > 0) continue;
-                          if (playerMinutes[starter.element] === undefined) continue;
-                          if (!elTeamFinished(starter.element)) continue; // only sub if fixture done
-                          const starterPos = getElType(starter.element);
-                          for (const bench of benchEls.filter(b => !usedBench.has(b.element))) {
-                            if ((playerMinutes[bench.element] || 0) === 0) continue;
-                            const benchPos = getElType(bench.element);
-                            if (starterPos === 1 && benchPos !== 1) continue;
-                            if (starterPos !== 1 && benchPos === 1) continue;
-                            startingEls[si] = { ...bench, multiplier: starter.multiplier };
-                            usedBench.add(bench.element);
-                            break;
-                          }
-                        }
-                      }
-                      let rawPts = 0, played = 0, remaining = 0;
-                      startingEls.forEach(p => {
-                        rawPts += (playerPts[p.element] || 0) * p.multiplier;
-                        const count = p.multiplier;
-                        if ((playerMinutes[p.element] || 0) > 0) played += count;
-                        else remaining += count;
+                      let rawPts = 0;
+                      picks.picks.filter(p => p.position <= maxPos).forEach(p => {
+                        rawPts += (window._playerPtsCache[p.element] || 0) * p.multiplier;
                       });
-                      // Reduce remaining: for each 0-min starter, check if any bench player can cover
-                      if (!isBB) {
-                        const usedBenchSub = new Set(usedBench); // exclude already-used bench players
-                        startingEls.forEach(starter => {
-                          if ((playerMinutes[starter.element]||0) > 0) return;
-                          const sType = getElType(starter.element);
-                          const validSub = sType === 1
-                            ? benchEls.find(b => !usedBenchSub.has(b.element) && (playerMinutes[b.element]||0) > 0 && getElType(b.element) === 1)
-                            : benchEls.find(b => !usedBenchSub.has(b.element) && (playerMinutes[b.element]||0) > 0 && getElType(b.element) > 1);
-                          if (!validSub) remaining = Math.max(0, remaining - 1);
-                          else usedBenchSub.add(validSub.element);
-                        });
-                      }
                       const hit = picks.entry_history?.event_transfers_cost || 0;
-                      // Don't overwrite if manual refresh happened in last 30s
-                      if (!window._lastManualRefresh || Date.now() - window._lastManualRefresh > 30000) {
-                        window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
-                      }
+                      const played = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) > 0).length;
+                      const remaining = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) === 0).length;
+                      if (!window._liveScoreCacheGW[currentGW]) window._liveScoreCacheGW[currentGW] = {};
+                      window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
                       } catch(scoreErr) { console.warn('[FPL] Score compute error for', m.id, scoreErr.message); }
                     } catch(e) { console.warn('[FPL] Picks fetch error for', m.id, e.message); }
                   }));
@@ -3102,7 +3087,15 @@ async function init() {
       html += '<span class="s-card-rank" style="font-size:20px;font-weight:700;font-family:var(--font-display);color:' + cardRankColor + ';min-width:28px;align-self:center;">' + pos + '</span>';
       html += '<div style="flex:1;min-width:0;">';
       html += '<div style="font-weight:700;font-size:15px;color:' + (kickedCard ? 'var(--red)' : 'var(--text)') + ';display:flex;align-items:center;gap:5px;overflow:hidden;' + (kickedCard ? 'opacity:0.7;' : '') + '">';
+      html += '<div style="display:flex;align-items:center;gap:6px;min-width:0;">';
       html += '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (rankMedal ? rankMedal + ' ' : '') + esc(m.name) + '</span>';
+      if (state.isLive && m._prize > 0) {
+        const GW_RANK_EMOJI = {1:'🥇', 2:'🥈', 3:'🥉', 4:'4️⃣', 5:'5️⃣', 6:'6️⃣'};
+        const prizeEmoji = GW_RANK_EMOJI[m._gwRank] || '💰';
+        html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">' + prizeEmoji + ' $' + m._prize.toFixed(2) + '</span>';
+      }
+      if (state.isLive && m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">🍺 Shotgun</span>';
+      html += '</div>';
       if (kickedCard) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);opacity:0.5;font-weight:400;flex-shrink:0;">kicked</span>';
       else if (isSeasonOver) {
         const BADGE_MAP = isSeasonOver && window.__viewingSeason === '2025-2026'
@@ -3119,10 +3112,25 @@ async function init() {
       html += '</div>';
       const chipBadgeHtml = buildChipBadges(m.id, m.chip || null, currentGW);
       html += '<div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);display:flex;align-items:center;gap:4px;flex-wrap:wrap;">' + esc(m.team) + (chipBadgeHtml ? '<span style="display:inline-flex;gap:3px;align-items:center;">' + chipBadgeHtml + '</span>' : '') + '</div>';
-      // Stats chips left-aligned under name
-      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
-      if (earned >= 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:' + (earned > 0 ? 'var(--green)' : 'var(--text3)') + ';background:' + (earned > 0 ? 'var(--green-dim)' : 'var(--bg3)') + ';border-radius:6px;padding:3px 8px;">$' + earned.toFixed(2) + '</span>';
+      // Row 1: Season stats
+      if (state.historyLoaded) {
+        html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
+        if (earned > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;">$' + earned.toFixed(2) + '</span>';
+        const chip = (label, value, activeColor, activeBg) =>
+          '<span style="font-size:11px;font-family:var(--font-mono);background:' + activeBg + ';border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;">'
+          + '<span style="color:' + activeColor + ';">' + label + '</span>'
+          + '<span style="color:var(--text);">' + value + '</span>'
+          + '</span>';
+        if (m.top4 > 0) html += chip('Top 6:', m.top4, 'var(--green)', 'var(--green-dim)');
+        if (m.bottom2 > 0) html += chip('Bot 4:', m.bottom2, 'var(--red)', 'var(--red-dim)');
+        if (m.totalG > 0) html += chip('🍺:', m.totalG, 'var(--amber)', 'var(--bg3)');
+        if (m.gmisses > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--red);">⚠️ Owes:</span><span style="color:var(--text);">' + m.gmisses + '</span></span>';
+        if (m.missedG > 0) html += chip('Missed:', m.missedG, 'var(--red)', 'var(--red-dim)');
+        html += '</div>';
+      }
+      // Row 2: GW stats
       if (!isSeasonOver && m.gwLatestPts !== null) {
+        html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px;">';
         const hasPicks = !!window._picksCache?.[m.id + '_' + currentGW];
         const gwPtsDisplay = (!hasPicks && state.isLive) ? '...' : (m.gwRawPts || 0) + 'pts';
         html += '<span class="s-card-gwpts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + gwPtsDisplay + '</span>';
@@ -3131,34 +3139,9 @@ async function init() {
           const allPlayed = m.remaining === 0;
           html += '<span class="s-card-played" style="font-size:11px;font-family:var(--font-mono);color:' + (allPlayed ? 'var(--text3)' : 'var(--amber)') + ';background:var(--bg3);border-radius:6px;padding:3px 8px;">' + m.played + '/' + total + (allPlayed ? ' ✓' : '') + '</span>';
         }
+        if (m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">©' + esc(m.captain.name) + '</span>';
+        html += '</div>';
       }
-      if (state.isLive && m._prize > 0) {
-        const GW_RANK_EMOJI = {1:'🥇', 2:'🥈', 3:'🥉', 4:'4️⃣', 5:'5️⃣', 6:'6️⃣'};
-        const prizeEmoji = GW_RANK_EMOJI[m._gwRank] || '💰';
-        html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;">' + prizeEmoji + ' $' + m._prize.toFixed(2) + '</span>';
-      }
-      if (state.isLive && m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;">🍺 Shotgun</span>';
-      if (!isSeasonOver && m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">©' + esc(m.captain.name) + '</span>';
-      if (state.historyLoaded) {
-        const chip = (label, value, activeColor, activeBg, active) => {
-          const bg = active ? activeBg : 'var(--bg3)';
-          const labelColor = active ? activeColor : 'var(--text3)';
-          const valColor = active ? 'var(--text)' : 'var(--text3)';
-          return '<span style="font-size:11px;font-family:var(--font-mono);background:' + bg + ';border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;">'
-            + '<span style="color:' + labelColor + ';">' + label + '</span>'
-            + '<span style="color:' + valColor + ';">' + value + '</span>'
-            + '</span>';
-        };
-        if (m.top4 > 0) html += chip('Top 6:', m.top4, 'var(--green)', 'var(--green-dim)', true);
-        if (m.bottom2 > 0) html += chip('Bot 4:', m.bottom2, 'var(--red)', 'var(--red-dim)', true);
-        if (m.totalG > 0) html += chip('Total 🍺:', m.totalG, 'var(--amber)', 'var(--bg3)', true);
-        if (m.gmisses > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;">'
-          + '<span style="color:var(--red);">⚠️ Owes:</span>'
-          + '<span style="color:var(--text);">' + m.gmisses + '</span>'
-          + '</span>';
-        if (m.missedG > 0) html += chip('Missed:', m.missedG, 'var(--red)', 'var(--red-dim)', true);
-      }
-      html += '</div>'; // close chips
       html += '</div>'; // close name+chips column
       html += '<div style="text-align:right;flex-shrink:0;align-self:center;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">';
       html += '<div class="sc-right-val s-card-total" style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:var(--text);">' + m.total + '</div>';
@@ -4824,21 +4807,25 @@ async function init() {
         html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
         html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:' + rankColor + ';min-width:28px;align-self:center;">' + (m._seasonRank || rank) + '</span>';
         html += '<div style="flex:1;min-width:0;">';
-        html += '<div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (rankMedal ? rankMedal + ' ' : '') + esc(m.name) + '</div>';
-        html += '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);display:flex;align-items:center;gap:4px;flex-wrap:wrap;">' + esc(m.team) + (chipHtml ? '<span style="margin-left:4px;display:inline-flex;gap:3px;align-items:center;">' + chipHtml + '</span>' : '') + '</div>';
+        const GW_RANK_EMOJI_H = {1:'🥇', 2:'🥈', 3:'🥉', 4:'4️⃣', 5:'5️⃣', 6:'6️⃣'};
+        html += '<div style="display:flex;align-items:center;gap:6px;min-width:0;">';
+        html += '<div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(m.name) + '</div>';
+        if (m._prize > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">' + (GW_RANK_EMOJI_H[rank] || '') + ' $' + m._prize.toFixed(2) + '</span>';
+        if (m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">🍺 Shotgun</span>';
+        html += '</div>';        html += '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);display:flex;align-items:center;gap:4px;flex-wrap:wrap;">' + esc(m.team) + (chipHtml ? '<span style="margin-left:4px;display:inline-flex;gap:3px;align-items:center;">' + chipHtml + '</span>' : '') + '</div>';
 
-        // Chips row
+        // Row 1: Season stats (beers/misses only — prize already shown next to name)
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
-        if (m._prize > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;">$' + m._prize.toFixed(2) + '</span>';
-        if (m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;">🍺 Shotgun</span>';
-        if (capStr) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">© ' + esc(capStr) + '</span>';
-        html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:' + (m.gwTotal > 0 ? 'var(--theme)' : 'var(--text3)') + ';">Total:</span><span style="color:' + (m.gwTotal > 0 ? 'var(--text)' : 'var(--text3)') + ';">' + m.gwTotal + '</span></span>';
-        if (m.transferCost > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;">-' + m.transferCost + ' hit</span>';
-        if (m.benchPoints > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--theme);">Bench:</span><span style="color:var(--text);">' + m.benchPoints + '</span></span>';
         const cardOwed = getGuinnessOwedAtGW(m.name, gw);
         const cardMissed = didMissGW(m.name, gw);
         if (cardOwed > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;">🍺 Owes: ' + cardOwed + '</span>';
         if (cardMissed) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;">❌ Missed</span>';
+        html += '</div>';
+        // Row 2: GW stats
+        html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px;">';
+        if (capStr) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">© ' + esc(capStr) + '</span>';
+        if (m.transferCost > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;">-' + m.transferCost + ' hit</span>';
+        if (m.benchPoints > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--theme);">Bench:</span><span style="color:var(--text);">' + m.benchPoints + '</span></span>';
         html += '</div>';
 
         html += '</div>'; // close name col
