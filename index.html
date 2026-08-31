@@ -4779,10 +4779,11 @@ async function init() {
       // Build GW card list
       const gwSortOptions = [
         { key: 'gwPoints', label: 'GW Pts' },
+        { key: 'gwTotal', label: 'Total Pts' },
         { key: '_prize', label: 'Earned' },
-        { key: 'gwTotal', label: 'Total' },
-        { key: 'benchPoints', label: 'Bench' },
-        { key: 'transferCost', label: 'Hits' },
+        { key: 'top4', label: 'Top 6' },
+        { key: 'bottom2', label: 'Bot 4' },
+        { key: 'totalG', label: 'Total 🍺' },
       ];
       html += '<div class="weekly-cards">';
       html += '<div id="gw-cards-sort-bar" style="display:flex;gap:0;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--border);padding:4px 0;width:100%;">';
@@ -4849,6 +4850,9 @@ async function init() {
         gwTotal: m.gwTotal || 0,
         benchPoints: m.benchPoints || 0,
         transferCost: m.transferCost || 0,
+        top4: m.top4 || 0,
+        bottom2: m.bottom2 || 0,
+        totalG: m.totalG || 0,
       }));
       window._gwCardSortDir = -1;
       window._gwCardSortKey = null;
