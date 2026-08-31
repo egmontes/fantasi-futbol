@@ -3280,7 +3280,7 @@ async function init() {
       };
     });
     window._cardSortDir = -1;
-    window._cardSortKey = null;
+    window._cardSortKey = 'pts'; // matches default highlighted sort
 
     window._sortCards = function(key, btn) {
       // Toggle direction if same key
@@ -4855,7 +4855,7 @@ async function init() {
         totalG: m.totalG || 0,
       }));
       window._gwCardSortDir = -1;
-      window._gwCardSortKey = null;
+      window._gwCardSortKey = 'gwPoints'; // matches default highlighted sort
 
       window._sortGWCards = function(key, btn) {
         if (window._gwCardSortKey === key) window._gwCardSortDir *= -1;
