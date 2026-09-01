@@ -971,7 +971,9 @@
         const res = await tryFetch(PROXIES[pi](target));
         if (res.status === 429) continue; // try next proxy
         if (!res.ok) continue;
-        return res.json();
+        const text = await res.text();
+        if (text.trim().startsWith('<')) continue; // HTML response — try next proxy
+        return JSON.parse(text);
       } catch(e) { continue; }
     }
     // All failed — retry with backoff
@@ -4993,8 +4995,8 @@ async function init() {
   async function fetchManagerGWDetail(managerId, gw) {
     try {
       const [picksData, histData, liveStats] = await Promise.all([
-        fetchFPL('entry/' + managerId + '/event/' + gw + '/picks/'),
-        fetchFPL('entry/' + managerId + '/transfers/'),
+        fetchFPLQueued('entry/' + managerId + '/event/' + gw + '/picks/'),
+        fetchFPLQueued('entry/' + managerId + '/transfers/'),
         fetchLiveStats(gw),
       ]);
 
@@ -5063,7 +5065,7 @@ async function init() {
   }
 
   async function fetchAllGWDetails(gw, managers) {
-    const BATCH = 3;
+    const BATCH = 2;
     const results = {};
     for (let i = 0; i < managers.length; i += BATCH) {
       const batch = managers.slice(i, i + BATCH);
@@ -5335,32 +5337,78 @@ async function buildPrompt(gw) {
       m._displayRank = displayRank;
     });
 
-    // Find key managers: top-4 positions (expanded for ties) + bottom-2 (expanded for ties)
+    // Find key managers: top-6 positions (expanded for ties) + shotgun spots
     const keyIds = new Set();
 
-    // Top: find all managers in prize positions including ties
-    const PRIZE_SLOTS = [1, 2, 3, 4];
-    ranked.forEach((m, idx) => {
+    // Top 6: find all managers in prize positions including ties
+    const PRIZE_SLOTS = [1, 2, 3, 4, 5, 6];
+    ranked.forEach(m => {
       if (PRIZE_SLOTS.includes(m._displayRank)) keyIds.add(m.id);
     });
-    // Also include anyone tied with the 4th place score
-    const fourthScore = ranked.find(m => m._displayRank === 4);
-    if (fourthScore) ranked.filter(m => m.gwPoints === fourthScore.gwPoints).forEach(m => keyIds.add(m.id));
+    // Also include anyone tied with the 6th place score
+    const sixthScore = ranked.find(m => m._displayRank === 6);
+    if (sixthScore) ranked.filter(m => m.gwPoints === sixthScore.gwPoints).forEach(m => keyIds.add(m.id));
 
     // Bottom: find shotgun managers
     let shotgunStart = n - 2;
     while (shotgunStart > 0 && ranked[shotgunStart - 1].gwPoints === ranked[shotgunStart].gwPoints) shotgunStart--;
     ranked.slice(shotgunStart).forEach(m => keyIds.add(m.id));
 
-    // Fetch full picks/chip for ALL managers (for accurate chip counts in overview)
-    // but only fetch transfers/captain detail for key managers
-    const keyManagers = ranked.filter(m => keyIds.has(m.id));
-    const [details, allChips, ownership, liveData] = await Promise.all([
-  fetchAllGWDetails(gw, ranked),
-  fetchChipsForGW(gw),
-  fetchOwnershipForGW(gw),
-  fetchFPL('event/' + gw + '/live/?t=' + Date.now())
-]);
+    // Try loading from saved GW JSON first (much faster, no API calls needed)
+    let gwCache = null;
+    try {
+      const res = await fetch(`data/${CURRENT_SEASON}/gw${String(gw).padStart(2,'0')}.json?nocache=${Date.now()}`);
+      if (res.ok) gwCache = await res.json();
+    } catch(e) {}
+
+    // Build details map from GW JSON if available
+    let details = {};
+    let allChips = {};
+    let liveData = null;
+    let ownership = {};
+
+    if (gwCache) {
+      // Hydrate from JSON cache
+      liveData = { elements: Object.entries(gwCache.players || {}).map(([id, p]) => ({
+        id: parseInt(id),
+        stats: { total_points: p.points || 0, minutes: p.minutes || 0, goals_scored: p.goals || 0,
+                 assists: p.assists || 0, clean_sheets: p.cs ? 1 : 0, bonus: p.bonus || 0 }
+      })) };
+      gwCache.managers.forEach(m => {
+        if (!m.picks) return;
+        const cap = m.picks.find(p => p.is_captain);
+        const vc = m.picks.find(p => p.is_vice_captain);
+        const gwT = m.transfers || [];
+        details[m.id] = {
+          picks: m.picks,
+          captainName: cap ? (state.bootstrapPlayers[cap.element] || m.captain?.name || '?') : null,
+          captainDNP: false,
+          captainStats: null,
+          captainMult: cap?.multiplier || 2,
+          captainBlank: false,
+          chip: m.chip || null,
+          transfersIn: gwT.map(t => ({ name: state.bootstrapPlayers[t.element_in] || t.element_in_name || '?', stats: { pts: t.element_in_pts || 0 } })),
+          transfersOut: gwT.map(t => ({ name: state.bootstrapPlayers[t.element_out] || t.element_out_name || '?', stats: { pts: t.element_out_pts || 0 } })),
+          standouts: [],
+          benchWaste: [],
+        };
+        allChips[m.id] = m.chip || null;
+        // Build ownership
+        m.picks.filter(p => p.position <= 11).forEach(p => {
+          ownership[p.element] = (ownership[p.element] || 0) + 1;
+          if (p.is_captain) ownership['cap_' + p.element] = (ownership['cap_' + p.element] || 0) + 1;
+        });
+      });
+      ownership = { owned: ownership, captained: {}, total: gwCache.managers.length };
+    } else {
+      // Fall back to API fetches
+      [details, allChips, ownership, liveData] = await Promise.all([
+        fetchAllGWDetails(gw, ranked),
+        fetchChipsForGW(gw),
+        fetchOwnershipForGW(gw),
+        fetchFPL('event/' + gw + '/live/?t=' + Date.now())
+      ]);
+    }
 
     const summaryLines = ranked.map((m, idx) => {
       const s = stats[m.id] || {};
@@ -8145,11 +8193,15 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       const failed = [];
       for (const m of state.managers) {
         let success = false;
-        for (let attempt = 0; attempt < 3 && !success; attempt++) {
-          if (attempt > 0) await new Promise(r => setTimeout(r, 1000 * attempt));
+        for (let attempt = 0; attempt < 5 && !success; attempt++) {
+          if (attempt > 0) {
+            const wait = 2000 * attempt;
+            if (btn) btn.textContent = 'Retrying ' + m.name + '... (' + attempt + '/4)';
+            await new Promise(r => setTimeout(r, wait));
+          }
           try {
-            const picks = await fetchFPLQueued('entry/' + m.id + '/event/' + gw + '/picks/');
-            const transfers = await fetchFPLQueued('entry/' + m.id + '/transfers/');
+            const picks = await fetchFPL('entry/' + m.id + '/event/' + gw + '/picks/', 3);
+            const transfers = await fetchFPL('entry/' + m.id + '/transfers/', 3);
             const hist = (state.gwHistory[m.id] || []).find(h => h.event === gw);
             // If history not available yet, compute from picks × live player pts
             let gwPoints = hist?.points || 0;
@@ -8203,6 +8255,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
           }
         }
         if (!success) failed.push(m.name);
+        // Small delay between managers to avoid rate limiting
+        await new Promise(r => setTimeout(r, 200));
       }
 
       // Abort if any manager failed — incomplete JSON would break everything
