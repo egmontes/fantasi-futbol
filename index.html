@@ -8142,18 +8142,16 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       const captains = _captainCache[gw] || {};
 
       const managersData = [];
-      const BATCH = 5;
-      for (let i = 0; i < state.managers.length; i += BATCH) {
-        const batch = state.managers.slice(i, i + BATCH);
-        await Promise.all(batch.map(async m => {
+      const failed = [];
+      for (const m of state.managers) {
+        let success = false;
+        for (let attempt = 0; attempt < 3 && !success; attempt++) {
+          if (attempt > 0) await new Promise(r => setTimeout(r, 1000 * attempt));
           try {
-            const [picks, transfers] = await Promise.all([
-              fetchFPLQueued('entry/' + m.id + '/event/' + gw + '/picks/'),
-              fetchFPLQueued('entry/' + m.id + '/transfers/')
-            ]);
+            const picks = await fetchFPLQueued('entry/' + m.id + '/event/' + gw + '/picks/');
+            const transfers = await fetchFPLQueued('entry/' + m.id + '/transfers/');
             const hist = (state.gwHistory[m.id] || []).find(h => h.event === gw);
             const gwTransfers = transfers.filter(t => t.event === gw);
-
             managersData.push({
               id: m.id,
               name: m.name,
@@ -8177,10 +8175,21 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
                 element_out_pts: playerPts[t.element_out] || 0,
               })),
             });
+            success = true;
+            if (btn) btn.textContent = 'Exporting... ' + managersData.length + '/' + state.managers.length;
           } catch(e) {
-            console.warn('Failed to export manager', m.name, e.message);
+            console.warn('Attempt', attempt + 1, 'failed for', m.name, e.message);
           }
-        }));
+        }
+        if (!success) failed.push(m.name);
+      }
+
+      // Abort if any manager failed — incomplete JSON would break everything
+      if (failed.length > 0) {
+        throw new Error('Missing data for ' + failed.length + ' manager(s): ' + failed.join(', ') + '. Please try again.');
+      }
+      if (managersData.length !== state.managers.length) {
+        throw new Error('Only got ' + managersData.length + '/' + state.managers.length + ' managers. Aborting save.');
       }
 
       // Build player lookup (only players that appear in picks)
@@ -8243,7 +8252,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       if (btn) { btn.textContent = '✓ Saved GW' + gw; btn.disabled = false; }
     } catch(e) {
       console.error('Export failed:', e);
-      if (btn) { btn.textContent = 'Export failed'; btn.disabled = false; }
+      if (btn) { btn.textContent = '❌ ' + (e.message || 'Export failed'); btn.disabled = false; btn.style.color = 'var(--red)'; }
+      alert('Save failed: ' + (e.message || 'Unknown error') + '\n\nDo not use this file. Try again.');
     }
   }
   window._exportGWCache = exportGWCache;
