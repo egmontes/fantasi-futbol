@@ -2727,6 +2727,20 @@ async function init() {
       seasonRankMap[m.id] = sRank;
     });
 
+    // Compute previous GW season rank for trend arrows
+    const prevSeasonRankMap = {};
+    if (currentGW > 1 && state.historyLoaded) {
+      const prevRows = state.managers.map(m => {
+        const hist = (state.gwHistory[m.id] || []).filter(h => h.event < currentGW).sort((a,b) => b.event - a.event)[0];
+        return { id: m.id, total: hist ? hist.total_points : 0 };
+      }).sort((a, b) => b.total - a.total);
+      let pr = 1;
+      prevRows.forEach((m, i) => {
+        if (i > 0 && prevRows[i].total < prevRows[i-1].total) pr = i + 1;
+        prevSeasonRankMap[m.id] = pr;
+      });
+    }
+
     // Compute totalEarned (weekly + season prize + cup prize) for sorting
     const SEASON_PRIZES_SORT = { 1:550, 2:275, 3:175, 4:100, 5:20 };
     const cupFinalSort = (window._allCupMatches||[]).filter(c=>c.winner).sort((a,b)=>b.event-a.event)[0];
@@ -3104,7 +3118,16 @@ async function init() {
 
       // Top row: rank + name + pts
       html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
-      html += '<span class="s-card-rank" style="font-size:20px;font-weight:700;font-family:var(--font-display);color:' + cardRankColor + ';min-width:28px;align-self:center;">' + pos + '</span>';
+      // Rank with trend arrow above
+      const prevRank = prevSeasonRankMap[m.id];
+      const rankChange = prevRank ? prevRank - pos : 0; // positive = moved up
+      let trendHtml = '';
+      if (rankChange > 0) trendHtml = '<div style="font-size:9px;color:var(--green);line-height:1;text-align:center;">▲' + rankChange + '</div>';
+      else if (rankChange < 0) trendHtml = '<div style="font-size:9px;color:var(--red);line-height:1;text-align:center;">▼' + Math.abs(rankChange) + '</div>';
+      html += '<div style="display:flex;flex-direction:column;align-items:center;min-width:28px;">';
+      if (trendHtml) html += trendHtml;
+      html += '<span class="s-card-rank" style="font-size:20px;font-weight:700;font-family:var(--font-display);color:' + cardRankColor + ';line-height:1;">' + pos + '</span>';
+      html += '</div>';
       html += '<div style="flex:1;min-width:0;">';
       html += '<div style="font-weight:700;font-size:15px;color:' + (kickedCard ? 'var(--red)' : 'var(--text)') + ';display:flex;align-items:center;gap:5px;overflow:hidden;' + (kickedCard ? 'opacity:0.7;' : '') + '">';
       html += '<div style="display:flex;align-items:center;gap:6px;min-width:0;">';
@@ -8236,7 +8259,11 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
                 event_transfers_cost: gwTransferCost,
                 points_on_bench: gwBench,
               },
-              captain: captains[m.id] || null,
+              captain: (() => {
+                if (captains[m.id]?.name) return captains[m.id];
+                const cap = picks.picks.find(p => p.is_captain);
+                return cap ? { name: state.bootstrapPlayers[cap.element] || ('Player ' + cap.element), isVC: false } : null;
+              })(),
               chip: chips[m.id] || null,
               picks: picks.picks,
               transfers: gwTransfers.map(t => ({
@@ -8259,12 +8286,20 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         await new Promise(r => setTimeout(r, 200));
       }
 
-      // Abort if any manager failed — incomplete JSON would break everything
+      // Validate completeness — abort if any manager has missing critical data
       if (failed.length > 0) {
         throw new Error('Missing data for ' + failed.length + ' manager(s): ' + failed.join(', ') + '. Please try again.');
       }
       if (managersData.length !== state.managers.length) {
         throw new Error('Only got ' + managersData.length + '/' + state.managers.length + ' managers. Aborting save.');
+      }
+      const missingCaptain = managersData.filter(m => !m.captain?.name);
+      if (missingCaptain.length > 0) {
+        throw new Error('Missing captain for: ' + missingCaptain.map(m => m.name).join(', ') + '. Please try again.');
+      }
+      const missingPicks = managersData.filter(m => !m.picks || m.picks.length === 0);
+      if (missingPicks.length > 0) {
+        throw new Error('Missing picks for: ' + missingPicks.map(m => m.name).join(', ') + '. Please try again.');
       }
 
       // Build player lookup (only players that appear in picks)
