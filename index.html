@@ -8151,17 +8151,38 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
             const picks = await fetchFPLQueued('entry/' + m.id + '/event/' + gw + '/picks/');
             const transfers = await fetchFPLQueued('entry/' + m.id + '/transfers/');
             const hist = (state.gwHistory[m.id] || []).find(h => h.event === gw);
+            // If history not available yet, compute from picks × live player pts
+            let gwPoints = hist?.points || 0;
+            let gwTotal = hist?.total_points || 0;
+            let gwBench = hist?.points_on_bench || 0;
+            let gwTransferCost = hist?.event_transfers_cost || 0;
+            let gwTransferCount = hist?.event_transfers || 0;
+            if (!hist || gwPoints === 0) {
+              const isBB = picks.active_chip === 'bboost';
+              const maxPos = isBB ? 15 : 11;
+              const startingPts = picks.picks.filter(p => p.position <= maxPos)
+                .reduce((sum, p) => sum + (playerPts[p.element] || 0) * p.multiplier, 0);
+              const benchPts = picks.picks.filter(p => p.position > maxPos)
+                .reduce((sum, p) => sum + (playerPts[p.element] || 0), 0);
+              gwTransferCost = picks.entry_history?.event_transfers_cost || 0;
+              gwTransferCount = picks.entry_history?.event_transfers || 0;
+              gwPoints = startingPts;
+              gwBench = isBB ? 0 : benchPts;
+              // total_points: find prev GW total + this GW net
+              const prevHist = (state.gwHistory[m.id] || []).filter(h => h.event < gw).sort((a,b) => b.event - a.event)[0];
+              gwTotal = (prevHist?.total_points || 0) + gwPoints - gwTransferCost;
+            }
             const gwTransfers = transfers.filter(t => t.event === gw);
             managersData.push({
               id: m.id,
               name: m.name,
               team: m.team,
               history: {
-                points: hist?.points || 0,
-                total_points: hist?.total_points || 0,
-                event_transfers: hist?.event_transfers || 0,
-                event_transfers_cost: hist?.event_transfers_cost || 0,
-                points_on_bench: hist?.points_on_bench || 0,
+                points: gwPoints,
+                total_points: gwTotal,
+                event_transfers: gwTransferCount,
+                event_transfers_cost: gwTransferCost,
+                points_on_bench: gwBench,
               },
               captain: captains[m.id] || null,
               chip: chips[m.id] || null,
