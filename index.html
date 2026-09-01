@@ -1618,6 +1618,11 @@ async function init() {
         }
         // Show export button when GW is complete (not live)
         if (!state.isLive) {
+          // Clear history cache so we get fresh GW2 data
+          try {
+            localStorage.removeItem('ff_history_gw' + state.latestGW);
+            localStorage.removeItem('ff_history_ts' + state.latestGW);
+          } catch(e) {}
           const exportBtn = document.getElementById('export-gw-btn');
           if (exportBtn) {
             exportBtn.style.display = 'inline-flex';
@@ -2342,8 +2347,20 @@ async function init() {
       });
     }
     let liveScoreMap = window._liveScoreCacheGW[currentGW] || {};
+    // After GW finalizes, build liveScoreMap from gwHistory if cache is empty
+    if (!state.isLive && currentGW === state.latestGW && Object.keys(liveScoreMap).length === 0) {
+      const histMap = {};
+      state.managers.forEach(m => {
+        const hist = (state.gwHistory[m.id] || []).find(h => h.event === currentGW);
+        if (hist) histMap[m.id] = { rawPts: hist.points, netPts: hist.points - (hist.event_transfers_cost||0), hit: hist.event_transfers_cost||0, played: null, remaining: null };
+      });
+      if (Object.keys(histMap).length > 0) {
+        liveScoreMap = histMap;
+        window._liveScoreCacheGW[currentGW] = histMap;
+      }
+    }
     // Fetch live scores if: live GW, OR GW just ended (latestGW matches and history may be stale)
-    const shouldFetchLive = !window._liveScoreCacheGW[currentGW] && !window._liveScoreFetchInProgress &&
+    const shouldFetchLive = (!window._liveScoreCacheGW[currentGW] || Object.keys(window._liveScoreCacheGW[currentGW]).length === 0) && !window._liveScoreFetchInProgress &&
       !isSeasonOver &&
       (state.isLive || currentGW === state.latestGW);
     // Always refresh player minutes in background when live (even if we have cached scores)
@@ -2520,7 +2537,7 @@ async function init() {
           window._liveScoreCacheGW[currentGW] = tempMap;
           window._liveScoreFetchInProgress = false;
           window._renderStandingsInProgress = false;
-          renderStandings();
+          _renderStandingsDebounced();
 
           // Phase 2: Fetch picks in background
           if (!window._picksFetchInProgress) {
@@ -2603,9 +2620,10 @@ async function init() {
         played: liveScore?.played ?? null, remaining: liveScore?.remaining ?? null };
     });
 
-    // Compute prospective prizes/shotguns based on current live scores
+    // Compute prospective prizes/shotguns based on current live scores or latest GW history
     let liveProspective = {};
-    if (state.isLive && Object.keys(liveScoreMap).length > 0) {
+    const shouldComputePrizes = (state.isLive || currentGW === state.latestGW) && Object.keys(liveScoreMap).length > 0;
+    if (shouldComputePrizes) {
       const liveRanked = [...rows]
         .filter(m => m.gwLatestPts !== null)
         .sort((a, b) => (b.gwLatestPts||0) - (a.gwLatestPts||0))
@@ -2627,7 +2645,7 @@ async function init() {
       _shotgun: liveProspective[m.id]?.shotgun || false,
       _gwRank: liveProspective[m.id]?.gwRank || null,
     }));
-    const hasLiveScores = state.isLive && Object.keys(liveScoreMap).length > 0;
+    const hasLiveScores = (state.isLive || currentGW === state.latestGW) && Object.keys(liveScoreMap).length > 0;
     const activeSortKey = window._cardSortKey || 'pts';
     const activeSortDir = window._cardSortDir || -1;
     const rows2sorted = [...rows2].sort((a, b) => {
@@ -2763,7 +2781,7 @@ async function init() {
     let biggestMoverUp = null, biggestMoverDown = null;
     if (gwLabel > 1) {
       // Check if current GW has real scores — use liveScoreMap when live
-      const hasLiveScores = state.isLive && liveScoreMap && Object.keys(liveScoreMap).length > 0;
+      const hasLiveScores = (state.isLive || currentGW === state.latestGW) && liveScoreMap && Object.keys(liveScoreMap).length > 0;
       const maxScore = hasLiveScores
         ? Math.max(...Object.values(liveScoreMap).map(s => s.netPts || 0))
         : Math.max(...(getWeeklyRankings(gwLabel).map(m => m.gwPoints || 0)), 0);
@@ -3089,12 +3107,12 @@ async function init() {
       html += '<div style="font-weight:700;font-size:15px;color:' + (kickedCard ? 'var(--red)' : 'var(--text)') + ';display:flex;align-items:center;gap:5px;overflow:hidden;' + (kickedCard ? 'opacity:0.7;' : '') + '">';
       html += '<div style="display:flex;align-items:center;gap:6px;min-width:0;">';
       html += '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (rankMedal ? rankMedal + ' ' : '') + esc(m.name) + '</span>';
-      if (state.isLive && m._prize > 0) {
+      if ((state.isLive || currentGW === state.latestGW) && m._prize > 0) {
         const GW_RANK_EMOJI = {1:'🥇', 2:'🥈', 3:'🥉', 4:'4️⃣', 5:'5️⃣', 6:'6️⃣'};
         const prizeEmoji = GW_RANK_EMOJI[m._gwRank] || '💰';
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">' + prizeEmoji + ' $' + m._prize.toFixed(2) + '</span>';
       }
-      if (state.isLive && m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">🍺 Shotgun</span>';
+      if ((state.isLive || currentGW === state.latestGW) && m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">🍺 Shotgun</span>';
       html += '</div>';
       if (kickedCard) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);opacity:0.5;font-weight:400;flex-shrink:0;">kicked</span>';
       else if (isSeasonOver) {
@@ -3134,7 +3152,7 @@ async function init() {
         const hasPicks = !!window._picksCache?.[m.id + '_' + currentGW];
         const gwPtsDisplay = (!hasPicks && state.isLive) ? '...' : (m.gwRawPts || 0) + 'pts';
         html += '<span class="s-card-gwpts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + gwPtsDisplay + '</span>';
-        if (state.isLive && m.played !== null && hasPicks) {
+        if ((state.isLive || currentGW === state.latestGW) && m.played !== null && hasPicks) {
           const total = m.played + m.remaining;
           const allPlayed = m.remaining === 0;
           html += '<span class="s-card-played" style="font-size:11px;font-family:var(--font-mono);color:' + (allPlayed ? 'var(--text3)' : 'var(--amber)') + ';background:var(--bg3);border-radius:6px;padding:3px 8px;">' + m.played + '/' + total + (allPlayed ? ' ✓' : '') + '</span>';
