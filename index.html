@@ -7541,7 +7541,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         seasonData[currentLabel] = {
           season: CURRENT_SEASON_LABEL,
           managers: currentManagers,
-          awards: {
+          awards: isSeasonOverForHistory ? {
             League: {
               winner: seasonRanked[0]?.name,
               runner_up: seasonRanked[1]?.name,
@@ -7553,7 +7553,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
               winner: cupWinner,
               runner_up: cupRunnerUp,
             }
-          }
+          } : {}
         };
         labels.push(currentLabel);
       }
