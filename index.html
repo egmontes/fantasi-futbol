@@ -1195,6 +1195,29 @@
     return Math.max(0, bottom2Count - missed + madeUp);
   }
 
+  // Compute played/remaining accounting for unavailable subs
+  function computePlayedRemaining(picks, maxPos) {
+    const startingPicks = picks.filter(p => p.position <= maxPos);
+    const benchPicks = picks.filter(p => p.position > maxPos);
+    const getType = id => (state.bootstrapElements||[]).find(e=>e.id===id)?.element_type || 0;
+    let played = 0, remaining = 0, stuck = 0;
+    const usedBench = new Set();
+    startingPicks.forEach(p => {
+      const mins = window._playerMinutesCache?.[p.element] || 0;
+      const count = p.multiplier || 1; // captain = 2
+      if (mins > 0) { played += count; return; }
+      const sType = getType(p.element);
+      const validSub = benchPicks.find(b =>
+        !usedBench.has(b.element) &&
+        (window._playerMinutesCache?.[b.element] || 0) > 0 &&
+        (sType === 1 ? getType(b.element) === 1 : getType(b.element) > 1)
+      );
+      if (validSub) { remaining += count; usedBench.add(validSub.element); }
+      else { played += count; stuck += count; } // no valid sub — done but subtract from total
+    });
+    return { played, remaining, stuck };
+  }
+
   // Request queue — max 3 concurrent FPL requests to avoid rate limiting
   let _activeRequests = 0;
   const _requestQueue = [];
@@ -1371,6 +1394,27 @@ async function init() {
         });
         state.bootstrapElements = bootstrap.elements;
         state.secondHalfStart = 20;
+        // Now that player names are loaded, populate captain + chip caches from picks
+        const _gw = state.liveGW || state.latestGW;
+        if (_gw && window._picksCache) {
+          if (!_captainCache[_gw]) _captainCache[_gw] = {};
+          if (!_chipCache[_gw]) _chipCache[_gw] = {};
+          state.managers.forEach(m => {
+            const p = window._picksCache[m.id + '_' + _gw];
+            if (!p?.picks) return;
+            if (!_captainCache[_gw][m.id]) {
+              const cap = p.picks.find(pk => pk.is_captain);
+              if (cap && state.bootstrapPlayers[cap.element]) {
+                _captainCache[_gw][m.id] = { name: state.bootstrapPlayers[cap.element], isVC: false };
+              }
+            }
+            if (!_chipCache[_gw][m.id] && p.active_chip) {
+              _chipCache[_gw][m.id] = p.active_chip;
+            }
+          });
+        }
+        // Re-render now that player names and caches are ready
+        _renderStandingsDebounced();
 
         const finished = (bootstrap || state.bootstrap)?.events?.filter(e => e.finished || e.data_checked);
         state.latestGW = finished.length > 0 ? finished[finished.length - 1].id : 1;
@@ -2135,9 +2179,8 @@ async function init() {
         let rawPts = 0;
         picks.picks.filter(p => p.position <= maxPos).forEach(p => { rawPts += (window._playerPtsCache[p.element] || 0) * p.multiplier; });
         const hit = picks.entry_history?.event_transfers_cost || 0;
-        const played = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) > 0).length;
-        const remaining = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) === 0).length;
-        window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
+        const { played, remaining, stuck } = computePlayedRemaining(picks.picks, maxPos);
+        window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining, stuck: stuck||0 };
       });
       // Fall through to render with computed scores
     } else if (state.isLive && !hasLiveScoresNow && !loadingTooLong && !isManualRefresh) {
@@ -2173,9 +2216,8 @@ async function init() {
                 rawPts += (window._playerPtsCache[p.element] || 0) * p.multiplier;
               });
               const hit = cached.entry_history?.event_transfers_cost || 0;
-              const _p = cached.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) > 0).length;
-              const _r = cached.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) === 0).length;
-              window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played: _p, remaining: _r };
+              const { played: _p, remaining: _r, stuck: _s } = computePlayedRemaining(cached.picks, maxPos);
+              window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played: _p, remaining: _r, stuck: _s || 0 };
             }
           });
           window._liveScoreFetchInProgress = false;
@@ -2343,9 +2385,23 @@ async function init() {
         let rawPts = 0;
         picks.picks.filter(p => p.position <= maxPos).forEach(p => { rawPts += (window._playerPtsCache[p.element] || 0) * p.multiplier; });
         const hit = picks.entry_history?.event_transfers_cost || 0;
-        const played = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) > 0).length;
-        const remaining = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) === 0).length;
-        window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
+        const { played, remaining, stuck } = computePlayedRemaining(picks.picks, maxPos);
+        window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining, stuck: stuck||0 };
+      });
+    }
+    // For completed GWs, always recompute played/remaining/stuck with final minutes data
+    if (!state.isLive && currentGW === state.latestGW && window._picksCache &&
+        Object.keys(window._picksCache).filter(k => k.endsWith('_' + currentGW)).length > 0 &&
+        Object.keys(window._playerMinutesCache || {}).length > 0 &&
+        window._liveScoreCacheGW[currentGW]) {
+      state.managers.forEach(m => {
+        const picks = window._picksCache[m.id + '_' + currentGW];
+        if (!picks?.picks) return;
+        const isBB = picks.active_chip === 'bboost';
+        const maxPos = isBB ? 15 : 11;
+        const { played, remaining, stuck } = computePlayedRemaining(picks.picks, maxPos);
+        const existing = window._liveScoreCacheGW[currentGW][m.id];
+        if (existing) window._liveScoreCacheGW[currentGW][m.id] = { ...existing, played, remaining, stuck: stuck || 0 };
       });
     }
     let liveScoreMap = window._liveScoreCacheGW[currentGW] || {};
@@ -2481,44 +2537,15 @@ async function init() {
           state.managers.forEach(m => {
             const cached = window._picksCache?.[m.id + '_' + currentGW];
             if (cached) {
-              let rawPts = 0, played = 0, remaining = 0;
+              let rawPts = 0;
               const isBB = cached.active_chip === 'bboost';
               const maxPos = isBB ? 15 : 11;
               (cached.picks || []).forEach(p => {
-                if (p.position <= maxPos) {
-                  rawPts += (playerPts[p.element] || 0) * p.multiplier;
-                  const count = p.multiplier;
-                  if ((playerMinutes[p.element] || 0) > 0) played += count;
-                  else remaining += count;
-                }
+                if (p.position <= maxPos) rawPts += (playerPts[p.element] || 0) * p.multiplier;
               });
               const hit = cached.entry_history?.event_transfers_cost || 0;
-              // Reduce remaining: for each 0-min starter, check if any bench player can cover them
-              if (!isBB) {
-                const usedBench = new Set();
-                stPicks.forEach(starter => {
-                  if ((playerMinutes[starter.element]||0) > 0) return; // played, no issue
-                  const sType = getElTypeFn(starter.element);
-                  // Find a bench player with minutes who can legally sub in
-                  const validSub = bnPicks.find(b =>
-                    !usedBench.has(b.element) &&
-                    (playerMinutes[b.element]||0) > 0 &&
-                    getElTypeFn(b.element) > 1 && // bench outfielder (any non-GK)
-                    (sType !== 1) // starter is outfielder (GK handled below)
-                  );
-                  const validGKSub = sType === 1 && bnPicks.find(b =>
-                    !usedBench.has(b.element) &&
-                    (playerMinutes[b.element]||0) > 0 &&
-                    getElTypeFn(b.element) === 1
-                  );
-                  if (sType === 1 ? !validGKSub : !validSub) {
-                    remaining = Math.max(0, remaining - 1);
-                  } else if (sType === 1 ? validGKSub : validSub) {
-                    usedBench.add(sType === 1 ? validGKSub.element : validSub.element);
-                  }
-                });
-              }
-              tempMap[m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
+              const { played, remaining, stuck } = computePlayedRemaining(cached.picks || [], maxPos);
+              tempMap[m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining, stuck: stuck || 0 };
               // Populate captain + chip from cached picks
               const capPick = cached.picks?.find(p => p.is_captain);
               if (capPick && state.bootstrapPlayers[capPick.element]) {
@@ -2573,10 +2600,9 @@ async function init() {
                         rawPts += (window._playerPtsCache[p.element] || 0) * p.multiplier;
                       });
                       const hit = picks.entry_history?.event_transfers_cost || 0;
-                      const played = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) > 0).length;
-                      const remaining = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) === 0).length;
+                      const { played, remaining, stuck } = computePlayedRemaining(picks.picks, maxPos);
                       if (!window._liveScoreCacheGW[currentGW]) window._liveScoreCacheGW[currentGW] = {};
-                      window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
+                      window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining, stuck: stuck||0 };
                       } catch(scoreErr) { console.warn('[FPL] Score compute error for', m.id, scoreErr.message); }
                     } catch(e) { console.warn('[FPL] Picks fetch error for', m.id, e.message); }
                   }));
@@ -2616,10 +2642,14 @@ async function init() {
         : latestHist
           ? latestHist.total_points - (latestHist.event_transfers_cost || 0)
           : m.total;
-      const chip = standingsChips[m.id] || state.chipsHistory?.[m.id]?.[currentGW] || null;
-      const captain = standingsCaptains[m.id] || null;
+      // Read captain and chip directly from picks cache — no dependency on fetchChipsForGW
+      const picks = window._picksCache?.[m.id + '_' + currentGW];
+      const chip = (picks?.active_chip) || state.chipsHistory?.[m.id]?.[currentGW] || null;
+      const capPick = picks?.picks?.find(p => p.is_captain);
+      const capName = capPick ? (state.bootstrapPlayers[capPick.element] || null) : null;
+      const captain = capName ? { name: capName, isVC: false } : (standingsCaptains[m.id] || null);
       return { ...m, total: liveTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, missedG, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain,
-        played: liveScore?.played ?? null, remaining: liveScore?.remaining ?? null };
+        played: liveScore?.played ?? null, remaining: liveScore?.remaining ?? null, stuck: liveScore?.stuck ?? 0 };
     });
 
     // Compute prospective prizes/shotguns based on current live scores or latest GW history
@@ -3178,9 +3208,10 @@ async function init() {
         const gwPtsDisplay = (!hasPicks && state.isLive) ? '...' : (m.gwRawPts || 0) + 'pts';
         html += '<span class="s-card-gwpts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + gwPtsDisplay + '</span>';
         if ((state.isLive || currentGW === state.latestGW) && m.played !== null && hasPicks) {
-          const total = m.played + m.remaining;
+          const total = m.played + m.remaining - (m.stuck || 0);
+          const displayPlayed = m.played - (m.stuck || 0);
           const allPlayed = m.remaining === 0;
-          html += '<span class="s-card-played" style="font-size:11px;font-family:var(--font-mono);color:' + (allPlayed ? 'var(--text3)' : 'var(--amber)') + ';background:var(--bg3);border-radius:6px;padding:3px 8px;">' + m.played + '/' + total + (allPlayed ? ' ✓' : '') + '</span>';
+          html += '<span class="s-card-played" style="font-size:11px;font-family:var(--font-mono);color:' + (allPlayed ? 'var(--text3)' : 'var(--amber)') + ';background:var(--bg3);border-radius:6px;padding:3px 8px;">' + displayPlayed + '/' + total + (allPlayed ? ' ✓' : '') + '</span>';
         }
         if (m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">©' + esc(m.captain.name) + '</span>';
         html += '</div>';
@@ -9671,7 +9702,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
           });
         }
         const hit = picks.entry_history?.event_transfers_cost || 0;
-        window._liveScoreCacheGW[gw][mid] = { rawPts, netPts: rawPts - hit, hit, played, remaining };
+        window._liveScoreCacheGW[gw][mid] = { rawPts, netPts: rawPts - hit, hit, played, remaining, stuck: stuck||0 };
       });
 
       // Fetch picks for managers that don't have them cached
