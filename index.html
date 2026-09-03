@@ -4088,8 +4088,8 @@ async function init() {
     return true;
   }
 
-  function makeTickerInteractive(ticker, initialOffset = 0) {
-    if (window.__fantasiTickerCleanup) window.__fantasiTickerCleanup();
+  function makeTickerInteractive(ticker, initialOffset = 0, cleanupKey = '__fantasiTickerCleanup') {
+    if (window[cleanupKey]) window[cleanupKey]();
 
     let isDragging = false;
     let startX;
@@ -4207,7 +4207,7 @@ async function init() {
       rafId = null;
     };
 
-    window.__fantasiTickerCleanup = cleanup;
+    window[cleanupKey] = cleanup;
 
     window.__fantasiTickerPause = () => {
       if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
@@ -7536,7 +7536,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       });
 
       // Only add current season if it's actually the current season (not 2025/2026 loaded for history)
-      const isActualCurrentSeason = !['2025-2026','2024-2025','2023-2024','2022-2023','all-time'].includes(window.__viewingSeason) && state.managers.length > 0 && !labels.includes(currentLabel);
+      const isActualCurrentSeason = !['2025-2026','2024-2025','2023-2024','2022-2023'].includes(window.__viewingSeason) && state.managers.length > 0 && !labels.includes(currentLabel);
       if (isActualCurrentSeason) {
         seasonData[currentLabel] = {
           season: CURRENT_SEASON_LABEL,
@@ -7600,7 +7600,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       el.innerHTML = renderLeagueHistory(seasonData, labels);
       requestAnimationFrame(() => {
         const tickerEl = document.getElementById('history-ticker');
-        if (tickerEl) { makeTickerInteractive(tickerEl); requestAnimationFrame(() => fitStatCards(tickerEl)); }
+        if (tickerEl) { makeTickerInteractive(tickerEl, 0, '__historyTickerCleanup'); requestAnimationFrame(() => fitStatCards(tickerEl)); }
         // Wire up all-time card taps
         document.querySelectorAll('.at-card').forEach(card => {
           card.addEventListener('click', () => {
@@ -7897,7 +7897,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       requestAnimationFrame(() => {
         window.scrollTo(0, savedScrollY);
         const tickerEl = document.getElementById('history-ticker');
-        if (tickerEl) { makeTickerInteractive(tickerEl); requestAnimationFrame(() => fitStatCards(tickerEl)); }
+        if (tickerEl) { makeTickerInteractive(tickerEl, 0, '__historyTickerCleanup'); requestAnimationFrame(() => fitStatCards(tickerEl)); }
         document.querySelectorAll('.at-card').forEach(card => {
           card.addEventListener('click', () => {
             const drawer = card.querySelector('.at-card-drawer');
