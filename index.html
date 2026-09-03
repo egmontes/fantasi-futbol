@@ -1394,6 +1394,8 @@ async function init() {
         });
         state.bootstrapElements = bootstrap.elements;
         state.secondHalfStart = 20;
+        // Cache player names for instant availability on next refresh
+        try { localStorage.setItem('ff_bootstrap_players', JSON.stringify(state.bootstrapPlayers)); } catch(e) {}
         // Now that player names are loaded, populate captain + chip caches from picks
         const _gw = state.liveGW || state.latestGW;
         if (_gw && window._picksCache) {
@@ -9823,6 +9825,27 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
   });
 
   // Load cached picks from localStorage (picks don't change after deadline)
+  try {
+    const cachedBP = localStorage.getItem('ff_bootstrap_players');
+    if (cachedBP) Object.assign(state.bootstrapPlayers, JSON.parse(cachedBP));
+  } catch(e) {}
+  // Load player pts/minutes early using cached GW number
+  try {
+    const _cachedGW = parseInt(localStorage.getItem('ff_latest_gw') || '0');
+    if (_cachedGW > 0) {
+      const _pts = localStorage.getItem('ff_player_pts_' + _cachedGW);
+      const _ptsTs = parseInt(localStorage.getItem('ff_player_pts_ts_' + _cachedGW) || '0');
+      if (_pts && Date.now() - _ptsTs < 5 * 60 * 1000) {
+        window._playerPtsCache = JSON.parse(_pts);
+        const _mins = localStorage.getItem('ff_player_mins_' + _cachedGW);
+        if (_mins) window._playerMinutesCache = JSON.parse(_mins);
+      }
+    }
+  } catch(e) {}
+  try {
+    const cachedBP = localStorage.getItem('ff_bootstrap_players');
+    if (cachedBP) Object.assign(state.bootstrapPlayers, JSON.parse(cachedBP));
+  } catch(e) {}
   try {
     if (!isLocalhost) {
       const savedProxy = localStorage.getItem('ff_working_proxy');
