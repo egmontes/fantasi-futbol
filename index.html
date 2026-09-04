@@ -1200,12 +1200,15 @@
     const startingPicks = picks.filter(p => p.position <= maxPos);
     const benchPicks = picks.filter(p => p.position > maxPos);
     const getType = id => (state.bootstrapElements||[]).find(e=>e.id===id)?.element_type || 0;
+    const anyPlayed = (window._playerMinutesCache && Object.values(window._playerMinutesCache).some(m => m > 0));
+    console.log(`[${new Date().toISOString().slice(11,23)}] computePlayedRemaining: anyPlayed=${anyPlayed}, minsCache size=${Object.keys(window._playerMinutesCache||{}).length}`);
     let played = 0, remaining = 0, stuck = 0;
     const usedBench = new Set();
     startingPicks.forEach(p => {
       const mins = window._playerMinutesCache?.[p.element] || 0;
-      const count = p.multiplier || 1; // captain = 2
+      const count = p.multiplier || 1; // captain=2, TC=3
       if (mins > 0) { played += count; return; }
+      if (!anyPlayed) { remaining += count; return; } // no games started — all pending
       const sType = getType(p.element);
       const validSub = benchPicks.find(b =>
         !usedBench.has(b.element) &&
@@ -1213,7 +1216,7 @@
         (sType === 1 ? getType(b.element) === 1 : getType(b.element) > 1)
       );
       if (validSub) { remaining += count; usedBench.add(validSub.element); }
-      else { played += count; stuck += count; } // no valid sub — done but subtract from total
+      else { played += count; stuck += count; }
     });
     return { played, remaining, stuck };
   }
@@ -1438,6 +1441,7 @@ async function init() {
         if (state.isLive) {
           state.liveGW = currentGWEvent.id;
           state.currentGW = state.liveGW;
+          try { localStorage.setItem('ff_live_gw', state.liveGW); } catch(e) {}
           // Load cached player pts/minutes now that we know the GW
           try {
             const _gw = state.liveGW;
@@ -2200,12 +2204,12 @@ async function init() {
             window._playerPtsCache[e.id] = e.stats.total_points;
             window._playerMinutesCache[e.id] = e.stats.minutes;
           });
-          // Save to localStorage so next reload has fresh pts immediately
+          console.log(`[${new Date().toISOString().slice(11,23)}] Loading screen live fetch complete: GW${currentGW}, anyPlayed=${Object.values(window._playerMinutesCache).some(m=>m>0)}`);
+          // Save to localStorage
           try {
-            const gw = currentGW;
-            localStorage.setItem('ff_player_pts_' + gw, JSON.stringify(window._playerPtsCache));
-            localStorage.setItem('ff_player_pts_ts_' + gw, Date.now().toString());
-            localStorage.setItem('ff_player_mins_' + gw, JSON.stringify(window._playerMinutesCache));
+            localStorage.setItem('ff_player_pts_' + currentGW, JSON.stringify(window._playerPtsCache));
+            localStorage.setItem('ff_player_pts_ts_' + currentGW, Date.now().toString());
+            localStorage.setItem('ff_player_mins_' + currentGW, JSON.stringify(window._playerMinutesCache));
           } catch(e) {}
           // Quick score estimate from bootstrap picks if available
           state.managers.forEach(m => {
@@ -2241,12 +2245,10 @@ async function init() {
                       const maxPos = isBB ? 15 : 11;
                       let rawPts = 0;
                       picks.picks.filter(p => p.position <= maxPos).forEach(p => { rawPts += (window._playerPtsCache[p.element] || 0) * p.multiplier; });
-                      // BB bench already included via maxPos=15 above
                       const hit = picks.entry_history?.event_transfers_cost || 0;
                       if (!window._liveScoreCacheGW[_cGW]) window._liveScoreCacheGW[_cGW] = {};
-                      const _played = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) > 0).length;
-                      const _remaining = picks.picks.filter(p => p.position <= maxPos && (window._playerMinutesCache?.[p.element] || 0) === 0).length;
-                      window._liveScoreCacheGW[_cGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played: _played, remaining: _remaining };
+                      const { played: _played, remaining: _remaining, stuck: _stuck } = computePlayedRemaining(picks.picks, maxPos);
+                      window._liveScoreCacheGW[_cGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played: _played, remaining: _remaining, stuck: _stuck || 0 };
                       return;
                     }
                     try {
@@ -2320,7 +2322,7 @@ async function init() {
     }
     const completedGWs = state.isLive ? state.liveGW - 1 : state.latestGW;
     const stats = completedGWs > 0 ? computeSeasonStats(completedGWs) : (() => { const s = {}; state.managers.forEach(m => { s[m.id] = { top4: 0, bottom2: 0, moneyWon: 0 }; }); return s; })();
-    const completedGWsForPool = state.isLive ? state.latestGW - 1 : state.latestGW;
+    const completedGWsForPool = state.latestGW; // latestGW is always the last completed GW
     const weeklyPool = completedGWsForPool * 65;
     const SEASON_PRIZE_TOTAL = 550 + 275 + 175 + 100 + 20; // 1120
     const CUP_PRIZE_TOTAL = 225 + 125; // 350
@@ -2391,10 +2393,9 @@ async function init() {
         window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining, stuck: stuck||0 };
       });
     }
-    // For completed GWs, always recompute played/remaining/stuck with final minutes data
-    if (!state.isLive && currentGW === state.latestGW && window._picksCache &&
+    // Always recompute played/remaining/stuck from picks (handles both live and completed GWs)
+    if (currentGW && window._picksCache &&
         Object.keys(window._picksCache).filter(k => k.endsWith('_' + currentGW)).length > 0 &&
-        Object.keys(window._playerMinutesCache || {}).length > 0 &&
         window._liveScoreCacheGW[currentGW]) {
       state.managers.forEach(m => {
         const picks = window._picksCache[m.id + '_' + currentGW];
@@ -2436,6 +2437,7 @@ async function init() {
           window._playerPtsCache[e.id] = e.stats.total_points;
           window._playerMinutesCache[e.id] = e.stats.minutes;
         });
+        console.log(`[${new Date().toISOString().slice(11,23)}] shouldRefreshMinutes fetch complete: GW${currentGW}, anyPlayed=${Object.values(window._playerMinutesCache).some(m=>m>0)}`);
         try {
           localStorage.setItem('ff_player_pts_' + currentGW, JSON.stringify(window._playerPtsCache));
           localStorage.setItem('ff_player_pts_ts_' + currentGW, Date.now().toString());
@@ -2478,22 +2480,22 @@ async function init() {
                 if (sub) { startingEls[si] = {...sub, multiplier:s.multiplier}; usedBench.add(sub.element); }
               }
             }
-            let rawPts = 0, played = 0, remaining = 0;
+            let rawPts = 0;
             startingEls.forEach(p => {
               rawPts += (window._playerPtsCache[p.element]||0) * p.multiplier;
-              if ((window._playerMinutesCache[p.element]||0) > 0) played++; else remaining++;
             });
+            const { played, remaining, stuck } = computePlayedRemaining(picks.picks, maxPos);
             const hit = picks.entry_history?.event_transfers_cost || 0;
             if (!window._lastManualRefresh || Date.now() - window._lastManualRefresh > 30000) {
-              window._liveScoreCacheGW[currentGW][mid] = { rawPts, netPts: rawPts-hit, hit, played, remaining };
+              window._liveScoreCacheGW[currentGW][mid] = { rawPts, netPts: rawPts-hit, hit, played, remaining, stuck: stuck||0 };
               const prevHist = (state.gwHistory[mid] || []).filter(h => h.event < currentGW).sort((a,b) => b.event - a.event)[0];
               const seasonTotal = (prevHist ? prevHist.total_points : 0) + (rawPts - hit);
-              cardUpdates.push({ mid, rawPts, hit, played, remaining, seasonTotal });
+              cardUpdates.push({ mid, rawPts, hit, played, remaining, stuck: stuck||0, seasonTotal });
             }
           });
         // Apply all updates in one animation frame
         requestAnimationFrame(() => {
-          cardUpdates.forEach(({ mid, rawPts, played, remaining, seasonTotal }) => {
+          cardUpdates.forEach(({ mid, rawPts, played, remaining, stuck, seasonTotal }) => {
             const card = document.querySelector('[data-manager-id="' + mid + '"]');
             if (!card) return;
             const gwPtsEl = card.querySelector('.s-card-gwpts');
@@ -2502,7 +2504,9 @@ async function init() {
             if (gwPtsEl) gwPtsEl.textContent = 'GW ' + rawPts + 'pts';
             if (totalEl) totalEl.textContent = seasonTotal;
             if (playedEl) {
-              playedEl.textContent = played + '/' + (played + remaining) + (remaining === 0 ? ' ✓' : '');
+              const displayPlayed = played - (stuck||0);
+              const total = played + remaining - (stuck||0);
+              playedEl.textContent = displayPlayed + '/' + total + (remaining === 0 ? ' ✓' : '');
               playedEl.style.color = remaining === 0 ? 'var(--text3)' : 'var(--amber)';
             }
           });
@@ -2656,7 +2660,8 @@ async function init() {
 
     // Compute prospective prizes/shotguns based on current live scores or latest GW history
     let liveProspective = {};
-    const shouldComputePrizes = (state.isLive || currentGW === state.latestGW) && Object.keys(liveScoreMap).length > 0;
+    const anyPlayerPlayed = Object.values(window._playerMinutesCache || {}).some(m => m > 0);
+    const shouldComputePrizes = (state.isLive || currentGW === state.latestGW) && Object.keys(liveScoreMap).length > 0 && anyPlayerPlayed;
     if (shouldComputePrizes) {
       const liveRanked = [...rows]
         .filter(m => m.gwLatestPts !== null)
@@ -7091,6 +7096,13 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         state.managers = [];
         window._liveScoreCacheGW = {};
         window._liveScoreFetchedOnce = false;
+        // Clear stale player minutes from previous GW
+        window._playerMinutesCache = {};
+        try {
+          // Clear any cached minutes from previous GW in localStorage
+          const prevGW = state.liveGW - 1;
+          if (prevGW > 0) localStorage.removeItem('ff_player_mins_' + prevGW);
+        } catch(e) {}
         window._transferCache = {};
         window._liveScoreFetchInProgress = false;
         window._picksCache = {};
@@ -9836,16 +9848,24 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
   // Load player pts/minutes early using cached GW number
   try {
     const _cachedGW = parseInt(localStorage.getItem('ff_latest_gw') || '0');
-    if (_cachedGW > 0) {
+    const _liveGW = parseInt(localStorage.getItem('ff_live_gw') || '0');
+    console.log(`[${new Date().toISOString().slice(11,23)}] Startup: ff_latest_gw=${_cachedGW}, ff_live_gw=${_liveGW}`);
+    // Only load cached minutes if they're from the current live GW (not a previous one)
+    if (_cachedGW > 0 && _liveGW === _cachedGW) {
       const _pts = localStorage.getItem('ff_player_pts_' + _cachedGW);
       const _ptsTs = parseInt(localStorage.getItem('ff_player_pts_ts_' + _cachedGW) || '0');
       if (_pts && Date.now() - _ptsTs < 5 * 60 * 1000) {
         window._playerPtsCache = JSON.parse(_pts);
         const _mins = localStorage.getItem('ff_player_mins_' + _cachedGW);
         if (_mins) window._playerMinutesCache = JSON.parse(_mins);
+        console.log(`[${new Date().toISOString().slice(11,23)}] Loaded cached minutes for GW${_cachedGW}, anyPlayed=${Object.values(window._playerMinutesCache||{}).some(m=>m>0)}`);
+      } else {
+        console.log(`[${new Date().toISOString().slice(11,23)}] Skipped minutes cache: pts=${!!_pts}, age=${Math.round((Date.now()-_ptsTs)/1000)}s`);
       }
+    } else {
+      console.log(`[${new Date().toISOString().slice(11,23)}] Skipped minutes cache: liveGW(${_liveGW}) !== latestGW(${_cachedGW})`);
     }
-  } catch(e) {}
+  } catch(e) { console.warn('Startup cache error:', e); }
   try {
     const cachedBP = localStorage.getItem('ff_bootstrap_players');
     if (cachedBP) Object.assign(state.bootstrapPlayers, JSON.parse(cachedBP));
