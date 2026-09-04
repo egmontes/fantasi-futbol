@@ -4710,12 +4710,15 @@ async function init() {
 
       // Build enriched rows with all sortable fields
       let displayRank = 1;
+      const gwSeasonStats = computeSeasonStats(gw);
       const enriched = ranked.map((m, idx) => {
         if (idx > 0 && ranked[idx].gwPoints < ranked[idx-1].gwPoints) displayRank = idx + 1;
         const p = weekPrizes[m.id];
         const gwHistEntry = (state.gwHistory[m.id] || []).find(h => h.event === gw);
         const gwTotal = gwHistEntry ? gwHistEntry.total_points : m.total;
-        return { ...m, _displayRank: displayRank, _prize: p.prize, _shotgun: p.shotgun, _ineligible: p.ineligible, chip: chips[m.id] || null, gwTotal };
+        const s = gwSeasonStats[m.id] || {};
+        const totalG = getTotalGuinnesses(m.name, s.bottom2 || 0);
+        return { ...m, _displayRank: displayRank, _prize: p.prize, _shotgun: p.shotgun, _ineligible: p.ineligible, chip: chips[m.id] || null, gwTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, totalG };
       });
 
       // Sort by selected column
@@ -4898,6 +4901,7 @@ async function init() {
 
         // Row 1: Season stats (beers/misses only — prize already shown next to name)
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
+        if (m.gwTotal > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">Total ' + m.gwTotal + '</span>';
         const cardOwed = getGuinnessOwedAtGW(m.name, gw);
         const cardMissed = didMissGW(m.name, gw);
         if (cardOwed > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;">🍺 Owes: ' + cardOwed + '</span>';
@@ -4911,7 +4915,17 @@ async function init() {
 
         html += '</div>'; // close name col
         html += '<div style="text-align:right;flex-shrink:0;align-self:center;">';
-        html += '<div style="font-size:22px;font-weight:700;font-family:var(--font-mono);color:var(--text);">' + m.gwPoints + '</div>';
+        const rightVal = (() => {
+          const k = window._gwCardSortKey || 'gwPoints';
+          if (k === 'gwPoints') return m.gwPoints;
+          if (k === 'gwTotal') return m.gwTotal;
+          if (k === '_prize') return m._prize > 0 ? '$' + m._prize.toFixed(2) : '—';
+          if (k === 'top4') return m.top4 || 0;
+          if (k === 'bottom2') return m.bottom2 || 0;
+          if (k === 'totalG') return m.totalG || 0;
+          return m.gwPoints;
+        })();
+        html += '<div class="gw-card-right-val" style="font-size:22px;font-weight:700;font-family:var(--font-mono);color:var(--text);">' + rightVal + '</div>';
         html += '<div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">pts</div>';
         html += '</div>';
         html += '</div>'; // close top row
@@ -4959,6 +4973,19 @@ async function init() {
         container.querySelectorAll('.s-card-drawer').forEach(d => d.style.display = 'none');
         container.querySelectorAll('.gw-card').forEach(c => { c.style.borderColor = 'var(--theme-border)'; c.style.boxShadow = 'none'; });
         cards.forEach(c => container.appendChild(c));
+        // Update right-side value to reflect sort key
+        cards.forEach(c => {
+          const d = window._gwCardData.find(x => x.id === parseInt(c.dataset.managerId));
+          if (!d) return;
+          const rightEl = c.querySelector('.gw-card-right-val');
+          if (!rightEl) return;
+          if (key === 'gwPoints') rightEl.textContent = d.gwPoints;
+          else if (key === 'gwTotal') rightEl.textContent = d.gwTotal;
+          else if (key === '_prize') rightEl.textContent = d._prize > 0 ? '$' + d._prize.toFixed(2) : '—';
+          else if (key === 'top4') rightEl.textContent = d.top4 || 0;
+          else if (key === 'bottom2') rightEl.textContent = d.bottom2 || 0;
+          else if (key === 'totalG') rightEl.textContent = d.totalG || 0;
+        });
       };
 
       requestAnimationFrame(() => { updateStickyOffsets(); });
