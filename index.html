@@ -2508,8 +2508,24 @@ async function init() {
             const gwPtsEl = card.querySelector('.s-card-gwpts');
             const playedEl = card.querySelector('.s-card-played');
             const totalEl = card.querySelector('.s-card-total');
-            if (gwPtsEl) gwPtsEl.textContent = 'GW ' + rawPts + 'pts';
-            if (totalEl) totalEl.textContent = seasonTotal;
+            if (gwPtsEl) {
+              const _sortKey = window._cardSortKey || 'pts';
+              if (_sortKey === 'gwpts') {
+                gwPtsEl.style.display = 'none';
+              } else {
+                gwPtsEl.style.display = '';
+                gwPtsEl.textContent = 'GW ' + rawPts + 'pts';
+              }
+            }
+            if (totalEl) {
+              const _sortKey = window._cardSortKey || 'pts';
+              if (_sortKey === 'gwpts') totalEl.textContent = rawPts;
+              else if (_sortKey === 'earned') totalEl.textContent = '';
+              else totalEl.textContent = seasonTotal;
+            }
+            // Update total pts badge
+            const totalBadge = card.querySelector('.season-stat-badge[data-sort-key="pts"]');
+            if (totalBadge) totalBadge.textContent = 'Total ' + seasonTotal;
             if (playedEl) {
               const displayPlayed = played - (stuck||0);
               const total = played + remaining - (stuck||0);
@@ -3202,15 +3218,15 @@ async function init() {
       // Row 1: Season stats
       if (state.historyLoaded) {
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
-        if (earned > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;">$' + earned.toFixed(2) + '</span>';
+        if (earned > 0) html += '<span class="season-stat-badge" data-sort-key="earned" style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;' + (activeSortKey === 'earned' ? 'display:none;' : '') + '">$' + earned.toFixed(2) + '</span>';
         const chip = (label, value, activeColor, activeBg) =>
           '<span style="font-size:11px;font-family:var(--font-mono);background:' + activeBg + ';border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;">'
           + '<span style="color:' + activeColor + ';">' + label + '</span>'
           + '<span style="color:var(--text);">' + value + '</span>'
           + '</span>';
-        if (m.top4 > 0) html += chip('Top 6:', m.top4, 'var(--green)', 'var(--green-dim)');
-        if (m.bottom2 > 0) html += chip('Bot 4:', m.bottom2, 'var(--red)', 'var(--red-dim)');
-        if (m.totalG > 0) html += chip('🍺:', m.totalG, 'var(--amber)', 'var(--bg3)');
+        if (m.top4 > 0) html += '<span class="season-stat-badge" data-sort-key="top4" style="font-size:11px;font-family:var(--font-mono);background:var(--green-dim);border-radius:6px;padding:3px 8px;display:' + (activeSortKey === 'top4' ? 'none' : 'inline-flex') + ';gap:2px;"><span style="color:var(--green);">Top 6:</span><span style="color:var(--text);">' + m.top4 + '</span></span>';
+        if (m.bottom2 > 0) html += '<span class="season-stat-badge" data-sort-key="bottom2" style="font-size:11px;font-family:var(--font-mono);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:' + (activeSortKey === 'bottom2' ? 'none' : 'inline-flex') + ';gap:2px;"><span style="color:var(--red);">Bot 4:</span><span style="color:var(--text);">' + m.bottom2 + '</span></span>';
+        if (m.totalG > 0) html += '<span class="season-stat-badge" data-sort-key="totalG" style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:6px;padding:3px 8px;display:' + (activeSortKey === 'totalG' ? 'none' : 'inline-flex') + ';gap:2px;"><span style="color:var(--amber);">🍺:</span><span style="color:var(--text);">' + m.totalG + '</span></span>';
         if (m.gmisses > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--red);">⚠️ Owes:</span><span style="color:var(--text);">' + m.gmisses + '</span></span>';
         if (m.missedG > 0) html += chip('Missed:', m.missedG, 'var(--red)', 'var(--red-dim)');
         html += '</div>';
@@ -3220,7 +3236,9 @@ async function init() {
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px;">';
         const hasPicks = !!window._picksCache?.[m.id + '_' + currentGW];
         const gwPtsDisplay = (!hasPicks && state.isLive) ? '...' : (m.gwRawPts || 0) + 'pts';
-        html += '<span class="s-card-gwpts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + gwPtsDisplay + '</span>';
+        if (activeSortKey !== 'gwpts') html += '<span class="s-card-gwpts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + gwPtsDisplay + '</span>';
+        else html += '<span class="s-card-gwpts" style="display:none;"></span>';
+        html += '<span class="season-stat-badge" data-sort-key="pts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;display:' + (activeSortKey === 'pts' ? 'none' : 'inline-block') + ';">Total ' + m.total + '</span>';
         if ((state.isLive || currentGW === state.latestGW) && m.played !== null && hasPicks) {
           const total = m.played + m.remaining - (m.stuck || 0);
           const displayPlayed = m.played - (m.stuck || 0);
@@ -3232,8 +3250,24 @@ async function init() {
       }
       html += '</div>'; // close name+chips column
       html += '<div style="text-align:right;flex-shrink:0;align-self:center;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">';
-      html += '<div class="sc-right-val s-card-total" style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:var(--text);">' + m.total + '</div>';
-      html += '<div class="sc-right-label" style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">pts</div>';
+      const gwRightVal = (() => {
+        if (activeSortKey === 'gwpts') return (m.gwRawPts || 0) + '';
+        if (activeSortKey === 'earned') return m.earned > 0 ? '$' + m.earned.toFixed(2) : '—';
+        if (activeSortKey === 'top4') return m.top4 || 0;
+        if (activeSortKey === 'bottom2') return m.bottom2 || 0;
+        if (activeSortKey === 'totalG') return m.totalG || 0;
+        return m.total; // default: total pts
+      })();
+      const gwRightLabel = (() => {
+        if (activeSortKey === 'gwpts') return 'gw pts';
+        if (activeSortKey === 'earned') return 'earned';
+        if (activeSortKey === 'top4') return 'top 6';
+        if (activeSortKey === 'bottom2') return 'bot 4';
+        if (activeSortKey === 'totalG') return 'total 🍺';
+        return 'total';
+      })();
+      html += '<div class="sc-right-val s-card-total" style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:var(--text);">' + gwRightVal + '</div>';
+      html += '<div class="sc-right-label" style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">' + gwRightLabel + '</div>';
       html += '</div>';
       html += '</div>'; // close top row
       html += '<div class="s-card-drawer" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;"></div>';
@@ -3391,7 +3425,7 @@ async function init() {
 
       // Update right side of each card to show sort value
       const scMeta = {
-        pts:     { label: 'pts',    fmt: v => v, color: () => 'var(--text)' },
+        pts:     { label: 'total',    fmt: v => v, color: () => 'var(--text)' },
         gwpts:   { label: 'gw pts', fmt: v => v !== null && v !== undefined ? v : '—', color: v => v > 0 ? 'var(--theme)' : 'var(--text3)' },
         earned:  { label: 'earned', fmt: v => '$' + (+v).toFixed(2), color: v => v > 0 ? 'var(--green)' : 'var(--text3)' },
         top4:    { label: 'top 6',  fmt: v => v || '0', color: v => v > 0 ? 'var(--green)' : 'var(--text3)' },
@@ -3408,6 +3442,14 @@ async function init() {
         const rl = card.querySelector('.sc-right-label');
         if (rv) { rv.textContent = scm.fmt(val); rv.style.color = scm.color(val); }
         if (rl) rl.textContent = scm.label;
+        // Hide badge for the active sort key
+        const gwBadge = card.querySelector('.s-card-gwpts');
+        if (gwBadge) gwBadge.style.display = key === 'gwpts' ? 'none' : '';
+        const playedBadge = card.querySelector('.s-card-played');
+        // Season badges — hide if matching sort (they're in the card HTML directly)
+        card.querySelectorAll('.season-stat-badge').forEach(b => {
+          b.style.display = b.dataset.sortKey === key ? 'none' : 'inline-block';
+        });
       });
 
       // Sort and reorder cards
@@ -4906,16 +4948,22 @@ async function init() {
         if (m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">🍺 Shotgun</span>';
         html += '</div>';        html += '<div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);display:flex;align-items:center;gap:4px;flex-wrap:wrap;">' + esc(m.team) + (chipHtml ? '<span style="margin-left:4px;display:inline-flex;gap:3px;align-items:center;">' + chipHtml + '</span>' : '') + '</div>';
 
-        // Row 1: Season stats (beers/misses only — prize already shown next to name)
+        // Row 1: Season stats (matching current GW card order)
+        const _gwSortKey = window._gwCardSortKey || 'gwPoints';
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">';
-        if (m.gwTotal > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">Total ' + m.gwTotal + '</span>';
+        const gwEarned = gwSeasonStats[m.id]?.moneyWon || 0;
+        if (gwEarned > 0) html += '<span class="gw-season-badge" data-sort-key="_prize" style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;display:' + (_gwSortKey === '_prize' ? 'none' : 'inline-block') + ';">$' + gwEarned.toFixed(2) + '</span>';
+        if (m.top4 > 0) html += '<span class="gw-season-badge" data-sort-key="top4" style="font-size:11px;font-family:var(--font-mono);background:var(--green-dim);border-radius:6px;padding:3px 8px;display:' + (_gwSortKey === 'top4' ? 'none' : 'inline-flex') + ';gap:2px;"><span style="color:var(--green);">Top 6:</span><span style="color:var(--text);">' + m.top4 + '</span></span>';
+        if (m.bottom2 > 0) html += '<span class="gw-season-badge" data-sort-key="bottom2" style="font-size:11px;font-family:var(--font-mono);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:' + (_gwSortKey === 'bottom2' ? 'none' : 'inline-flex') + ';gap:2px;"><span style="color:var(--red);">Bot 4:</span><span style="color:var(--text);">' + m.bottom2 + '</span></span>';
         const cardOwed = getGuinnessOwedAtGW(m.name, gw);
         const cardMissed = didMissGW(m.name, gw);
-        if (cardOwed > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;">🍺 Owes: ' + cardOwed + '</span>';
+        if (cardOwed > 0) html += '<span class="gw-season-badge" data-sort-key="totalG" style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;display:' + (_gwSortKey === 'totalG' ? 'none' : 'inline-block') + ';">🍺 Owes: ' + cardOwed + '</span>';
         if (cardMissed) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;">❌ Missed</span>';
         html += '</div>';
-        // Row 2: GW stats
+        // Row 2: GW stats (matching current GW card order)
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px;">';
+        html += '<span class="gw-season-badge" data-sort-key="gwPoints" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;display:' + (_gwSortKey === 'gwPoints' ? 'none' : 'inline-block') + ';">GW ' + m.gwPoints + 'pts</span>';
+        html += '<span class="gw-season-badge" data-sort-key="gwTotal" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;display:' + (_gwSortKey === 'gwTotal' ? 'none' : 'inline-block') + ';">Total ' + m.gwTotal + '</span>';
         if (capStr) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">© ' + esc(capStr) + '</span>';
         if (m.transferCost > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;">-' + m.transferCost + ' hit</span>';
         html += '</div>';
@@ -4932,8 +4980,18 @@ async function init() {
           if (k === 'totalG') return m.totalG || 0;
           return m.gwPoints;
         })();
+        const rightLabel = (() => {
+          const k = window._gwCardSortKey || 'gwPoints';
+          if (k === 'gwPoints') return 'gw pts';
+          if (k === 'gwTotal') return 'total';
+          if (k === '_prize') return 'earned';
+          if (k === 'top4') return 'top 6';
+          if (k === 'bottom2') return 'bot 4';
+          if (k === 'totalG') return 'total 🍺';
+          return 'gw pts';
+        })();
         html += '<div class="gw-card-right-val" style="font-size:22px;font-weight:700;font-family:var(--font-mono);color:var(--text);">' + rightVal + '</div>';
-        html += '<div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">pts</div>';
+        html += '<div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">' + rightLabel + '</div>';
         html += '</div>';
         html += '</div>'; // close top row
 
@@ -4962,39 +5020,8 @@ async function init() {
       window._sortGWCards = function(key, btn) {
         if (window._gwCardSortKey === key) window._gwCardSortDir *= -1;
         else { window._gwCardSortKey = key; window._gwCardSortDir = -1; }
-        document.querySelectorAll('#gw-cards-sort-bar button').forEach(b => {
-          const isActive = b.dataset.sortKey === key;
-          b.style.borderColor = isActive ? 'var(--theme)' : 'var(--border2)';
-          b.style.background = isActive ? 'var(--theme-dim)' : 'none';
-          b.style.color = isActive ? 'var(--theme)' : 'var(--text3)';
-          b.textContent = isActive ? b.dataset.label + ' ' + (window._gwCardSortDir === -1 ? '↓' : '↑') : b.dataset.label;
-        });
-        const container = document.querySelector('.weekly-cards');
-        if (!container) return;
-        const cards = [...container.querySelectorAll('.gw-card')];
-        cards.sort((a, b) => {
-          const da = window._gwCardData.find(d => d.id === parseInt(a.dataset.managerId));
-          const db = window._gwCardData.find(d => d.id === parseInt(b.dataset.managerId));
-          return window._gwCardSortDir * ((da?.[key] || 0) - (db?.[key] || 0));
-        });
-        container.querySelectorAll('.s-card-drawer').forEach(d => d.style.display = 'none');
-        container.querySelectorAll('.gw-card').forEach(c => { c.style.borderColor = 'var(--theme-border)'; c.style.boxShadow = 'none'; });
-        cards.forEach(c => container.appendChild(c));
-        // Update right-side value to reflect sort key
-        cards.forEach(c => {
-          const d = window._gwCardData.find(x => x.id === parseInt(c.dataset.managerId));
-          if (!d) return;
-          const rightEl = c.querySelector('.gw-card-right-val');
-          if (!rightEl) return;
-          if (key === 'gwPoints') rightEl.textContent = d.gwPoints;
-          else if (key === 'gwTotal') rightEl.textContent = d.gwTotal;
-          else if (key === '_prize') rightEl.textContent = d._prize > 0 ? '$' + d._prize.toFixed(2) : '—';
-          else if (key === 'top4') rightEl.textContent = d.top4 || 0;
-          else if (key === 'bottom2') rightEl.textContent = d.bottom2 || 0;
-          else if (key === 'totalG') rightEl.textContent = d.totalG || 0;
-        });
+        renderWeekly(gw);
       };
-
       requestAnimationFrame(() => { updateStickyOffsets(); });
       initDrawer('weekly-table', gw);
 
