@@ -4939,7 +4939,32 @@ async function init() {
 
         // Top row: rank + name + gw pts
         html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
-        html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:' + rankColor + ';min-width:28px;align-self:center;">' + (m._seasonRank || rank) + '</span>';
+        // Compute trend from previous GW season standing
+        let trendHtml = '';
+        if (gw > 1 && state.historyLoaded) {
+          const getPrevRank = (targetGW, managerId) => {
+            const sorted = state.managers.map(m2 => {
+              const hist = (state.gwHistory[m2.id] || []).filter(h => h.event <= targetGW).sort((a,b) => b.event - a.event)[0];
+              return { id: m2.id, total: hist ? hist.total_points : 0 };
+            }).sort((a, b) => b.total - a.total);
+            let r = 1;
+            for (let i = 0; i < sorted.length; i++) {
+              if (i > 0 && sorted[i].total < sorted[i-1].total) r = i + 1;
+              if (sorted[i].id === managerId) return r;
+            }
+            return null;
+          };
+          const prevRank = getPrevRank(gw - 1, m.id);
+          const currRank = m._seasonRank || rank;
+          const change = prevRank ? prevRank - currRank : 0;
+          if (change > 0) trendHtml = '<div style="font-size:9px;color:var(--green);line-height:1;text-align:center;">▲' + change + '</div>';
+          else if (change < 0) trendHtml = '<div style="font-size:9px;color:var(--red);line-height:1;text-align:center;">▼' + Math.abs(change) + '</div>';
+        }
+
+        html += '<div style="display:flex;flex-direction:column;align-items:center;min-width:28px;">';
+        if (trendHtml) html += trendHtml;
+        html += '<span style="font-size:20px;font-weight:700;font-family:var(--font-display);color:' + rankColor + ';line-height:1;">' + (m._seasonRank || rank) + '</span>';
+        html += '</div>';
         html += '<div style="flex:1;min-width:0;">';
         const GW_RANK_EMOJI_H = {1:'🥇', 2:'🥈', 3:'🥉', 4:'4️⃣', 5:'5️⃣', 6:'6️⃣'};
         html += '<div style="display:flex;align-items:center;gap:6px;min-width:0;">';
