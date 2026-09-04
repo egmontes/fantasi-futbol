@@ -2530,7 +2530,7 @@ async function init() {
               const displayPlayed = played - (stuck||0);
               const total = played + remaining - (stuck||0);
               playedEl.textContent = displayPlayed + '/' + total + (remaining === 0 ? ' ✓' : '');
-              playedEl.style.color = remaining === 0 ? 'var(--text3)' : 'var(--amber)';
+              playedEl.style.color = 'var(--theme)';
             }
           });
         });
@@ -3197,7 +3197,7 @@ async function init() {
         const prizeEmoji = GW_RANK_EMOJI[m._gwRank] || '💰';
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">' + prizeEmoji + ' $' + m._prize.toFixed(2) + '</span>';
       }
-      if ((state.isLive || currentGW === state.latestGW) && m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">🍺 Shotgun</span>';
+      if ((state.isLive || currentGW === state.latestGW) && m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">🍺 Shotgun</span>';
       html += '</div>';
       if (kickedCard) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);opacity:0.5;font-weight:400;flex-shrink:0;">kicked</span>';
       else if (isSeasonOver) {
@@ -3243,7 +3243,7 @@ async function init() {
           const total = m.played + m.remaining - (m.stuck || 0);
           const displayPlayed = m.played - (m.stuck || 0);
           const allPlayed = m.remaining === 0;
-          html += '<span class="s-card-played" style="font-size:11px;font-family:var(--font-mono);color:' + (allPlayed ? 'var(--text3)' : 'var(--amber)') + ';background:var(--bg3);border-radius:6px;padding:3px 8px;">' + displayPlayed + '/' + total + (allPlayed ? ' ✓' : '') + '</span>';
+          html += '<span class="s-card-played" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">' + displayPlayed + '/' + total + (allPlayed ? ' ✓' : '') + '</span>';
         }
         if (m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">©' + esc(m.captain.name) + '</span>';
         html += '</div>';
@@ -4085,6 +4085,8 @@ async function init() {
     const root = container || document;
     const allCards = Array.from(root.querySelectorAll('.stat-card'));
     if (!allCards.length) return;
+    // Skip if container is not visible (tab hidden)
+    if (allCards[0].offsetWidth === 0) return;
     const half = Math.ceil(allCards.length / 2);
     const cards = allCards.slice(0, half);
 
@@ -4726,6 +4728,11 @@ async function init() {
 
   async function renderWeekly(gw) {
     gw = parseInt(gw) || state.latestGW;
+    // Reset sort state when switching to a different GW
+    if (state.weeklyCurrentGW !== gw) {
+      window._gwCardSortDir = -1;
+      window._gwCardSortKey = 'gwPoints';
+    }
     state.weeklyCurrentGW = gw;
     document.getElementById('weekly-content').innerHTML =
       `<div class="loading-state"><span class="spinner"></span>Loading GW${gw}...</div>`;
@@ -4970,7 +4977,7 @@ async function init() {
         html += '<div style="display:flex;align-items:center;gap:6px;min-width:0;">';
         html += '<div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(m.name) + '</div>';
         if (m._prize > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">' + (GW_RANK_EMOJI_H[rank] || '') + ' $' + m._prize.toFixed(2) + '</span>';
-        if (m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">🍺 Shotgun</span>';
+        if (m._shotgun) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;white-space:nowrap;">🍺 Shotgun</span>';
         html += '</div>';        html += '<div style="font-size:11px;color:var(--theme);font-family:var(--font-mono);display:flex;align-items:center;gap:4px;flex-wrap:wrap;">' + esc(m.team) + (chipHtml ? '<span style="margin-left:4px;display:inline-flex;gap:3px;align-items:center;">' + chipHtml + '</span>' : '') + '</div>';
 
         // Row 1: Season stats (matching current GW card order)
@@ -5039,8 +5046,8 @@ async function init() {
         bottom2: m.bottom2 || 0,
         totalG: m.totalG || 0,
       }));
-      window._gwCardSortDir = -1;
-      window._gwCardSortKey = 'gwPoints'; // matches default highlighted sort
+      window._gwCardSortDir = window._gwCardSortDir || -1; // preserve direction across re-renders
+      window._gwCardSortKey = window._gwCardSortKey || 'gwPoints'; // preserve key
 
       window._sortGWCards = function(key, btn) {
         if (window._gwCardSortKey === key) window._gwCardSortDir *= -1;
@@ -6465,11 +6472,13 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         if (seasonToggleBarSV) seasonToggleBarSV.style.display = isSeasonOver ? 'flex' : 'none';
         updateStickyOffsets();
         requestAnimationFrame(() => {
-          const tickerEl = document.querySelector('.stat-ticker:not(#history-ticker)');
-          if (tickerEl) {
-            makeTickerInteractive(tickerEl, window.__fantasiTickerOffset || 0);
-            if (!applyStoredTickerSizes(tickerEl)) fitStatCards(tickerEl);
-          }
+          setTimeout(() => {
+            const tickerEl = document.querySelector('.stat-ticker:not(#history-ticker)');
+            if (tickerEl) {
+              makeTickerInteractive(tickerEl, window.__fantasiTickerOffset || 0);
+              if (!applyStoredTickerSizes(tickerEl)) fitStatCards(tickerEl);
+            }
+          }, 50);
         });
       } else {
         const gw = parseInt(item.dataset.gw);
