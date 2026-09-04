@@ -1200,8 +1200,14 @@
     const startingPicks = picks.filter(p => p.position <= maxPos);
     const benchPicks = picks.filter(p => p.position > maxPos);
     const getType = id => (state.bootstrapElements||[]).find(e=>e.id===id)?.element_type || 0;
+    const getTeam = id => (state.bootstrapElements||[]).find(e=>e.id===id)?.team;
+    const fixtureFinished = id => {
+      const team = getTeam(id);
+      if (!team) return false;
+      const f = (window._fixturesByTeam||{})[team];
+      return f ? (f.finished || f.finished_provisional) : false;
+    };
     const anyPlayed = (window._playerMinutesCache && Object.values(window._playerMinutesCache).some(m => m > 0));
-    console.log(`[${new Date().toISOString().slice(11,23)}] computePlayedRemaining: anyPlayed=${anyPlayed}, minsCache size=${Object.keys(window._playerMinutesCache||{}).length}`);
     let played = 0, remaining = 0, stuck = 0;
     const usedBench = new Set();
     startingPicks.forEach(p => {
@@ -1209,6 +1215,7 @@
       const count = p.multiplier || 1; // captain=2, TC=3
       if (mins > 0) { played += count; return; }
       if (!anyPlayed) { remaining += count; return; } // no games started — all pending
+      if (!fixtureFinished(p.element)) { remaining += count; return; } // fixture not done yet
       const sType = getType(p.element);
       const validSub = benchPicks.find(b =>
         !usedBench.has(b.element) &&
