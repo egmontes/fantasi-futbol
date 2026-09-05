@@ -2899,6 +2899,40 @@ async function init() {
     let mostTransIn = window._transferCache[transCacheKey]?.in || null;
     let mostTransOut = window._transferCache[transCacheKey]?.out || null;
 
+    // Compute from our league's picks (current GW vs previous GW picks)
+    if ((!mostTransIn || !mostTransOut) && window._picksCache) {
+      const inCount = {}, outCount = {};
+      state.managers.forEach(m => {
+        const curr = window._picksCache[m.id + '_' + gwLabel];
+        const prev = window._picksCache[m.id + '_' + (gwLabel - 1)];
+        if (!curr?.picks || !prev?.picks) return;
+        const currIds = new Set(curr.picks.map(p => p.element));
+        const prevIds = new Set(prev.picks.map(p => p.element));
+        // Transferred in: in current but not in previous
+        currIds.forEach(id => { if (!prevIds.has(id)) inCount[id] = (inCount[id] || 0) + 1; });
+        // Transferred out: in previous but not in current
+        prevIds.forEach(id => { if (!currIds.has(id)) outCount[id] = (outCount[id] || 0) + 1; });
+      });
+      const topInId = Object.keys(inCount).sort((a,b) => inCount[b] - inCount[a])[0];
+      const topOutId = Object.keys(outCount).sort((a,b) => outCount[b] - outCount[a])[0];
+      const topInCount = topInId ? inCount[topInId] : 0;
+      const topOutCount = topOutId ? outCount[topOutId] : 0;
+      // Handle ties
+      const tiedIn = topInId ? Object.keys(inCount).filter(id => inCount[id] === topInCount) : [];
+      const tiedOut = topOutId ? Object.keys(outCount).filter(id => outCount[id] === topOutCount) : [];
+      const inName = tiedIn.length === 1 ? (state.bootstrapPlayers[parseInt(topInId)] || '?')
+        : tiedIn.length === 2 ? (state.bootstrapPlayers[parseInt(tiedIn[0])] || '?') + ' & ' + (state.bootstrapPlayers[parseInt(tiedIn[1])] || '?')
+        : tiedIn.length + '-way tie';
+      const outName = tiedOut.length === 1 ? (state.bootstrapPlayers[parseInt(topOutId)] || '?')
+        : tiedOut.length === 2 ? (state.bootstrapPlayers[parseInt(tiedOut[0])] || '?') + ' & ' + (state.bootstrapPlayers[parseInt(tiedOut[1])] || '?')
+        : tiedOut.length + '-way tie';
+      mostTransIn = topInId ? { web_name: inName, transfers_in_event: topInCount } : null;
+      mostTransOut = topOutId ? { web_name: outName, transfers_out_event: topOutCount } : null;
+      if (!window._transferCache[transCacheKey]) window._transferCache[transCacheKey] = {};
+      window._transferCache[transCacheKey].in = mostTransIn;
+      window._transferCache[transCacheKey].out = mostTransOut;
+    }
+
     // If not cached, fetch in background after render
     const transferFetchInProgress = window._transferFetchInProgress === transCacheKey;
     const needsTransferFetch = false; // disabled - 52 API calls for non-critical ticker widget
@@ -2931,8 +2965,8 @@ async function init() {
     const moverUpSecond = null;   // name already built in biggestMoverUp.name
 
     const cards =
-      (mostTransIn ? '<div class="stat-card stat-card-green" data-widget="trans-in"><div class="s-label">📈 GW' + gwLabel + ' Most Transferred In</div><div class="s-value">' + esc(mostTransIn.web_name) + '<br>' + mostTransIn.transfers_in_event.toLocaleString() + ' transfers</div></div>' : '') +
-      (mostTransOut ? '<div class="stat-card stat-card-red" data-widget="trans-out"><div class="s-label">📉 GW' + gwLabel + ' Most Transferred Out</div><div class="s-value">' + esc(mostTransOut.web_name) + '<br>' + mostTransOut.transfers_out_event.toLocaleString() + ' transfers</div></div>' : '') +
+      (mostTransIn ? '<div class="stat-card stat-card-green" data-widget="trans-in"><div class="s-label">📈 GW' + gwLabel + ' Most Transferred In</div><div class="s-value">' + esc(mostTransIn.web_name) + '<br>' + mostTransIn.transfers_in_event + ' manager' + (mostTransIn.transfers_in_event !== 1 ? 's' : '') + '</div></div>' : '') +
+      (mostTransOut ? '<div class="stat-card stat-card-red" data-widget="trans-out"><div class="s-label">📉 GW' + gwLabel + ' Most Transferred Out</div><div class="s-value">' + esc(mostTransOut.web_name) + '<br>' + mostTransOut.transfers_out_event + ' manager' + (mostTransOut.transfers_out_event !== 1 ? 's' : '') + '</div></div>' : '') +
       (mostCaptained ? '<div class="stat-card stat-card-gold"><div class="s-label">©️ GW' + gwLabel + ' Most Captained</div><div class="s-value">' + esc(mostCaptained.name) + '<br>' + mostCaptained.count + ' mgrs</div></div>' : '') +
       (biggestMoverUp ? '<div class="stat-card stat-card-green"><div class="s-label">🚀 GW' + gwLabel + ' Biggest Mover Up</div><div class="s-value">' + esc(biggestMoverUp.name) + (biggestMoverUp.change !== 0 ? '<br>▲' + biggestMoverUp.change + ' spots' : '') + '</div></div>' : '') +
       (biggestMoverDown ? '<div class="stat-card stat-card-red"><div class="s-label">📉 GW' + gwLabel + ' Biggest Mover Down</div><div class="s-value">' + esc(biggestMoverDown.name) + (biggestMoverDown.change !== 0 ? '<br>▼' + Math.abs(biggestMoverDown.change) + ' spots' : '') + '</div></div>' : '') +
