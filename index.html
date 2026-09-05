@@ -4036,9 +4036,9 @@ async function init() {
             const hit = picks.entry_history?.event_transfers_cost || 0;
             const totalPts = computedTotal - hit;
 
-            // Update the card score immediately with drawer's fresh data
+            // Update the card score immediately with drawer's fresh data (only for current live GW)
             const drawerCurrentGW = state.isLive ? state.liveGW : state.currentGW;
-            if (state.isLive && window._liveScoreCacheGW?.[drawerCurrentGW]) {
+            if (state.isLive && drawerGW === drawerCurrentGW && window._liveScoreCacheGW?.[drawerCurrentGW]) {
               const cached = window._liveScoreCacheGW[drawerCurrentGW][managerId];
               if (cached && cached.rawPts !== computedTotal) {
                 window._liveScoreCacheGW[drawerCurrentGW][managerId] = { ...cached, rawPts: computedTotal, netPts: totalPts };
@@ -10165,7 +10165,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     const refreshBtn = document.getElementById('refresh-btn');
     if (refreshBtn) { refreshBtn.style.display = (active === 'current' && state.isLive) ? 'flex' : 'none'; }
     const scrollTopBtn = document.getElementById('scroll-top-btn');
-    if (scrollTopBtn) scrollTopBtn.style.display = active === 'current' ? 'flex' : 'none';
+    if (scrollTopBtn) scrollTopBtn.style.display = (active === 'current' || active === 'history') ? 'flex' : 'none';
     ['current', 'history', 'seasons', 'rules', 'stats'].forEach(key => {
       const btn = document.getElementById('bnav-' + key);
       if (!btn) return;
