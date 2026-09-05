@@ -2905,6 +2905,12 @@ async function init() {
 
     const topMoney = topMoneyManager ? state.managers.find(m => m.id === parseInt(topMoneyManager, 10)) : null;
     const topMoneyValue = topMoneyManager ? stats[topMoneyManager].moneyWon : 0;
+    const topMoneyTied = topMoneyValue > 0 ? Object.keys(stats).filter(id => stats[id].moneyWon === topMoneyValue) : [];
+    const topMoneyName = topMoneyTied.length === 1
+      ? (topMoney?.name || '')
+      : topMoneyTied.length === 2
+        ? (topMoney?.name || '') + ' & ' + (state.managers.find(m => m.id === parseInt(topMoneyTied.find(id => parseInt(id) !== topMoney?.id), 10))?.name || '1 other')
+        : topMoneyTied.length + '-way tie';
 
     // Compute season leader widgets
     const mostBottom2 = state.historyLoaded ? [...rows2].sort((a,b) => b.bottom2 - a.bottom2)[0] : null;
@@ -2938,7 +2944,7 @@ async function init() {
       '<div class="stat-card stat-card-green"><div class="s-label">🟢 Highest GW Score</div><div class="s-value">' + tieStr(tickerInsights.highest.manager, tickerInsights.highest.tied) + '<br>GW' + tickerInsights.highest.gw + ' · ' + tickerInsights.highest.points + ' pts' + '</div></div>' +
       '<div class="stat-card stat-card-red"><div class="s-label">🔴 Lowest GW Score</div><div class="s-value">' + tieStr(tickerInsights.lowest.manager, tickerInsights.lowest.tied) + '<br>GW' + tickerInsights.lowest.gw + ' · ' + tickerInsights.lowest.points + ' pts' + '</div></div>' +
       '<div class="stat-card"><div class="s-label">👑 Biggest Win Margin</div><div class="s-value">' + esc(tickerInsights.biggestMargin.manager) + '<br>GW' + tickerInsights.biggestMargin.gw + ' · ' + tickerInsights.biggestMargin.margin + ' pts' + '</div></div>' +
-      (topMoney && topMoneyValue > 0 ? '<div class="stat-card"><div class="s-label">💰 Top Weekly Earner</div><div class="s-value">' + esc(topMoney.name) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') + '</div></div>' : '') +
+      (topMoney && topMoneyValue > 0 ? '<div class="stat-card"><div class="s-label">💰 Top Weekly Earner</div><div class="s-value">' + esc(topMoneyName) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') + '</div></div>' : '') +
       (isSeasonOver ? '<div class="stat-card stat-card-gold"><div class="s-label">🍺🎬 Rolling Can Rolling Can Award</div><div class="s-value">Jack Bernatchez<br>$50</div></div>' : '');
     const isCurrent2025 = window.__viewingSeason === '2025-2026' || (isSeasonOver && !window.__viewingSeason);
     const prizePool = isCurrent2025
