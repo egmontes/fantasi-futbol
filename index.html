@@ -7912,14 +7912,14 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
 
     // Manager jump-to search
     html += '<div style="position:relative;margin-bottom:12px;">';
-    html += '<input id="alltime-search" type="text" placeholder="👤 Jump to manager..." autocomplete="off" oninput="window._onATManagerSearch(this.value)" onfocus="window._onATManagerSearch(this.value)" onblur="setTimeout(()=>{const d=document.getElementById(\'alltime-dropdown\');if(d)d.style.display=\'none\';},200)" style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;padding:8px 12px;font-size:16px;font-family:var(--font-mono);color:var(--text);outline:none;" onfocus="this.style.borderColor=\'var(--theme)\'" onblur="this.style.borderColor=\'var(--theme-border)\'">';
+    html += '<input id="alltime-search" type="text" placeholder="👤 Jump to manager..." autocomplete="off" oninput="window._onATManagerSearch(this.value)" onblur="setTimeout(()=>{const d=document.getElementById(\'alltime-dropdown\');if(d)d.style.display=\'none\';},200)" style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;padding:8px 12px;font-size:16px;font-family:var(--font-mono);color:var(--text);outline:none;" onfocus="this.style.borderColor=\'var(--theme)\'" onblur="this.style.borderColor=\'var(--theme-border)\'">';
     html += '<div id="alltime-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;margin-top:4px;z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.4);"></div>';
     html += '</div>';
     html += '<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:8px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:4px 0;">';
     html += '';
     atSortOptions.forEach((opt, i) => {
       const isActive = i === 0;
-      html += '<button onclick="window._sortATCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:var(--theme-dim);color:var(--theme);font-weight:600;padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
+      html += '<button onclick="window._sortATCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:' + (isActive ? 'var(--theme-dim)' : 'transparent') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';font-weight:' + (isActive ? '600' : 'normal') + ';padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
     });
     html += '</div>';
 
@@ -8034,13 +8034,14 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     const dropdown = document.getElementById('alltime-dropdown');
     if (!dropdown) return;
     const q = query.toLowerCase().trim();
+    if (!q) { dropdown.style.display = 'none'; return; }
     const cards = [...document.querySelectorAll('.at-card')];
     const matches = cards.filter(c => (c.dataset.managerId||'').toLowerCase().includes(q));
-    if (!q || matches.length === 0) { dropdown.style.display = 'none'; return; }
+    if (matches.length === 0) { dropdown.style.display = 'none'; return; }
     dropdown.style.display = 'block';
     dropdown.innerHTML = matches.map(c => {
       const name = c.dataset.managerId || '';
-      return `<div onclick="window._jumpToATCard('${name.replace(/'/g,'\\\'')}')" style="padding:10px 14px;cursor:pointer;font-family:var(--font-mono);font-size:14px;border-bottom:1px solid var(--border);">${name}</div>`;
+      return `<div onmousedown="window._jumpToATCard('${name.replace(/'/g,"\\'")}')" style="padding:10px 14px;cursor:pointer;font-family:var(--font-mono);font-size:14px;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">${name}</div>`;
     }).join('');
   };
 
@@ -8056,6 +8057,17 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       const name = c.dataset.managerId || '';
       return `<div onclick="document.getElementById('gw-card-manager-dropdown').style.display='none';document.getElementById('gw-card-manager-search').value='';(function(){const card=document.querySelector('.gw-card[data-manager-id=\\'${name.replace(/'/g,"\\'").replace(/"/g,'\\"')}\\']');if(card){card.scrollIntoView({behavior:'smooth',block:'center'});}})();" style="padding:10px 14px;cursor:pointer;font-family:var(--font-mono);font-size:14px;border-bottom:1px solid var(--border);">${name}</div>`;
     }).join('');
+  };
+
+  window._jumpToATCard = function(name) {
+    const input = document.getElementById('alltime-search');
+    const dropdown = document.getElementById('alltime-dropdown');
+    if (input) input.value = '';
+    if (dropdown) dropdown.style.display = 'none';
+    const card = [...document.querySelectorAll('.at-card')].find(c => c.dataset.managerId === name);
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.click();
   };
 
   window._jumpToGWCard = function(name) {
