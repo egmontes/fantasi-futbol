@@ -272,6 +272,7 @@
       touch-action: pan-y;
       user-select: none;
       transform: translateX(0);
+      align-items: stretch;
     }
     .stat-ticker.is-dragging { cursor: grabbing; }
     .stat-card {
@@ -282,10 +283,10 @@
       flex-shrink: 0;
       min-width: 80px;
       width: max-content;
-      height: auto;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       overflow: visible;
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       transition: border-color 0.2s, box-shadow 0.2s;
@@ -2970,8 +2971,8 @@ async function init() {
       (mostCaptained ? '<div class="stat-card stat-card-gold"><div class="s-label">©️ GW' + gwLabel + ' Most Captained</div><div class="s-value">' + esc(mostCaptained.name) + '<br>' + mostCaptained.count + ' mgrs</div></div>' : '') +
       (biggestMoverUp ? '<div class="stat-card stat-card-green"><div class="s-label">🚀 GW' + gwLabel + ' Biggest Mover Up</div><div class="s-value">' + esc(biggestMoverUp.name) + (biggestMoverUp.change !== 0 ? '<br>▲' + biggestMoverUp.change + ' spots' : '') + '</div></div>' : '') +
       (biggestMoverDown ? '<div class="stat-card stat-card-red"><div class="s-label">📉 GW' + gwLabel + ' Biggest Mover Down</div><div class="s-value">' + esc(biggestMoverDown.name) + (biggestMoverDown.change !== 0 ? '<br>▼' + Math.abs(biggestMoverDown.change) + ' spots' : '') + '</div></div>' : '') +
-      (completedGWsForPool > 0 || isSeasonOver ? '<div class="stat-card" style="height:110px;"><div class="s-label">' + (isSeasonOver ? '💵 Total Payouts' : '💵 Payouts So Far') + '</div><div class="s-value big-value">$' + totalPool + '</div></div>' : '') +
-      '<div class="stat-card stat-card-guinness" style="height:110px;"><div class="s-label">🍺 Guinness Chugged</div><div class="s-value big-value">' + rows2.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
+      (completedGWsForPool > 0 || isSeasonOver ? '<div class="stat-card"><div class="s-label">' + (isSeasonOver ? '💵 Total Payouts' : '💵 Payouts So Far') + '</div><div class="s-value big-value">$' + totalPool + '</div></div>' : '') +
+      '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Guinness Chugged</div><div class="s-value big-value">' + rows2.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
       (mostGuinness && mostGuinness.totalG > 0 ? '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Most Guinness</div><div class="s-value">' + tieStr(mostGuinness.name, rows2.filter(m => m.totalG === mostGuinness.totalG).length) + '<br>' + mostGuinness.totalG + '</div></div>' : '') +
       (mostTop4 && mostTop4.top4 > 0 ? '<div class="stat-card stat-card-green"><div class="s-label">🏆 Most Top 6 Finishes</div><div class="s-value">' + tieStr(mostTop4.name, rows2.filter(m => m.top4 === mostTop4.top4).length) + '<br>' + mostTop4.top4 + ' times</div></div>' : '') +
       (mostBottom2 && mostBottom2.bottom2 > 0 ? '<div class="stat-card stat-card-red"><div class="s-label">💀 Most Bottom 4 Finishes</div><div class="s-value">' + tieStr(mostBottom2.name, rows2.filter(m => m.bottom2 === mostBottom2.bottom2).length) + '<br>' + mostBottom2.bottom2 + ' times</div></div>' : '') +
@@ -7863,7 +7864,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     };
 
     const bigCard = (label, value, cls='') =>
-      `<div class="stat-card${cls ? ' ' + cls : ''}" style="height:110px;"><div class="s-label">${label}</div><div class="s-value big-value">${value}</div></div>`;
+      `<div class="stat-card${cls ? ' ' + cls : ''}"><div class="s-label">${label}</div><div class="s-value big-value">${value}</div></div>`;
 
     let cards = '';
     if (byEarned) cards += statCard('💰 All-Time Earner', namesStr(byEarned.names) + '<br>$' + byEarned.value.toFixed(2), 'stat-card-green');
