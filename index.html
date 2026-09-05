@@ -8827,6 +8827,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
   };
 
   window._bnavStats = async () => {
+    window._closeManagerOverlay?.();
     history.replaceState(null, '', '#stats');
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById('tab-stats').classList.add('active');
@@ -10141,7 +10142,11 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     }
   } catch(e) {}
 
-  window._ssHistory = () => { history.replaceState(null,'','#alltime'); showLeagueHistory(); };
+  window._closeManagerOverlay = function() {
+    const overlay = document.getElementById('manager-chart-overlay');
+    if (overlay) overlay.style.display = 'none';
+  };
+  window._ssHistory = () => { window._closeManagerOverlay(); history.replaceState(null,'','#alltime'); showLeagueHistory(); };
   function updateSeasonLabel(text, isLive) {
     const label = document.getElementById('season-label');
     if (!label) return;
@@ -10155,6 +10160,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
 
   // Bottom nav
   window._bnavSeasons = () => {
+    window._closeManagerOverlay?.();
     history.replaceState(null, '', '#seasons');
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById('tab-seasons').classList.add('active');
@@ -10187,7 +10193,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     });
   }
 
-  window._bnavRules = () => { history.replaceState(null,'','#rules');
+  window._bnavRules = () => { window._closeManagerOverlay?.(); history.replaceState(null,'','#rules');
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById('tab-rules').classList.add('active');
     document.getElementById('standings-toggle-bar').style.display = 'none';
@@ -10205,6 +10211,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
   };
 
   window._ssLive = () => {
+    window._closeManagerOverlay?.();
     window.__viewingSeason = null;
     const cupBtn = document.getElementById('cup-tab-btn');
     if (cupBtn && !window._allCupMatches?.length) cupBtn.style.display = 'none';
@@ -10214,6 +10221,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     window.location.reload();
   };
   window._ss2025 = async function(silent = false) {
+    window._closeManagerOverlay?.();
     if (!silent) {
       updateSeasonLabel('2025 / 2026', false);
       const wtl = document.getElementById('weekly-tab-label');
