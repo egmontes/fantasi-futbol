@@ -2063,6 +2063,21 @@ async function init() {
     const dropdown = document.getElementById('weekly-manager-dropdown');
     if (input) input.value = name;
     if (dropdown) dropdown.style.display = 'none';
+
+    // Try cards view first
+    const manager = state.managers.find(m => m.name === name);
+    if (manager) {
+      const card = document.querySelector('.gw-card[data-manager-id="' + manager.id + '"]');
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.transition = 'border-color 0.3s';
+        card.style.borderColor = 'var(--theme)';
+        setTimeout(() => card.style.borderColor = 'var(--theme-border)', 1000);
+        return;
+      }
+    }
+
+    // Fall back to table view
     const rows = document.querySelectorAll('#weekly-table tbody tr');
     for (const row of rows) {
       if (row.textContent.includes(name)) {
@@ -2711,44 +2726,37 @@ async function init() {
     });
     const rankChangeMap = {};
     if (currentGW > 1) {
-      // Current rank: use m.total (FPL standings) when live since gwHistory won't have currentGW yet
-      // When not live, use total_points from gwHistory for currentGW
-      const currRows = state.managers.map(m => {
-        if (state.isLive) {
-          // m.total from state.managers is FPL's live cumulative total
-          const liveScore = liveScoreMap[m.id];
-          const total = liveScore
-            ? ((() => { const hist = state.gwHistory[m.id] || []; const prev = [...hist].filter(h => h.event < currentGW).sort((a,b) => b.event - a.event)[0]; return (prev ? prev.total_points : 0) + liveScore.netPts; })())
-            : m.total;
-          return { id: m.id, total };
-        } else {
-          const hist = state.gwHistory[m.id] || [];
-          const entry = [...hist].filter(h => h.event <= currentGW).sort((a, b) => b.event - a.event)[0];
-          return { id: m.id, total: entry ? entry.total_points : m.total };
-        }
-      }).sort((a, b) => b.total - a.total);
-      const currentRankMap = {};
-      let cr = 1;
-      currRows.forEach((m, i) => {
-        if (i > 0 && currRows[i].total < currRows[i-1].total) cr = i + 1;
-        currentRankMap[m.id] = cr;
-      });
-      // Previous rank by total_points at end of currentGW-1
-      const prevRows = state.managers.map(m => {
-        const hist = state.gwHistory[m.id] || [];
-        const entry = [...hist].filter(h => h.event <= currentGW - 1).sort((a, b) => b.event - a.event)[0];
-        if (entry) return { id: m.id, total: entry.total_points };
-        // Derive prev total from current GW entry if available
-        const currEntry = hist.find(h => h.event === currentGW);
-        return { id: m.id, total: currEntry ? currEntry.total_points - currEntry.points : 0 };
-      }).sort((a, b) => b.total - a.total);
-      const prevRankMap = {};
-      let pr = 1;
-      prevRows.forEach((m, i) => {
-        if (i > 0 && prevRows[i].total < prevRows[i-1].total) pr = i + 1;
-        prevRankMap[m.id] = pr;
-        rankChangeMap[m.id] = currentRankMap[m.id] - prevRankMap[m.id]; // negative = moved up
-      });
+      const hasLiveScoresForMover = (state.isLive || currentGW === state.latestGW) && liveScoreMap && Object.keys(liveScoreMap).length > 0;
+      const maxScoreForMover = hasLiveScoresForMover ? Math.max(...Object.values(liveScoreMap).map(s => s.netPts || 0)) : 0;
+      const allZeroForMover = maxScoreForMover <= 0;
+      const moverGW = allZeroForMover ? currentGW - 1 : currentGW;
+
+      if (moverGW > 1) {
+        const calcRankMap = (upToGW) => {
+          const rows = state.managers.map(m => {
+            const hist = state.gwHistory[m.id] || [];
+            const entry = [...hist].filter(h => h.event <= upToGW).sort((a, b) => b.event - a.event)[0];
+            let total = entry ? entry.total_points : 0;
+            if (state.isLive && upToGW === currentGW && liveScoreMap[m.id]) {
+              const prev = [...hist].filter(h => h.event < currentGW).sort((a, b) => b.event - a.event)[0];
+              total = (prev ? prev.total_points : 0) + (liveScoreMap[m.id].netPts || 0);
+            }
+            return { id: m.id, total };
+          }).sort((a, b) => b.total - a.total);
+          const map = {};
+          let r = 1;
+          rows.forEach((m, i) => {
+            if (i > 0 && rows[i].total < rows[i-1].total) r = i + 1;
+            map[m.id] = r;
+          });
+          return map;
+        };
+        const currRM = calcRankMap(moverGW);
+        const prevRM = calcRankMap(moverGW - 1);
+        state.managers.forEach(m => {
+          rankChangeMap[m.id] = (currRM[m.id] || 0) - (prevRM[m.id] || 0); // positive = moved down
+        });
+      }
     }
 
     const col = standingsSort.col;
@@ -2904,28 +2912,31 @@ async function init() {
     const mostGuinness = state.historyLoaded ? [...rows2].sort((a,b) => b.totalG - a.totalG)[0] : null;
 
     // Tie helpers — same pattern as all-time page
-    const tickerNamesStr = (name, tied) => {
+    const tickerNamesStr = (name, tied, names2) => {
       if (tied <= 1) return esc(name);
+      if (tied === 2 && names2) return esc(name) + ' & ' + esc(names2);
       if (tied === 2) return esc(name) + ' & 1 other';
       return tied + '-way tie';
     };
     const tieStr = tickerNamesStr;
     const moverUpTied = biggestMoverUp && rankChangeMap ? Object.values(rankChangeMap).filter(v => v === -(biggestMoverUp.change)).length : 1;
     const moverDownTied = biggestMoverDown && rankChangeMap ? Object.values(rankChangeMap).filter(v => v === Math.abs(biggestMoverDown.change)).length : 1;
+    const moverDownSecond = null; // name already built in biggestMoverDown.name
+    const moverUpSecond = null;   // name already built in biggestMoverUp.name
 
     const cards =
       (mostTransIn ? '<div class="stat-card stat-card-green" data-widget="trans-in"><div class="s-label">📈 GW' + gwLabel + ' Most Transferred In</div><div class="s-value">' + esc(mostTransIn.web_name) + '<br>' + mostTransIn.transfers_in_event.toLocaleString() + ' transfers</div></div>' : '') +
       (mostTransOut ? '<div class="stat-card stat-card-red" data-widget="trans-out"><div class="s-label">📉 GW' + gwLabel + ' Most Transferred Out</div><div class="s-value">' + esc(mostTransOut.web_name) + '<br>' + mostTransOut.transfers_out_event.toLocaleString() + ' transfers</div></div>' : '') +
       (mostCaptained ? '<div class="stat-card stat-card-gold"><div class="s-label">©️ GW' + gwLabel + ' Most Captained</div><div class="s-value">' + esc(mostCaptained.name) + '<br>' + mostCaptained.count + ' mgrs</div></div>' : '') +
-      (biggestMoverUp ? '<div class="stat-card stat-card-green"><div class="s-label">🚀 GW' + gwLabel + ' Biggest Mover Up</div><div class="s-value">' + tieStr(esc(biggestMoverUp.name), moverUpTied) + (biggestMoverUp.change !== 0 ? '<br>▲' + biggestMoverUp.change + ' spots' : '') + '</div></div>' : '') +
-      (biggestMoverDown ? '<div class="stat-card stat-card-red"><div class="s-label">📉 GW' + gwLabel + ' Biggest Mover Down</div><div class="s-value">' + tieStr(esc(biggestMoverDown.name), moverDownTied) + (biggestMoverDown.change !== 0 ? '<br>▼' + Math.abs(biggestMoverDown.change) + ' spots' : '') + '</div></div>' : '') +
+      (biggestMoverUp ? '<div class="stat-card stat-card-green"><div class="s-label">🚀 GW' + gwLabel + ' Biggest Mover Up</div><div class="s-value">' + esc(biggestMoverUp.name) + (biggestMoverUp.change !== 0 ? '<br>▲' + biggestMoverUp.change + ' spots' : '') + '</div></div>' : '') +
+      (biggestMoverDown ? '<div class="stat-card stat-card-red"><div class="s-label">📉 GW' + gwLabel + ' Biggest Mover Down</div><div class="s-value">' + esc(biggestMoverDown.name) + (biggestMoverDown.change !== 0 ? '<br>▼' + Math.abs(biggestMoverDown.change) + ' spots' : '') + '</div></div>' : '') +
       (completedGWsForPool > 0 || isSeasonOver ? '<div class="stat-card" style="height:110px;"><div class="s-label">' + (isSeasonOver ? '💵 Total Payouts' : '💵 Payouts So Far') + '</div><div class="s-value big-value">$' + totalPool + '</div></div>' : '') +
       '<div class="stat-card stat-card-guinness" style="height:110px;"><div class="s-label">🍺 Guinness Chugged</div><div class="s-value big-value">' + rows2.reduce((sum, m) => sum + m.totalG, 0) + '</div></div>' +
-      (mostGuinness && mostGuinness.totalG > 0 ? '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Most Guinness</div><div class="s-value">' + tieStr(esc(mostGuinness.name), rows2.filter(m => m.totalG === mostGuinness.totalG).length) + '<br>' + mostGuinness.totalG + '</div></div>' : '') +
-      (mostTop4 && mostTop4.top4 > 0 ? '<div class="stat-card stat-card-green"><div class="s-label">🏆 Most Top 6 Finishes</div><div class="s-value">' + tieStr(esc(mostTop4.name), rows2.filter(m => m.top4 === mostTop4.top4).length) + '<br>' + mostTop4.top4 + ' times</div></div>' : '') +
-      (mostBottom2 && mostBottom2.bottom2 > 0 ? '<div class="stat-card stat-card-red"><div class="s-label">💀 Most Bottom 4 Finishes</div><div class="s-value">' + tieStr(esc(mostBottom2.name), rows2.filter(m => m.bottom2 === mostBottom2.bottom2).length) + '<br>' + mostBottom2.bottom2 + ' times</div></div>' : '') +
-      '<div class="stat-card stat-card-green"><div class="s-label">🟢 Highest GW Score</div><div class="s-value">' + tieStr(esc(tickerInsights.highest.manager), tickerInsights.highest.tied) + '<br>GW' + tickerInsights.highest.gw + ' · ' + tickerInsights.highest.points + ' pts' + '</div></div>' +
-      '<div class="stat-card stat-card-red"><div class="s-label">🔴 Lowest GW Score</div><div class="s-value">' + tieStr(esc(tickerInsights.lowest.manager), tickerInsights.lowest.tied) + '<br>GW' + tickerInsights.lowest.gw + ' · ' + tickerInsights.lowest.points + ' pts' + '</div></div>' +
+      (mostGuinness && mostGuinness.totalG > 0 ? '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Most Guinness</div><div class="s-value">' + tieStr(mostGuinness.name, rows2.filter(m => m.totalG === mostGuinness.totalG).length) + '<br>' + mostGuinness.totalG + '</div></div>' : '') +
+      (mostTop4 && mostTop4.top4 > 0 ? '<div class="stat-card stat-card-green"><div class="s-label">🏆 Most Top 6 Finishes</div><div class="s-value">' + tieStr(mostTop4.name, rows2.filter(m => m.top4 === mostTop4.top4).length) + '<br>' + mostTop4.top4 + ' times</div></div>' : '') +
+      (mostBottom2 && mostBottom2.bottom2 > 0 ? '<div class="stat-card stat-card-red"><div class="s-label">💀 Most Bottom 4 Finishes</div><div class="s-value">' + tieStr(mostBottom2.name, rows2.filter(m => m.bottom2 === mostBottom2.bottom2).length) + '<br>' + mostBottom2.bottom2 + ' times</div></div>' : '') +
+      '<div class="stat-card stat-card-green"><div class="s-label">🟢 Highest GW Score</div><div class="s-value">' + tieStr(tickerInsights.highest.manager, tickerInsights.highest.tied) + '<br>GW' + tickerInsights.highest.gw + ' · ' + tickerInsights.highest.points + ' pts' + '</div></div>' +
+      '<div class="stat-card stat-card-red"><div class="s-label">🔴 Lowest GW Score</div><div class="s-value">' + tieStr(tickerInsights.lowest.manager, tickerInsights.lowest.tied) + '<br>GW' + tickerInsights.lowest.gw + ' · ' + tickerInsights.lowest.points + ' pts' + '</div></div>' +
       '<div class="stat-card"><div class="s-label">👑 Biggest Win Margin</div><div class="s-value">' + esc(tickerInsights.biggestMargin.manager) + '<br>GW' + tickerInsights.biggestMargin.gw + ' · ' + tickerInsights.biggestMargin.margin + ' pts' + '</div></div>' +
       (topMoney && topMoneyValue > 0 ? '<div class="stat-card"><div class="s-label">💰 Top Weekly Earner</div><div class="s-value">' + esc(topMoney.name) + '<br>$' + topMoneyValue.toFixed(2).replace('.00','') + '</div></div>' : '') +
       (isSeasonOver ? '<div class="stat-card stat-card-gold"><div class="s-label">🍺🎬 Rolling Can Rolling Can Award</div><div class="s-value">Jack Bernatchez<br>$50</div></div>' : '');
@@ -3133,7 +3144,7 @@ async function init() {
     });
     html += '</div>';
     rows2sorted.forEach((m, idx) => {
-      const pos = idx + 1;
+      const pos = activeSortKey === 'pts' ? (seasonRankMap[m.id] || idx + 1) : idx + 1;
       const sRank = seasonRankMap[m.id];
       const SEASON_PRIZES = {1:550,2:275,3:175,4:100,5:20};
       const sp = isSeasonOver ? (SEASON_PRIZES[sRank]||0) : 0;
@@ -3157,8 +3168,7 @@ async function init() {
       // Top row: rank + name + pts
       html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
       // Rank with trend arrow above
-      const prevRank = prevSeasonRankMap[m.id];
-      const rankChange = prevRank ? prevRank - pos : 0; // positive = moved up
+      const rankChange = rankChangeMap[m.id] !== undefined ? -rankChangeMap[m.id] : 0; // ticker uses positive=down, card uses positive=up
       let trendHtml = '';
       if (rankChange > 0) trendHtml = '<div style="font-size:9px;color:var(--green);line-height:1;text-align:center;">▲' + rankChange + '</div>';
       else if (rankChange < 0) trendHtml = '<div style="font-size:9px;color:var(--red);line-height:1;text-align:center;">▼' + Math.abs(rankChange) + '</div>';
@@ -4773,20 +4783,20 @@ async function init() {
       let html =
         '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">' +
         '<div style="position:relative;">' +
-        '<input id="weekly-manager-search" type="text" placeholder="👤 Jump to manager..." autocomplete="off"' +
-        ' style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;padding:8px 12px;font-size:16px;font-family:var(--font-mono);color:var(--text);outline:none;"' +
-        ' oninput="window._onWeeklyManagerSearch(this.value,event.target)"' +
-        ' onfocus="this.style.borderColor=\'var(--theme)\'"' +
-        ' onblur="setTimeout(()=>{const d=document.getElementById(\'weekly-manager-dropdown\');if(d)d.style.display=\'none\';this.style.borderColor=\'var(--theme-border)\'},200)">' +
-        '<div id="weekly-manager-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;margin-top:4px;z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.4);"></div>' +
-        '</div>' +
-        '<div style="position:relative;">' +
-        '<input id="weekly-player-search" type="text" placeholder="🔍 Highlight player owners..." autocomplete="off"' +
-        ' style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;padding:8px 12px;font-size:16px;font-family:var(--font-mono);color:var(--text);outline:none;"' +
+        '<input id="weekly-player-search" type="text" placeholder="🔍 Search player..." autocomplete="off"' +
+        ' style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;padding:8px 12px;font-size:13px;font-family:var(--font-mono);color:var(--text);outline:none;"' +
         ' oninput="window._onWeeklyPlayerSearch(this.value)"' +
         ' onfocus="this.style.borderColor=\'var(--theme)\'"' +
         ' onblur="setTimeout(()=>{const d=document.getElementById(\'weekly-player-dropdown\');if(d)d.style.display=\'none\';this.style.borderColor=\'var(--theme-border)\'},200)">' +
         '<div id="weekly-player-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;margin-top:4px;z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.4);"></div>' +
+        '</div>' +
+        '<div style="position:relative;">' +
+        '<input id="weekly-manager-search" type="text" placeholder="👤 Jump to manager..." autocomplete="off"' +
+        ' style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;padding:8px 12px;font-size:13px;font-family:var(--font-mono);color:var(--text);outline:none;"' +
+        ' oninput="window._onWeeklyManagerSearch(this.value,event.target)"' +
+        ' onfocus="this.style.borderColor=\'var(--theme)\'"' +
+        ' onblur="setTimeout(()=>{const d=document.getElementById(\'weekly-manager-dropdown\');if(d)d.style.display=\'none\';this.style.borderColor=\'var(--theme-border)\'},200)">' +
+        '<div id="weekly-manager-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--theme-border);border-radius:10px;margin-top:4px;z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.4);"></div>' +
         '</div>' +
         '</div>' +
         '<div class="table-outer"><div class="table-wrap"><table id="weekly-table">' +
@@ -7993,7 +8003,21 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     }).join('');
   };
 
-  window._jumpToATCard = function(name) {
+  window._onGWCardManagerSearch = function(query) {
+    const dropdown = document.getElementById('gw-card-manager-dropdown');
+    if (!dropdown) return;
+    const q = query.toLowerCase().trim();
+    const cards = [...document.querySelectorAll('.gw-card')];
+    const matches = cards.filter(c => (c.dataset.managerId||'').toLowerCase().includes(q));
+    if (!q || matches.length === 0) { dropdown.style.display = 'none'; return; }
+    dropdown.style.display = 'block';
+    dropdown.innerHTML = matches.map(c => {
+      const name = c.dataset.managerId || '';
+      return `<div onclick="document.getElementById('gw-card-manager-dropdown').style.display='none';document.getElementById('gw-card-manager-search').value='';(function(){const card=document.querySelector('.gw-card[data-manager-id=\\'${name.replace(/'/g,"\\'").replace(/"/g,'\\"')}\\']');if(card){card.scrollIntoView({behavior:'smooth',block:'center'});}})();" style="padding:10px 14px;cursor:pointer;font-family:var(--font-mono);font-size:14px;border-bottom:1px solid var(--border);">${name}</div>`;
+    }).join('');
+  };
+
+  window._jumpToGWCard = function(name) {
     const dropdown = document.getElementById('alltime-dropdown');
     const input = document.getElementById('alltime-search');
     if (dropdown) dropdown.style.display = 'none';
