@@ -2051,7 +2051,10 @@ async function init() {
   let _renderStandingsDebounceTimer = null;
   const _renderStandingsDebounced = () => {
     clearTimeout(_renderStandingsDebounceTimer);
-    _renderStandingsDebounceTimer = setTimeout(() => renderStandings(), 150);
+    _renderStandingsDebounceTimer = setTimeout(() => {
+      if (window.__viewingSeason) return;
+      renderStandings();
+    }, 150);
   };
 
   window._onWeeklyManagerSearch = function(val) {
@@ -2385,8 +2388,8 @@ async function init() {
         }
       } catch(e) {}
     }
-    // If we have cached picks + player pts but no live scores, compute scores immediately
-    if (!window._liveScoreCacheGW[currentGW] && window._picksCache && window._playerPtsCache &&
+    // If we have cached picks + player pts but no live scores, compute scores immediately (live GW only)
+    if (currentGW === state.liveGW && !window._liveScoreCacheGW[currentGW] && window._picksCache && window._playerPtsCache &&
         Object.keys(window._picksCache).filter(k => k.endsWith('_' + currentGW)).length > 0 &&
         Object.keys(window._playerPtsCache).length > 0) {
       window._liveScoreCacheGW[currentGW] = {};
@@ -2403,7 +2406,7 @@ async function init() {
       });
     }
     // Always recompute played/remaining/stuck from picks (handles both live and completed GWs)
-    if (currentGW && window._picksCache &&
+    if (currentGW === state.liveGW && currentGW && window._picksCache &&
         Object.keys(window._picksCache).filter(k => k.endsWith('_' + currentGW)).length > 0 &&
         window._liveScoreCacheGW[currentGW]) {
       state.managers.forEach(m => {
@@ -2502,8 +2505,9 @@ async function init() {
               cardUpdates.push({ mid, rawPts, hit, played, remaining, stuck: stuck||0, seasonTotal });
             }
           });
-        // Apply all updates in one animation frame
-        requestAnimationFrame(() => {
+        // Apply all updates in one animation frame (only for current season)
+        if (!window.__viewingSeason) requestAnimationFrame(() => {
+          if (window.__viewingSeason) return; // double-check inside RAF
           cardUpdates.forEach(({ mid, rawPts, played, remaining, stuck, seasonTotal }) => {
             const card = document.querySelector('[data-manager-id="' + mid + '"]');
             if (!card) return;
@@ -2632,8 +2636,10 @@ async function init() {
                       });
                       const hit = picks.entry_history?.event_transfers_cost || 0;
                       const { played, remaining, stuck } = computePlayedRemaining(picks.picks, maxPos);
-                      if (!window._liveScoreCacheGW[currentGW]) window._liveScoreCacheGW[currentGW] = {};
-                      window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining, stuck: stuck||0 };
+                      if (currentGW === state.liveGW) { // only cache live scores for current live GW
+                        if (!window._liveScoreCacheGW[currentGW]) window._liveScoreCacheGW[currentGW] = {};
+                        window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining, stuck: stuck||0 };
+                      }
                       } catch(scoreErr) { console.warn('[FPL] Score compute error for', m.id, scoreErr.message); }
                     } catch(e) { console.warn('[FPL] Picks fetch error for', m.id, e.message); }
                   }));
@@ -2641,9 +2647,9 @@ async function init() {
                   if (i + BATCH < state.managers.length) await new Promise(r => setTimeout(r, 300));
                 }
                 // Final re-render with complete sub-adjusted data
-                try { localStorage.setItem('ff_live_scores_v2_' + currentGW, JSON.stringify({ data: window._liveScoreCacheGW[currentGW], ts: Date.now() })); } catch(e) {}
+                try { if (currentGW === state.liveGW) localStorage.setItem('ff_live_scores_v2_' + currentGW, JSON.stringify({ data: window._liveScoreCacheGW[currentGW], ts: Date.now() })); } catch(e) {}
                 window._renderStandingsInProgress = false;
-                renderStandings();
+                if (!window.__viewingSeason) renderStandings();
               } finally { window._picksFetchInProgress = false; }
             })();
           }
@@ -2670,9 +2676,7 @@ async function init() {
       // Use live score for total when available (covers live GW and post-GW stale history)
       const liveTotal = liveScore
         ? (prevHist ? prevHist.total_points : 0) + liveScore.netPts
-        : latestHist
-          ? latestHist.total_points - (latestHist.event_transfers_cost || 0)
-          : m.total;
+        : m.total;
       // Read captain and chip directly from picks cache — no dependency on fetchChipsForGW
       const picks = window._picksCache?.[m.id + '_' + currentGW];
       const chip = (picks?.active_chip) || state.chipsHistory?.[m.id]?.[currentGW] || null;
@@ -3439,7 +3443,7 @@ async function init() {
       };
     });
     window._cardSortDir = -1;
-    window._cardSortKey = 'pts'; // matches default highlighted sort
+    window._cardSortKey = 'pts'; // always default to total pts for standings
 
     window._sortCards = function(key, btn) {
       // Toggle direction if same key
@@ -4797,7 +4801,7 @@ async function init() {
       const n = ranked.length;
 
       if (!state.weeklySort) state.weeklySort = {};
-      if (!state.weeklySort[gw]) state.weeklySort[gw] = { col: 'gwpts', dir: 'desc' };
+      if (!state.weeklySort[gw]) state.weeklySort[gw] = { col: gw >= 38 ? 'total' : 'gwpts', dir: 'desc' };
       const wsort = state.weeklySort[gw];
 
       const weekPrizes = computeWeeklyPrizes(ranked);
@@ -10219,6 +10223,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
 
   window._ssLive = () => {
     window._closeManagerOverlay?.();
+    window._cardSortKey = 'pts';
+    window._cardSortDir = -1;
     window.__viewingSeason = null;
     const cupBtn = document.getElementById('cup-tab-btn');
     if (cupBtn && !window._allCupMatches?.length) cupBtn.style.display = 'none';
@@ -10229,6 +10235,11 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
   };
   window._ss2025 = async function(silent = false) {
     window._closeManagerOverlay?.();
+    window._cardSortKey = 'pts';
+    window._cardSortDir = -1;
+    if (!state.weeklySort) state.weeklySort = {};
+    state.weeklySort[38] = { col: 'total', dir: 'desc' };
+    window._liveScoreCacheGW = {}; // clear live scores to avoid contaminating past season
     if (!silent) {
       updateSeasonLabel('2025 / 2026', false);
       const wtl = document.getElementById('weekly-tab-label');
@@ -10268,6 +10279,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     document.getElementById('main-tabs').style.borderBottom = '';
 
     document.getElementById('standings-content').innerHTML = '<div class="loading-state"><span class="spinner"></span>Loading 2025/2026...</div>';
+    const weeklyContent = document.getElementById('weekly-content') || document.querySelector('.standings-cards');
+    if (weeklyContent) weeklyContent.innerHTML = '';
 
     // Load managers from gw38.json
     try {
