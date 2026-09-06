@@ -3513,7 +3513,7 @@ async function init() {
       // (rank numbers are already set correctly when cards are rendered)
       // Close all drawers
       container.querySelectorAll('.s-card-drawer').forEach(d => d.style.display = 'none');
-      container.querySelectorAll('.s-card').forEach(c => { c.style.borderColor = ''; c.style.boxShadow = ''; });
+      container.querySelectorAll('.s-card').forEach(c => { c.style.boxShadow = ''; c.style.filter = ''; c.style.outline = ''; });
       // Reinsert sorted (after sort bar)
       const sortBar = document.getElementById('cards-sort-bar');
       cards.forEach(c => container.appendChild(c));
@@ -3526,14 +3526,13 @@ async function init() {
         const isOpen = drawer.style.display !== 'none';
         document.querySelectorAll('.s-card-drawer').forEach(d => d.style.display = 'none');
         document.querySelectorAll('.s-card').forEach(c => {
-          const accent = c.style.getPropertyValue('--card-accent');
-          c.style.borderColor = accent ? accent.replace(/[\d.]+\)$/, '0.2)') : '';
           c.style.boxShadow = '';
           c.style.filter = '';
+          c.style.outline = '';
         });
         if (isOpen) return;
-        const cardAccent = card.style.getPropertyValue('--card-accent') || 'rgba(85,226,233,0.9)';
-        card.style.borderColor = cardAccent;
+        card.style.outline = '2px solid ' + (card.style.getPropertyValue('--card-accent') || 'rgba(85,226,233,0.9)');
+        card.style.outlineOffset = '-1px';
         card.style.filter = 'brightness(1.1)';
         card.style.boxShadow = '0 4px 20px rgba(0,0,0,0.3)';
         drawer.style.display = 'block';
