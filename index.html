@@ -2335,7 +2335,8 @@ async function init() {
     const completedGWs = state.isLive ? state.liveGW - 1 : state.latestGW;
     const stats = completedGWs > 0 ? computeSeasonStats(completedGWs) : (() => { const s = {}; state.managers.forEach(m => { s[m.id] = { top4: 0, bottom2: 0, moneyWon: 0 }; }); return s; })();
     const completedGWsForPool = state.latestGW; // latestGW is always the last completed GW
-    const weeklyPool = completedGWsForPool * 65;
+    const gwPoolAmount = (window.__viewingSeason === '2025-2026') ? 60 : 65;
+    const weeklyPool = completedGWsForPool * gwPoolAmount;
     const SEASON_PRIZE_TOTAL = 550 + 275 + 175 + 100 + 20; // 1120
     const CUP_PRIZE_TOTAL = 225 + 125; // 350
     const KLUIS_AWARD = 50;
