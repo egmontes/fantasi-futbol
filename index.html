@@ -6552,6 +6552,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         if (tableBtn) tableBtn.textContent = 'GW' + gw + ' League Table';
         if (recapBtn) recapBtn.textContent = 'GW' + gw + ' Recap';
         updateExportBtn(gw);
+        loadGWFromCache(gw).then(() => updateExportBtn(gw));
         // Show callout for past GW views even when season is over
         document.getElementById('gw-callout').style.display = window.__viewingSeason ? 'none' : 'block';
         window.__lastWeeklyView = 'gw';
@@ -8703,7 +8704,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     window._viewingGW = gw;
     const btn = document.getElementById('export-gw-btn');
     if (!btn) return;
-    if (gw && !state.isLive) {
+    if (gw && (!state.isLive || gw < state.liveGW)) {
       btn.style.display = 'inline-flex';
       btn.style.color = 'var(--theme)';
       btn.style.borderColor = 'var(--theme-border)';
