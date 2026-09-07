@@ -1712,7 +1712,9 @@ async function init() {
         let page = 2;
         while (page <= 5 && !!data.standings.has_next) {
           data = await fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=${page++}`);
-          entries = entries.concat(data.standings.results);
+          const newResults = data.standings.results || [];
+          newResults.forEach(e => { if (!entries.find(x => x.entry === e.entry)) entries.push(e); });
+          if (!newResults.length) break;
         }
         { const raw = entries.map(e => ({ id: e.entry, name: e.player_name, team: e.entry_name, total: e.total, rank: e.rank })); const seen = new Set(); state.managers = raw.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; }); }
         try {
@@ -1752,10 +1754,15 @@ async function init() {
     // Cache miss or expired — fetch fresh
     try {
       let page = 1, entries = [], data;
-      while (page <= 5) { // max 5 pages = 250 managers, prevents infinite loop
+      const seenIds = new Set();
+      while (page <= 5) {
         data = await fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=${page}`);
-        entries = entries.concat(data.standings.results);
-        if (!data.standings.has_next || data.standings.has_next === 'false' || data.standings.results.length === 0) break;
+        const results = data.standings.results || [];
+        if (results.length === 0) break;
+        let addedNew = false;
+        results.forEach(e => { if (!seenIds.has(e.entry)) { seenIds.add(e.entry); entries.push(e); addedNew = true; } });
+        if (!addedNew) break; // all entries on this page were duplicates
+        if (!data.standings.has_next || data.standings.has_next === 'false') break;
         page++;
       }
       { const raw = entries.map(e => ({ id: e.entry, name: e.player_name, team: e.entry_name, total: e.total, rank: e.rank })); const seen = new Set(); state.managers = raw.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; }); }
@@ -2347,7 +2354,7 @@ async function init() {
       fetchChipsForGW(currentGW).then(() => {
         window._chipFetchInProgress = false;
         window._renderStandingsInProgress = false;
-        renderStandings();
+        if (!window._picksFetchInProgress) _renderStandingsDebounced();
       }).catch(() => { window._chipFetchInProgress = false; });
     }
 
@@ -2369,7 +2376,7 @@ async function init() {
         });
         window._fixtureFetchInProgress = false;
         window._renderStandingsInProgress = false;
-        renderStandings();
+        if (!window._picksFetchInProgress) _renderStandingsDebounced();
       }).catch(() => { window._fixtureFetchInProgress = false; });
     }
     const standingsChips = _chipCache[currentGW] || {};
