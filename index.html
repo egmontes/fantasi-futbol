@@ -944,25 +944,22 @@
   const FPL_BASE = 'https://fantasy.premierleague.com/api/';
 
   const PROXIES = [
+    t => 'https://bold-silence-15c1.eddygmontes.workers.dev' + t.replace('https://fantasy.premierleague.com/api', ''),
     t => 'https://cors.sh/' + t,
-    t => 'https://proxy.cors.sh/' + t,
-    t => 'https://corsproxy.dev/?' + t,
   ];
 
   async function fetchFPL(path, retries = 1) {
     const target = FPL_BASE + path;
-    // Try each proxy in order until one works
     for (let pi = 0; pi < PROXIES.length; pi++) {
       try {
         const res = await tryFetch(PROXIES[pi](target));
-        if (res.status === 429) continue; // try next proxy
+        if (res.status === 429) continue;
         if (!res.ok) continue;
         const text = await res.text();
-        if (text.trim().startsWith('<')) continue; // HTML response — try next proxy
+        if (text.trim().startsWith('<')) continue;
         return JSON.parse(text);
       } catch(e) { continue; }
     }
-    // All failed — retry with backoff
     if (retries > 0) {
       await new Promise(r => setTimeout(r, 500 + Math.random() * 500));
       return fetchFPL(path, retries - 1);
@@ -1019,7 +1016,7 @@
 
   async function tryFetch(url) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
+    const timeout = setTimeout(() => controller.abort(), 8000);
     try {
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
@@ -1346,7 +1343,7 @@ async function init() {
         const res = await fetch(`data/${CURRENT_SEASON}/bootstrap-static.json`);
         if (res.ok) staticBootstrap = await res.json();
       } catch(e) {}
-
+      
       if (staticBootstrap) {
         bootstrap = staticBootstrap;
         document.getElementById('page-loader-text').textContent = '⚡ Loading...';
@@ -1370,7 +1367,7 @@ async function init() {
         // No static file, no cache — must hit API with hard timeout
         bootstrap = await Promise.race([
           fetchFPL('bootstrap-static/'),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000))
         ]);
         try {
           localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(bootstrap));
@@ -1484,7 +1481,7 @@ async function init() {
       buildWeeklyDropdown();
 
       document.getElementById('page-loader-text').textContent = '👥 Loading managers...';
-
+    
       // When season is over, load managers from GW38 JSON — no API needed, works first visit
       if (skipBootstrap && !state.managers.length) {
         try {
@@ -1713,7 +1710,7 @@ async function init() {
       fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=1`).then(async data => {
         let entries = [...data.standings.results];
         let page = 2;
-        while (data.standings.has_next) {
+        while (page <= 5 && !!data.standings.has_next) {
           data = await fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=${page++}`);
           entries = entries.concat(data.standings.results);
         }
@@ -1738,7 +1735,7 @@ async function init() {
           fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=1`).then(async data => {
             let entries = [...data.standings.results];
             let page = 2;
-            while (data.standings.has_next) {
+            while (page <= 5 && !!data.standings.has_next) {
               data = await fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=${page++}`);
               entries = entries.concat(data.standings.results);
             }
@@ -1755,10 +1752,10 @@ async function init() {
     // Cache miss or expired — fetch fresh
     try {
       let page = 1, entries = [], data;
-      while (true) {
+      while (page <= 5) { // max 5 pages = 250 managers, prevents infinite loop
         data = await fetchFPL(`leagues-classic/${LEAGUE_ID}/standings/?page_standings=${page}`);
         entries = entries.concat(data.standings.results);
-        if (!data.standings.has_next) break;
+        if (!data.standings.has_next || data.standings.has_next === 'false' || data.standings.results.length === 0) break;
         page++;
       }
       { const raw = entries.map(e => ({ id: e.entry, name: e.player_name, team: e.entry_name, total: e.total, rank: e.rank })); const seen = new Set(); state.managers = raw.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; }); }
@@ -1768,7 +1765,7 @@ async function init() {
       } catch(e) {}
     } catch(e) {
       // Try stale cache as last resort (any age)
-      console.warn('loadLeague failed, trying stale cache:', e.message);
+      console.warn('loadLeague failed, trying stale cache:', e.message, e.stack?.slice(0,200));
       try {
         const cached = localStorage.getItem(CACHE_KEY);
         if (cached) {
@@ -1982,6 +1979,7 @@ async function init() {
       if (ranked.length < 2) continue;
       const prizes = computeWeeklyPrizes(ranked, season);
       ranked.forEach(m => {
+        if (!stats[m.id]) stats[m.id] = { top4: 0, bottom2: 0, moneyWon: 0 };
         const p = prizes[m.id];
         if (p.prize > 0) {
           stats[m.id].top4++;
@@ -2434,7 +2432,9 @@ async function init() {
       }
     }
     // Fetch live scores if: live GW, OR GW just ended (latestGW matches and history may be stale)
-    const shouldFetchLive = (!window._liveScoreCacheGW[currentGW] || Object.keys(window._liveScoreCacheGW[currentGW]).length === 0) && !window._liveScoreFetchInProgress &&
+    const liveScoreCacheComplete = window._liveScoreCacheGW[currentGW] && 
+      Object.keys(window._liveScoreCacheGW[currentGW]).length >= state.managers.length;
+    const shouldFetchLive = !liveScoreCacheComplete && !window._liveScoreFetchInProgress &&
       !isSeasonOver &&
       (state.isLive || currentGW === state.latestGW);
     // Always refresh player minutes in background when live (even if we have cached scores)
@@ -2506,41 +2506,7 @@ async function init() {
               cardUpdates.push({ mid, rawPts, hit, played, remaining, stuck: stuck||0, seasonTotal });
             }
           });
-        // Apply all updates in one animation frame (only for current season)
-        if (!window.__viewingSeason) requestAnimationFrame(() => {
-          if (window.__viewingSeason) return; // double-check inside RAF
-          cardUpdates.forEach(({ mid, rawPts, played, remaining, stuck, seasonTotal }) => {
-            const card = document.querySelector('[data-manager-id="' + mid + '"]');
-            if (!card) return;
-            const gwPtsEl = card.querySelector('.s-card-gwpts');
-            const playedEl = card.querySelector('.s-card-played');
-            const totalEl = card.querySelector('.s-card-total');
-            if (gwPtsEl) {
-              const _sortKey = window._cardSortKey || 'pts';
-              if (_sortKey === 'gwpts') {
-                gwPtsEl.style.display = 'none';
-              } else {
-                gwPtsEl.style.display = '';
-                gwPtsEl.textContent = 'GW ' + rawPts + 'pts';
-              }
-            }
-            if (totalEl) {
-              const _sortKey = window._cardSortKey || 'pts';
-              if (_sortKey === 'gwpts') totalEl.textContent = rawPts;
-              else if (_sortKey === 'earned') totalEl.textContent = '';
-              else totalEl.textContent = seasonTotal;
-            }
-            // Update total pts badge
-            const totalBadge = card.querySelector('.season-stat-badge[data-sort-key="pts"]');
-            if (totalBadge) totalBadge.textContent = 'Total ' + seasonTotal;
-            if (playedEl) {
-              const displayPlayed = played - (stuck||0);
-              const total = played + remaining - (stuck||0);
-              playedEl.textContent = displayPlayed + '/' + total + (remaining === 0 ? ' ✓' : '');
-              playedEl.style.color = 'var(--theme)';
-            }
-          });
-        });
+        // Score cache updated — final re-render happens after all picks are fetched below
         // Save updated cache
         try { localStorage.setItem('ff_live_scores_v2_' + currentGW, JSON.stringify({ data: window._liveScoreCacheGW[currentGW], ts: Date.now() })); } catch(e) {}
       }).catch(() => {});
@@ -2622,8 +2588,7 @@ async function init() {
                       window._picksCache[m.id + '_' + currentGW] = picks;
                       // Update loading progress message
                       const loaded = Object.keys(window._picksCache || {}).filter(k => k.endsWith('_' + currentGW)).length;
-                      console.log(`[picks] ${loaded}/52 loaded — active: ${_activeRequests}, queue: ${_requestQueue.length}`);
-                      const subEl = document.getElementById('live-load-sub');
+const subEl = document.getElementById('live-load-sub');
                       const msgEl = document.getElementById('live-load-msg');
                       if (subEl) subEl.textContent = 'GW' + currentGW + ' · ' + loaded + '/' + state.managers.length + ' managers';
                       if (msgEl) msgEl.textContent = loaded < state.managers.length * 0.5 ? 'Fetching picks...' : loaded < state.managers.length * 0.95 ? 'Almost there...' : 'Building standings...';
@@ -2732,11 +2697,10 @@ async function init() {
       if (diff !== 0) return diff;
       // Tiebreaker: alphabetical for pts sort, total pts for everything else
       if (activeSortKey === 'pts') return a.name.localeCompare(b.name);
-      const rankA = seasonRankMap[a.id] || 0;
-      const rankB = seasonRankMap[b.id] || 0;
-      if (rankA !== rankB) return activeSortDir === 1 ? rankB - rankA : rankA - rankB;
-      const nameCmp = a.name.localeCompare(b.name);
-      return activeSortDir === 1 ? -nameCmp : nameCmp;
+      const tieA = a.total || 0;
+      const tieB = b.total || 0;
+      if (tieA !== tieB) return activeSortDir === 1 ? tieB - tieA : tieA - tieB;
+      return a.name.localeCompare(b.name);
     });
     const rankChangeMap = {};
     if (currentGW > 1) {
@@ -4818,8 +4782,8 @@ async function init() {
         const gwHistEntry = (state.gwHistory[m.id] || []).find(h => h.event === gw);
         const gwTotal = gwHistEntry ? gwHistEntry.total_points : m.total;
         const s = gwSeasonStats[m.id] || {};
-        const totalG = getTotalGuinnesses(m.name, s.bottom2 || 0);
-        return { ...m, _displayRank: displayRank, _prize: p.prize, _shotgun: p.shotgun, _ineligible: p.ineligible, chip: chips[m.id] || null, gwTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, totalG };
+        const totalG = getTotalGuinnesses(m.name, (s||{}).bottom2 || 0);
+        return { ...m, _displayRank: displayRank, _prize: p.prize, _shotgun: p.shotgun, _ineligible: p.ineligible, chip: chips[m.id] || null, gwTotal, top4: (s||{}).top4 || 0, bottom2: (s||{}).bottom2 || 0, totalG };
       });
 
       // Sort by card sort key (for cards view) or wsort (for table view)
@@ -10144,6 +10108,9 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       if (savedProxy !== null) state.workingProxy = parseInt(savedProxy);
       const proxyTs = parseInt(localStorage.getItem('ff_working_proxy_ts') || '0');
       if (Date.now() - proxyTs > 60 * 60 * 1000) { state.workingProxy = null; localStorage.removeItem('ff_working_proxy'); }
+      // Always reset working proxy to 0 to use Cloudflare Worker first
+      state.workingProxy = null;
+      localStorage.removeItem('ff_working_proxy');
     }
   } catch(e) {}
   try {
