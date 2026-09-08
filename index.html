@@ -2905,6 +2905,16 @@ const subEl = document.getElementById('live-load-sub');
     }
     let mostTransIn = window._transferCache[transCacheKey]?.in || null;
     let mostTransOut = window._transferCache[transCacheKey]?.out || null;
+    // Load from localStorage if not in memory (skip if cached as null)
+    if (!mostTransIn || !mostTransOut) {
+      try {
+        const saved = JSON.parse(localStorage.getItem('ff_transfer_cache_' + gwLabel) || 'null');
+        if (saved && saved.in && saved.out && Date.now() - saved.ts < 24 * 60 * 60 * 1000) {
+          mostTransIn = saved.in;
+          mostTransOut = saved.out;
+        }
+      } catch(e) {}
+    }
 
     // Compute from our league's picks (current GW vs previous GW picks)
     if ((!mostTransIn || !mostTransOut) && window._picksCache) {
@@ -2938,6 +2948,10 @@ const subEl = document.getElementById('live-load-sub');
       if (!window._transferCache[transCacheKey]) window._transferCache[transCacheKey] = {};
       window._transferCache[transCacheKey].in = mostTransIn;
       window._transferCache[transCacheKey].out = mostTransOut;
+      // Only save to localStorage when we have actual data
+      if (mostTransIn && mostTransOut) {
+        try { localStorage.setItem('ff_transfer_cache_' + gwLabel, JSON.stringify({ in: mostTransIn, out: mostTransOut, ts: Date.now() })); } catch(e) {}
+      }
     }
 
     // If not cached, fetch in background after render
@@ -3460,7 +3474,7 @@ const subEl = document.getElementById('live-load-sub');
 
       // Update right side of each card to show sort value
       const scMeta = {
-        pts:     { label: 'total',    fmt: v => v, color: () => 'var(--text)' },
+        pts:     { label: 'total',    fmt: v => v, color: () => 'var(--theme)' },
         gwpts:   { label: 'gw pts', fmt: v => v !== null && v !== undefined ? v : '—', color: v => v > 0 ? 'var(--theme)' : 'var(--text3)' },
         earned:  { label: 'earned', fmt: v => '$' + (+v).toFixed(2), color: v => v > 0 ? 'var(--green)' : 'var(--text3)' },
         top4:    { label: 'top 6',  fmt: v => v || '0', color: v => v > 0 ? 'var(--green)' : 'var(--text3)' },
@@ -10097,9 +10111,17 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     if (_gwForPicks > 0) {
       const _picks = localStorage.getItem('ff_picks_cache_gw' + _gwForPicks);
       const _picksTs = parseInt(localStorage.getItem('ff_picks_cache_ts_gw' + _gwForPicks) || '0');
-      if (_picks && Date.now() - _picksTs < 24 * 60 * 60 * 1000) {
+      if (_picks && Date.now() - _picksTs < 30 * 24 * 60 * 60 * 1000) {
         window._picksCache = { ...(window._picksCache || {}), ...JSON.parse(_picks) };
         console.log(`[startup] Loaded ${Object.keys(window._picksCache).length} picks from cache for GW${_gwForPicks}`);
+      }
+      // Also load previous GW picks for transfer widget
+      if (_gwForPicks > 1) {
+        const _prevPicks = localStorage.getItem('ff_picks_cache_gw' + (_gwForPicks - 1));
+        const _prevPicksTs = parseInt(localStorage.getItem('ff_picks_cache_ts_gw' + (_gwForPicks - 1)) || '0');
+        if (_prevPicks && Date.now() - _prevPicksTs < 30 * 24 * 60 * 60 * 1000) {
+          window._picksCache = { ...(window._picksCache || {}), ...JSON.parse(_prevPicks) };
+        }
       }
     }
   } catch(e) {}
