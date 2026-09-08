@@ -2319,8 +2319,10 @@ async function init() {
                 window._picksFetchInProgress = false;
                 try {
                   localStorage.setItem('ff_live_scores_v2_' + _cGW, JSON.stringify({ data: window._liveScoreCacheGW[_cGW], ts: Date.now() }));
-                  // Cache picks — they don't change after deadline
-                  localStorage.setItem('ff_picks_cache_gw' + _cGW, JSON.stringify(window._picksCache));
+                  // Cache only current GW picks
+                  const gwPicksToSave = {};
+                  Object.entries(window._picksCache || {}).forEach(([k, v]) => { if (k.endsWith('_' + _cGW)) gwPicksToSave[k] = v; });
+                  localStorage.setItem('ff_picks_cache_gw' + _cGW, JSON.stringify(gwPicksToSave));
                   localStorage.setItem('ff_picks_cache_ts_gw' + _cGW, Date.now().toString());
                 } catch(e) {}
                 renderStandings();
@@ -2390,7 +2392,7 @@ async function init() {
         const saved = localStorage.getItem('ff_live_scores_v2_' + currentGW);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Date.now() - parsed.ts < 90 * 1000) window._liveScoreCacheGW[currentGW] = parsed.data;
+          if (Date.now() - parsed.ts < (state.isLive ? 90 * 1000 : 24 * 60 * 60 * 1000)) window._liveScoreCacheGW[currentGW] = parsed.data;
         }
       } catch(e) {}
     }
@@ -2619,8 +2621,28 @@ const subEl = document.getElementById('live-load-sub');
                   // Small delay between batches to avoid rate limiting
                   if (i + BATCH < state.managers.length) await new Promise(r => setTimeout(r, 300));
                 }
+                // Populate captain cache from all cached picks before final render
+                if (window._picksCache && state.bootstrapPlayers) {
+                  state.managers.forEach(m => {
+                    const picks = window._picksCache[m.id + '_' + currentGW];
+                    if (!picks?.picks) return;
+                    const isBB = picks.active_chip === 'bboost';
+                    const capPick = picks.picks.filter(p => p.position <= (isBB ? 15 : 11)).find(p => p.multiplier > 1);
+                    if (capPick) {
+                      if (!_captainCache[currentGW]) _captainCache[currentGW] = {};
+                      if (!_captainCache[currentGW][m.id]) _captainCache[currentGW][m.id] = { name: state.bootstrapPlayers[capPick.element], isVC: capPick.multiplier === 1.5 };
+                    }
+                    // Also populate chip cache from picks
+                    if (picks.active_chip) {
+                      if (!_chipCache[currentGW]) _chipCache[currentGW] = {};
+                      if (!_chipCache[currentGW][m.id]) _chipCache[currentGW][m.id] = picks.active_chip;
+                    }
+                  });
+                }
                 // Final re-render with complete sub-adjusted data
-                try { if (currentGW === state.liveGW) localStorage.setItem('ff_live_scores_v2_' + currentGW, JSON.stringify({ data: window._liveScoreCacheGW[currentGW], ts: Date.now() })); } catch(e) {}
+                try { localStorage.setItem('ff_live_scores_v2_' + currentGW, JSON.stringify({ data: window._liveScoreCacheGW[currentGW], ts: Date.now() })); } catch(e) {}
+                // Save chip cache
+                try { if (_chipCache[currentGW]) localStorage.setItem('ff_chips_cache_' + currentGW, JSON.stringify(_chipCache[currentGW])); } catch(e) {}
                 window._renderStandingsInProgress = false;
                 if (!window.__viewingSeason) renderStandings();
               } finally { window._picksFetchInProgress = false; }
@@ -2652,7 +2674,7 @@ const subEl = document.getElementById('live-load-sub');
         : m.total;
       // Read captain and chip directly from picks cache — no dependency on fetchChipsForGW
       const picks = window._picksCache?.[m.id + '_' + currentGW];
-      const chip = (picks?.active_chip) || state.chipsHistory?.[m.id]?.[currentGW] || null;
+      const chip = (picks?.active_chip) || _chipCache[currentGW]?.[m.id] || state.chipsHistory?.[m.id]?.[currentGW] || null;
       const capPick = picks?.picks?.find(p => p.is_captain);
       const capName = capPick ? (state.bootstrapPlayers[capPick.element] || null) : null;
       const captain = capName ? { name: capName, isVC: false } : (standingsCaptains[m.id] || null);
@@ -2663,7 +2685,7 @@ const subEl = document.getElementById('live-load-sub');
     // Compute prospective prizes/shotguns based on current live scores or latest GW history
     let liveProspective = {};
     const anyPlayerPlayed = Object.values(window._playerMinutesCache || {}).some(m => m > 0);
-    const shouldComputePrizes = (state.isLive || currentGW === state.latestGW) && Object.keys(liveScoreMap).length > 0 && anyPlayerPlayed;
+    const shouldComputePrizes = (state.isLive || currentGW === state.latestGW) && Object.keys(liveScoreMap).length >= state.managers.length && anyPlayerPlayed;
     if (shouldComputePrizes) {
       const liveRanked = [...rows]
         .filter(m => m.gwLatestPts !== null)
@@ -3252,7 +3274,7 @@ const subEl = document.getElementById('live-load-sub');
         if (activeSortKey !== 'gwpts') html += '<span class="s-card-gwpts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + gwPtsDisplay + '</span>';
         else html += '<span class="s-card-gwpts" style="display:none;"></span>';
         html += '<span class="season-stat-badge" data-sort-key="pts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;display:' + (activeSortKey === 'pts' ? 'none' : 'inline-block') + ';">Total ' + m.total + '</span>';
-        if ((state.isLive || currentGW === state.latestGW) && m.played !== null && hasPicks) {
+        if ((state.isLive || currentGW === state.latestGW) && m.played !== null) {
           const total = m.played + m.remaining - (m.stuck || 0);
           const displayPlayed = m.played - (m.stuck || 0);
           const allPlayed = m.remaining === 0;
