@@ -8331,7 +8331,14 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     const chip = (id) => Object.entries(state.chipsHistory?.[id]||{}).map(([gw,c]) => chipNames[c]+' GW'+gw).join(', ') || 'None';
 
     let p = `=== FANTASI FUTBOL ${CURRENT_SEASON_LABEL} SEASON RECAP ===\n\n`;
-    p += `You are writing the end-of-season newsletter for Fantasi Futbol, a ${seasonRanked.length}-manager FPL private league. Write an entertaining, emoji-rich, WhatsApp-formatted recap. Use **bold** for names and key moments. Be specific — call out GW numbers, scores, and moments from the data. Cover the champion's journey, the full top 5 with prize payouts, the cup final, the worst performers, interesting storylines, chip highlights, and shotgun callouts.\n\n`;
+    // Build shotgun manager list for tone guide
+    const finalGWRanked = getWeeklyRankings(maxGW);
+    const finalPrizes = finalGWRanked.length ? computeWeeklyPrizes(finalGWRanked, season) : {};
+    const shotgunManagers = seasonRanked.filter(m => {
+      const s = stats[m.id]||{};
+      return (s.bottom2||0) > 0;
+    }).map(m => m.name);
+    p += `You are writing the end-of-season newsletter for Fantasi Futbol, a ${seasonRanked.length}-manager FPL private league. Write an entertaining, emoji-rich, WhatsApp-formatted recap. Use **bold** for names and key moments. Be specific — call out GW numbers, scores, and moments from the data. Cover the champion's journey, the full top 5 with prize payouts, the cup final, the worst performers, interesting storylines, chip highlights, and shotgun callouts.\n\nTONE GUIDE: For managers who finished top 6, keep the tone celebratory and positive — highlight their achievements, good weeks, and smart decisions. Light ribbing is fine only if they had a notably bad moment (terrible chip timing, horrible week) that cost them a higher finish. For managers who owe shotgun beers (${shotgunManagers.join(', ')}), lean into heavy roasting — be ruthless and funny about their worst moments, lowest scores, and poor decisions. Make sure ALL of these managers get roasted — do not skip any. Middle of the table managers can get neutral or slightly playful commentary.\n\n`;
 
     p += `--- FINAL STANDINGS ---\n`;
     seasonRanked.forEach((m, i) => {
@@ -8387,10 +8394,19 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     Object.entries(chipSummary).forEach(([c,uses]) => { p += `${chipNames[c]||c}: ${uses.join(', ')}\n`; });
 
     p += `\n--- SHOTGUN DUTY ---\n`;
+    // Per-GW shotgun breakdown
+    for (let gw = 1; gw <= maxGW; gw++) {
+      const gwRanked = getWeeklyRankings(gw);
+      if (!gwRanked.length) continue;
+      const gwPrizes = computeWeeklyPrizes(gwRanked, season);
+      const shotgunners = gwRanked.filter(m => gwPrizes[m.id]?.shotgun).map(m => m.name);
+      if (shotgunners.length) p += `GW${gw}: ${shotgunners.join(' & ')} (shotgun)\n`;
+    }
+    p += `\n--- SHOTGUN TOTALS ---\n`;
     seasonRanked.forEach(m => {
       const s = stats[m.id]||{};
       const beers = getTotalGuinnesses(m.name, s.bottom2||0);
-      if ((s.bottom2||0) > 0 || beers > 0) p += `${m.name}: ${s.bottom2||0} bottom-2, ${beers} beers\n`;
+      if ((s.bottom2||0) > 0 || beers > 0) p += `${m.name}: ${s.bottom2||0} bottom finishes, ${beers} beers owed\n`;
     });
 
     return p;
