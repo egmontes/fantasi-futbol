@@ -3285,7 +3285,10 @@ const subEl = document.getElementById('live-load-sub');
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px;">';
         const hasPicks = !!window._picksCache?.[m.id + '_' + currentGW];
         const gwPtsDisplay = (!hasPicks && state.isLive) ? '...' : (m.gwRawPts || 0) + 'pts';
-        if (activeSortKey !== 'gwpts') html += '<span class="s-card-gwpts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + gwPtsDisplay + '</span>';
+        if (activeSortKey !== 'gwpts') {
+          const hitStr = m.gwHit > 0 ? ' <span style="color:var(--red);font-size:10px;">-' + m.gwHit + '</span>' : '';
+          html += '<span class="s-card-gwpts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">GW ' + gwPtsDisplay + hitStr + '</span>';
+        }
         else html += '<span class="s-card-gwpts" style="display:none;"></span>';
         html += '<span class="season-stat-badge" data-sort-key="pts" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;display:' + (activeSortKey === 'pts' ? 'none' : 'inline-block') + ';">Total ' + m.total + '</span>';
         if ((state.isLive || currentGW === state.latestGW) && m.played !== null) {
@@ -3300,7 +3303,10 @@ const subEl = document.getElementById('live-load-sub');
       html += '</div>'; // close name+chips column
       html += '<div style="text-align:right;flex-shrink:0;align-self:center;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">';
       const gwRightVal = (() => {
-        if (activeSortKey === 'gwpts') return (m.gwRawPts || 0) + '';
+        if (activeSortKey === 'gwpts') {
+          const rawPts = (m.gwRawPts || 0);
+          return m.gwHit > 0 ? rawPts + '<span style="color:var(--red);font-size:12px;font-weight:400;"> (-' + m.gwHit + ')</span>' : rawPts + '';
+        }
         if (activeSortKey === 'earned') return m.earned > 0 ? '$' + m.earned.toFixed(2) : '—';
         if (activeSortKey === 'top4') return m.top4 || 0;
         if (activeSortKey === 'bottom2') return m.bottom2 || 0;
@@ -3447,7 +3453,9 @@ const subEl = document.getElementById('live-load-sub');
         top4: m.top4,
         bottom2: m.bottom2,
         gmisses: m.gmisses,
-        totalG: m.totalG
+        totalG: m.totalG,
+        hit: m.gwHit || 0,
+        rawPts: m.gwRawPts || 0
       };
     });
     window._cardSortDir = -1;
@@ -3489,7 +3497,15 @@ const subEl = document.getElementById('live-load-sub');
         const val = key === 'gwpts' ? (d.gwpts ?? 0) : (d[key] ?? 0);
         const rv = card.querySelector('.sc-right-val');
         const rl = card.querySelector('.sc-right-label');
-        if (rv) { rv.textContent = scm.fmt(val); rv.style.color = scm.color(val); }
+        if (rv) {
+          if (key === 'gwpts') {
+            const hit = d.hit > 0 ? '<span style="color:var(--red);font-size:12px;font-weight:400;"> (-' + d.hit + ')</span>' : '';
+            rv.innerHTML = (d.rawPts || val) + hit;
+          } else {
+            rv.textContent = scm.fmt(val);
+          }
+          rv.style.color = scm.color(val);
+        }
         if (rl) rl.textContent = scm.label;
         // Hide badge for the active sort key
         const gwBadge = card.querySelector('.s-card-gwpts');
@@ -4082,7 +4098,7 @@ const subEl = document.getElementById('live-load-sub');
             let html = '<div class="manager-drawer-inner" style="flex-direction:column;align-items:stretch;padding:0.75rem 1.5rem;">';
             html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">';
             html += '<span style="font-size:11px;color:var(--theme);text-transform:uppercase;letter-spacing:0.06em;">Starting XI' + (isBB ? ' + Bench (BB)' : '') + '</span>';
-            html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);">Total: <span style="color:var(--text);">' + totalPts + ' pts</span></span>';
+            html += '<span style="font-size:11px;color:var(--theme);font-family:var(--font-mono);">GW Score: <span style="color:var(--text);">' + computedTotal + ' pts</span>' + (hit > 0 ? '<span style="color:var(--red);"> (-' + hit + ' hit)</span>' : '') + '</span>';
             html += '</div>';
             startingPicks.forEach(p => { html += renderPick(p, false); });
 
@@ -4098,7 +4114,7 @@ const subEl = document.getElementById('live-load-sub');
               const gwTransfers = transfers.filter(t => t.event === drawerGW);
 
               if (gwTransfers.length > 0) {
-                html += '<div style="font-size:11px;color:var(--theme);text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 6px;">Transfers</div>';
+                html += '<div style="font-size:11px;color:var(--theme);text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 6px;">Transfers' + (hit > 0 ? ' <span style="color:var(--red);text-transform:none;">(-' + hit + ' pt hit)</span>' : '') + '</div>';
                 gwTransfers.forEach(t => {
                   const nameOut = state.bootstrapPlayers[t.element_out] || ('Player ' + t.element_out);
                   const nameIn = state.bootstrapPlayers[t.element_in] || ('Player ' + t.element_in);
@@ -8303,9 +8319,14 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     const perManager = {};
     state.managers.forEach(m => {
       const hist = state.gwHistory[m.id] || [];
-      let high = 0, low = 999, sum = 0;
-      hist.forEach(h => { if (h.points > high) high = h.points; if (h.points < low) low = h.points; sum += h.points; });
-      perManager[m.id] = { high, low, avg: hist.length ? (sum/hist.length).toFixed(1) : 0, wins: gwWins[m.id]||0 };
+      let high = 0, low = 999, sum = 0, totalHits = 0;
+      hist.forEach(h => {
+        if (h.points > high) high = h.points;
+        if (h.points < low) low = h.points;
+        sum += h.points;
+        totalHits += (h.event_transfers_cost || 0);
+      });
+      perManager[m.id] = { high, low, avg: hist.length ? (sum/hist.length).toFixed(1) : 0, wins: gwWins[m.id]||0, totalHits };
     });
 
     // Most captained
@@ -8346,7 +8367,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       const sp = SEASON_PRIZES[i+1]||0;
       const cp = m.id===cupWinnerId ? CUP_PRIZES.winner : m.id===cupRunnerUpId ? CUP_PRIZES.runnerUp : 0;
       const pm = perManager[m.id]||{};
-      p += `${i+1}. ${m.name} (${m.team}) — ${m.total} pts | Avg: ${pm.avg}/GW | High: ${pm.high} | Low: ${pm.low} | GW wins: ${pm.wins} | Top4: ${s.top4||0} | Bot2: ${s.bottom2||0} | Earned: $${((s.moneyWon||0)+sp+cp).toFixed(0)} | Chips: ${chip(m.id)}\n`;
+      p += `${i+1}. ${m.name} (${m.team}) — ${m.total} pts | Avg: ${pm.avg}/GW | High: ${pm.high} | Low: ${pm.low} | GW wins: ${pm.wins} | Top4: ${s.top4||0} | Bot2: ${s.bottom2||0} | Hits: -${pm.totalHits||0} pts | Earned: $${((s.moneyWon||0)+sp+cp).toFixed(0)} | Chips: ${chip(m.id)}\n`;
     });
 
     p += `\n--- TOP 5 PAYOUTS ---\n`;
@@ -8375,6 +8396,22 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       const beers = getTotalGuinnesses(m.name, s.bottom2||0);
       p += `${m.name} — ${m.total} pts | Avg: ${pm.avg}/GW | Low: ${pm.low} | Bot2: ${s.bottom2||0} | Beers: ${beers}\n`;
     });
+
+    p += `\n--- TRANSFER HITS ---\n`;
+    let anyHits = false;
+    for (let gw = 1; gw <= TOTAL_GWS; gw++) {
+      const ranked = getWeeklyRankings(gw);
+      ranked.forEach(m => {
+        const hist = (state.gwHistory[m.id]||[]).find(h => h.event === gw);
+        const hitCost = hist?.event_transfers_cost || 0;
+        if (hitCost > 0) {
+          anyHits = true;
+          const rawPts = hist.points + hitCost;
+          p += `GW${gw}: ${m.name} took a -${hitCost} hit (raw ${rawPts} pts → net ${hist.points} pts)\n`;
+        }
+      });
+    }
+    if (!anyHits) p += `No transfer hits taken this season.\n`;
 
     p += `\n--- RECORDS ---\n`;
     const hm = state.managers.find(m=>m.id===highScore.managerId);
