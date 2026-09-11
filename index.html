@@ -733,15 +733,16 @@
     <span id="gw-deadline-label" style="font-size:11px;color:var(--theme);font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;"></span>
   </div>
   <div style="margin-top:2px;">
-    <button onclick="window._togglePrizePool()" style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;gap:4px;font-size:11px;font-family:var(--font-mono);color:var(--theme);font-weight:700;letter-spacing:.04em;">
-      <span id="prize-pool-arrow" style="font-size:9px;transition:transform 0.2s;color:var(--theme);">▶</span>
-      <span>Prize Pool</span>
-    </button>
-    <div id="prize-pool-drawer" style="display:none;margin-top:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;" id="prize-pool-drawer"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <button onclick="window._togglePrizePool()" style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;gap:4px;font-size:11px;font-family:var(--font-mono);color:var(--theme);font-weight:700;letter-spacing:.04em;">
+        <span id="prize-pool-arrow" style="font-size:9px;transition:transform 0.2s;color:var(--theme);">▶</span>
+        <span>Prize Pool</span>
+      </button>
+      <button id="export-gw-btn" onclick="window._exportCurrentGW()" style="display:none;background:var(--theme-dim);color:var(--theme);border:1px solid var(--theme-border);border-radius:6px;padding:3px 10px;font-size:11px;font-family:var(--font-mono);cursor:pointer;font-weight:600;">💾 Save GW</button>
+    </div>
+    <div id="prize-pool-drawer" style="display:none;margin-top:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;"></div>
   </div>
-  <div id="fpl-lineup-bar" style="display:none;align-items:center;gap:10px;margin-top:4px;">
-    <button id="export-gw-btn" onclick="window._exportCurrentGW()" style="display:none;margin-left:auto;flex-shrink:0;background:var(--theme-dim);color:var(--theme);border:1px solid var(--theme-border);border-radius:6px;padding:3px 10px;font-size:11px;font-family:var(--font-mono);cursor:pointer;font-weight:600;">💾 Save GW</button>
-  </div>
+  <div id="fpl-lineup-bar" style="display:none;"></div>
 </div>
 </div>
 <div class="tabs" id="main-tabs" style="visibility:hidden;">
