@@ -1910,7 +1910,7 @@ async function init() {
       if (!entry) return null;
       return {
         ...m,
-        gwPoints: entry.points,
+        gwPoints: entry.points - (entry.event_transfers_cost || 0),
         rawPoints: entry.points,
         transferCost: entry.event_transfers_cost,
         benchPoints: entry.points_on_bench,
@@ -2662,10 +2662,10 @@ const subEl = document.getElementById('live-load-sub');
       const liveScore = liveScoreMap[m.id];
       const histPts = latestHist ? (latestHist.points - (latestHist.event_transfers_cost || 0)) : null;
       const livePts = liveScore ? liveScore.netPts : null;
-      // Use whichever is available; if both exist, prefer live (history can be stale right after GW ends)
-      const gwLatestPts = livePts !== null ? livePts : histPts;
-      const gwRawPts = liveScore ? liveScore.rawPts : (latestHist ? latestHist.points : null);
-      const gwHit = liveScore ? liveScore.hit : (latestHist ? (latestHist.event_transfers_cost || 0) : 0);
+      // Between GWs, prefer history (accurate) over stale live cache
+      const gwLatestPts = (!state.isLive && histPts !== null) ? histPts : (livePts !== null ? livePts : histPts);
+      const gwHit = (latestHist?.event_transfers_cost || 0) || (liveScore?.hit || 0);
+      const gwRawPts = liveScore ? (liveScore.rawPts || (liveScore.netPts + gwHit)) : (latestHist ? latestHist.points : null);
       // Live total = last known total + live GW net score
       const prevHist = (state.gwHistory[m.id] || []).filter(h => h.event < currentGW).sort((a,b) => b.event - a.event)[0];
       // Use live score for total when available (covers live GW and post-GW stale history)
@@ -2684,12 +2684,17 @@ const subEl = document.getElementById('live-load-sub');
 
     // Compute prospective prizes/shotguns based on current live scores or latest GW history
     let liveProspective = {};
-    const anyPlayerPlayed = Object.values(window._playerMinutesCache || {}).some(m => m > 0);
+    const anyPlayerPlayed = Object.values(window._playerMinutesCache || {}).some(m => m > 0) ||
+      Object.values(liveScoreMap).some(s => s.played > 0);
     const shouldComputePrizes = (state.isLive || currentGW === state.latestGW) && Object.keys(liveScoreMap).length >= state.managers.length && anyPlayerPlayed;
     if (shouldComputePrizes) {
       const liveRanked = [...rows]
         .filter(m => m.gwLatestPts !== null)
-        .sort((a, b) => (b.gwLatestPts||0) - (a.gwLatestPts||0))
+        .sort((a, b) => {
+          const diff = (b.gwLatestPts||0) - (a.gwLatestPts||0);
+          if (diff !== 0) return diff;
+          return a.name.localeCompare(b.name); // consistent tiebreaker
+        })
         .map(m => ({ ...m, gwPoints: m.gwLatestPts || 0 }));
       if (liveRanked.length >= 2) {
         liveProspective = computeWeeklyPrizes(liveRanked);
@@ -3205,7 +3210,7 @@ const subEl = document.getElementById('live-load-sub');
     });
     html += '</div>';
     rows2sorted.forEach((m, idx) => {
-      const pos = activeSortKey === 'pts' ? (seasonRankMap[m.id] || idx + 1) : idx + 1;
+      const pos = seasonRankMap[m.id] || idx + 1;
       const sRank = seasonRankMap[m.id];
       const SEASON_PRIZES = {1:550,2:275,3:175,4:100,5:20};
       const sp = isSeasonOver ? (SEASON_PRIZES[sRank]||0) : 0;
@@ -3454,8 +3459,9 @@ const subEl = document.getElementById('live-load-sub');
         bottom2: m.bottom2,
         gmisses: m.gmisses,
         totalG: m.totalG,
-        hit: m.gwHit || 0,
-        rawPts: m.gwRawPts || 0
+        hit: (state.gwHistory[m.id]||[]).find(h=>h.event===currentGW)?.event_transfers_cost || m.gwHit || 0,
+        rawPts: m.gwRawPts || 0,
+        shotgun: m._shotgun || false
       };
     });
     window._cardSortDir = -1;
@@ -4072,7 +4078,7 @@ const subEl = document.getElementById('live-load-sub');
               const pts = playerPts[p.element] ?? 0;
               return sum + pts * p.multiplier;
             }, 0) + (isBB ? benchPicks.reduce((sum, p) => sum + (playerPts[p.element] ?? 0), 0) : 0);
-            const hit = picks.entry_history?.event_transfers_cost || 0;
+            const hit = picks.entry_history?.event_transfers_cost || (state.gwHistory[managerId]||[]).find(h=>h.event===drawerGW)?.event_transfers_cost || 0;
             const totalPts = computedTotal - hit;
 
             // Update the card score immediately with drawer's fresh data (only for current live GW)
@@ -5601,7 +5607,7 @@ async function buildPrompt(gw) {
       // Hydrate from JSON cache
       liveData = { elements: Object.entries(gwCache.players || {}).map(([id, p]) => ({
         id: parseInt(id),
-        stats: { total_points: p.points || 0, minutes: p.minutes || 0, goals_scored: p.goals || 0,
+        stats: { total_points: p.pts || 0, minutes: p.minutes || 0, goals_scored: p.goals || 0,
                  assists: p.assists || 0, clean_sheets: p.cs ? 1 : 0, bonus: p.bonus || 0 }
       })) };
       gwCache.managers.forEach(m => {
@@ -5611,6 +5617,7 @@ async function buildPrompt(gw) {
         const gwT = m.transfers || [];
         details[m.id] = {
           picks: m.picks,
+          history: m.history || null,
           captainName: cap ? (state.bootstrapPlayers[cap.element] || m.captain?.name || '?') : null,
           captainDNP: false,
           captainStats: null,
@@ -5631,13 +5638,40 @@ async function buildPrompt(gw) {
       });
       ownership = { owned: ownership, captained: {}, total: gwCache.managers.length };
     } else {
-      // Fall back to API fetches
-      [details, allChips, ownership, liveData] = await Promise.all([
-        fetchAllGWDetails(gw, ranked),
-        fetchChipsForGW(gw),
-        fetchOwnershipForGW(gw),
-        fetchFPL('event/' + gw + '/live/?t=' + Date.now())
-      ]);
+      // Fall back to API fetches — use cached data where available
+      const cachedPicks = window._picksCache || {};
+      const cachedPts = window._playerPtsCache || {};
+      const hasCachedData = Object.keys(cachedPicks).filter(k => k.endsWith('_' + gw)).length > 0 && Object.keys(cachedPts).length > 0;
+
+      if (hasCachedData) {
+        // Build liveData from cached player pts
+        liveData = { elements: Object.entries(cachedPts).map(([id, pts]) => ({
+          id: parseInt(id),
+          stats: { total_points: pts || 0, minutes: window._playerMinutesCache?.[parseInt(id)] || 0, goals_scored: 0, assists: 0, clean_sheets: 0, bonus: 0 }
+        })) };
+        // Build details from cached picks
+        state.managers.forEach(m => {
+          const picks = cachedPicks[m.id + '_' + gw];
+          if (!picks?.picks) return;
+          const cap = picks.picks.find(p => p.multiplier > 1);
+          const gwT = [];
+          details[m.id] = {
+            picks: picks.picks.map(p => ({ ...p, element: p.element, is_captain: p.multiplier > 1, is_vice_captain: false })),
+            captainName: cap ? (state.bootstrapPlayers[cap.element] || '?') : null,
+            captainDNP: false, captainStats: null, captainMult: cap?.multiplier || 2, captainBlank: false,
+            chip: picks.active_chip || null,
+            transfersIn: [], transfersOut: [], standouts: [], benchWaste: [],
+          };
+          allChips[m.id] = picks.active_chip || null;
+        });
+      } else {
+        [details, allChips, ownership, liveData] = await Promise.all([
+          fetchAllGWDetails(gw, ranked),
+          fetchChipsForGW(gw),
+          fetchOwnershipForGW(gw),
+          fetchFPL('event/' + gw + '/live/?t=' + Date.now())
+        ]);
+      }
     }
 
     const summaryLines = ranked.map((m, idx) => {
@@ -5720,7 +5754,7 @@ async function buildPrompt(gw) {
 
   // Transfers with point impact
   if (d.transfersIn && d.transfersIn.length > 0) {
-    const hit = d.picks?.entry_history?.event_transfers_cost || 0;
+    const hit = d.picks?.entry_history?.event_transfers_cost || d.history?.event_transfers_cost || d.hit || 0;
     const tLines = d.transfersIn.map((tin, i) => {
       const tout = d.transfersOut[i];
       const inPts = tin.stats?.pts || 0;
