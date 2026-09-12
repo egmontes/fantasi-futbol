@@ -5089,17 +5089,21 @@ const subEl = document.getElementById('live-load-sub');
         html += '</div>';
         // Row 2: GW stats (matching current GW card order)
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px;">';
-        html += '<span class="gw-season-badge" data-sort-key="gwPoints" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;display:' + (_gwSortKey === 'gwPoints' ? 'none' : 'inline-block') + ';">GW ' + m.gwPoints + 'pts</span>';
+        const hitStr = m.transferCost > 0 ? ' <span style="color:var(--red);font-size:10px;">-' + m.transferCost + '</span>' : '';
+        const displayGWPts = m.transferCost > 0 ? (m.rawPoints || m.gwPoints + m.transferCost) : m.gwPoints;
+        html += '<span class="gw-season-badge" data-sort-key="gwPoints" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;display:' + (_gwSortKey === 'gwPoints' ? 'none' : 'inline-block') + ';">GW ' + displayGWPts + 'pts' + hitStr + '</span>';
         html += '<span class="gw-season-badge" data-sort-key="gwTotal" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;display:' + (_gwSortKey === 'gwTotal' ? 'none' : 'inline-block') + ';">Total ' + m.gwTotal + '</span>';
         if (capStr) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">© ' + esc(capStr) + '</span>';
-        if (m.transferCost > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;">-' + m.transferCost + ' hit</span>';
         html += '</div>';
 
         html += '</div>'; // close name col
         html += '<div style="text-align:right;flex-shrink:0;align-self:center;">';
         const rightVal = (() => {
           const k = window._gwCardSortKey || 'gwPoints';
-          if (k === 'gwPoints') return m.gwPoints;
+          if (k === 'gwPoints') {
+            const raw = m.rawPoints || m.gwPoints;
+            return m.transferCost > 0 ? raw + '<span style="color:var(--red);font-size:12px;font-weight:400;"> (-' + m.transferCost + ')</span>' : raw;
+          }
           if (k === 'gwTotal') return m.gwTotal;
           if (k === '_prize') return m._prize > 0 ? '$' + m._prize.toFixed(2) : '—';
           if (k === 'top4') return m.top4 || 0;
