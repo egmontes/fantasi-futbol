@@ -2738,10 +2738,11 @@ const subEl = document.getElementById('live-load-sub');
       return a.name.localeCompare(b.name);
     });
     const rankChangeMap = {};
+    let allZeroForMover = true; // default to true until we have scores
     if (currentGW > 1) {
       const hasLiveScoresForMover = (state.isLive || currentGW === state.latestGW) && liveScoreMap && Object.keys(liveScoreMap).length > 0;
       const maxScoreForMover = hasLiveScoresForMover ? Math.max(...Object.values(liveScoreMap).map(s => s.netPts || 0)) : 0;
-      const allZeroForMover = maxScoreForMover <= 0;
+      allZeroForMover = maxScoreForMover <= 0;
       const moverGW = allZeroForMover ? currentGW - 1 : currentGW;
 
       if (moverGW > 1) {
@@ -3014,8 +3015,8 @@ const subEl = document.getElementById('live-load-sub');
       (mostTransIn ? '<div class="stat-card stat-card-green" data-widget="trans-in"><div class="s-label">📈 GW' + gwLabel + ' Most Transferred In</div><div class="s-value">' + esc(mostTransIn.web_name) + '<br>' + mostTransIn.transfers_in_event + ' manager' + (mostTransIn.transfers_in_event !== 1 ? 's' : '') + '</div></div>' : '') +
       (mostTransOut ? '<div class="stat-card stat-card-red" data-widget="trans-out"><div class="s-label">📉 GW' + gwLabel + ' Most Transferred Out</div><div class="s-value">' + esc(mostTransOut.web_name) + '<br>' + mostTransOut.transfers_out_event + ' manager' + (mostTransOut.transfers_out_event !== 1 ? 's' : '') + '</div></div>' : '') +
       (mostCaptained ? '<div class="stat-card stat-card-gold"><div class="s-label">©️ GW' + gwLabel + ' Most Captained</div><div class="s-value">' + esc(mostCaptained.name) + '<br>' + mostCaptained.count + ' mgrs</div></div>' : '') +
-      (biggestMoverUp ? '<div class="stat-card stat-card-green"><div class="s-label">🚀 GW' + gwLabel + ' Biggest Mover Up</div><div class="s-value">' + esc(biggestMoverUp.name) + (biggestMoverUp.change !== 0 ? '<br>▲' + biggestMoverUp.change + ' spots' : '') + '</div></div>' : '') +
-      (biggestMoverDown ? '<div class="stat-card stat-card-red"><div class="s-label">📉 GW' + gwLabel + ' Biggest Mover Down</div><div class="s-value">' + esc(biggestMoverDown.name) + (biggestMoverDown.change !== 0 ? '<br>▼' + Math.abs(biggestMoverDown.change) + ' spots' : '') + '</div></div>' : '') +
+      (!allZeroForMover && biggestMoverUp ? '<div class="stat-card stat-card-green"><div class="s-label">🚀 GW' + gwLabel + ' Biggest Mover Up</div><div class="s-value">' + esc(biggestMoverUp.name) + (biggestMoverUp.change !== 0 ? '<br>▲' + biggestMoverUp.change + ' spots' : '') + '</div></div>' : '') +
+      (!allZeroForMover && biggestMoverDown ? '<div class="stat-card stat-card-red"><div class="s-label">📉 GW' + gwLabel + ' Biggest Mover Down</div><div class="s-value">' + esc(biggestMoverDown.name) + (biggestMoverDown.change !== 0 ? '<br>▼' + Math.abs(biggestMoverDown.change) + ' spots' : '') + '</div></div>' : '') +
       (completedGWsForPool > 0 || isSeasonOver ? '<div class="stat-card"><div class="s-label">' + (isSeasonOver ? '💵 Total Payouts' : '💵 Payouts So Far') + '</div><div class="s-value big-value">$' + totalPool + '</div></div>' : '') +
       '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Guinness Chugged</div><div class="s-value big-value">' + totalGuinnessChugged + '</div></div>' +
       (mostGuinnessRow && mostGuinnessRow.totalG > 0 ? '<div class="stat-card stat-card-guinness"><div class="s-label">🍺 Most Guinness</div><div class="s-value">' + tieStr(mostGuinnessRow.name, guinnessRows.filter(m => m.totalG === mostGuinnessRow.totalG).length, m => m.totalG) + '<br>' + mostGuinnessRow.totalG + '</div></div>' : '') +
