@@ -1206,8 +1206,19 @@
         (window._playerMinutesCache?.[b.element] || 0) > 0 &&
         (sType === 1 ? getType(b.element) === 1 : getType(b.element) > 1)
       );
-      if (validSub) { remaining += count; usedBench.add(validSub.element); }
-      else { played += count; stuck += count; }
+      if (validSub) {
+        usedBench.add(validSub.element);
+        // Sub confirmed (played mins) — starter counts as played, not stuck
+        played += count;
+      } else {
+        // Check if there's a bench player who could sub but hasn't played yet
+        const pendingSub = benchPicks.find(b =>
+          !usedBench.has(b.element) &&
+          (sType === 1 ? getType(b.element) === 1 : getType(b.element) > 1)
+        );
+        if (pendingSub && !fixtureFinished(p.element)) { remaining += count; }
+        else { played += count; stuck += count; }
+      }
     });
     return { played, remaining, stuck };
   }
