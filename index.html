@@ -515,7 +515,7 @@
       border-radius: 99px;
       white-space: nowrap;
     }
-    .badge-1 { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
+    .badge-amber { font-size:11px;font-family:var(--font-mono);background:var(--amber-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px; }
     .badge-2 { background: var(--silver-dim); color: var(--silver); border: 1px solid rgba(203,213,225,0.2); }
     .badge-3 { background: #2a1a0a; color: #cd7f32; border: 1px solid rgba(205,127,50,0.2); }
     .badge-4 { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
@@ -1111,23 +1111,12 @@
   // Uses raw ranking logic (no computeWeeklyPrizes) to avoid circular dependency
   const _shotgunCache = {};
   function getShotgunManagersForGW(gw) {
-    if (_shotgunCache[gw]) return _shotgunCache[gw];
+    if (_shotgunCache[gw]?.size > 0) return _shotgunCache[gw];
     const ranked = getWeeklyRankings(gw);
     const names = new Set();
-    if (ranked.length < 2) { _shotgunCache[gw] = names; return names; }
-    const n = ranked.length;
-    // Find bottom-2 boundary, expanding for ties
-    let shotgunStart = n - 2;
-    while (shotgunStart > 0 && ranked[shotgunStart - 1].gwPoints === ranked[shotgunStart].gwPoints) {
-      shotgunStart--;
-    }
-    // Only mark as shotgun if they're at or below the last-place score
-    // (prevents top-tied managers from being incorrectly flagged)
-    const lastScore = ranked[n - 1].gwPoints;
-    const secondLastScore = ranked[n - 2].gwPoints;
-    ranked.forEach((m, idx) => {
-      if (m.gwPoints <= secondLastScore) names.add(m.name);
-    });
+    if (ranked.length < 2) return names;
+    const prizes = computeWeeklyPrizes(ranked, null, true); // true = skip guinness to avoid recursion
+    ranked.forEach(m => { if (prizes[m.id]?.shotgun) names.add(m.name); });
     _shotgunCache[gw] = names;
     return names;
   }
@@ -1154,7 +1143,6 @@
 
   // Current owed for standings = owed at start of next GW
   function getGuinnessOwed(name) {
-    if (state.isLive) return 0; // GW in progress — no debts until GW completes
     return getGuinnessOwedAtGW(name, state.latestGW + 1);
   }
 
@@ -1934,14 +1922,14 @@ async function init() {
   }
 
   // Given sorted ranked rows, compute prize and shotgun assignments with tie splitting
-  function computeWeeklyPrizes(ranked, season) {
+  function computeWeeklyPrizes(ranked, season, skipGuinness) {
     const n = ranked.length;
     const prizes = {}; // managerId -> { prize, shotgun, ineligible }
     ranked.forEach(m => { prizes[m.id] = { prize: 0, shotgun: false, ineligible: false }; });
 
     // Mark ineligible managers (those with outstanding Guinnesses owed)
     // They still earn the prize but can't collect until debts are cleared
-    ranked.forEach(m => {
+    if (!skipGuinness) ranked.forEach(m => {
       if (getGuinnessOwed(m.name) > 0) {
         prizes[m.id].ineligible = true;
       }
@@ -3312,8 +3300,8 @@ const subEl = document.getElementById('live-load-sub');
           + '</span>';
         if (m.top4 > 0) html += '<span class="season-stat-badge" data-sort-key="top4" style="font-size:11px;font-family:var(--font-mono);background:var(--green-dim);border-radius:6px;padding:3px 8px;display:' + (activeSortKey === 'top4' ? 'none' : 'inline-flex') + ';gap:2px;"><span style="color:var(--green);">Top 6:</span><span style="color:var(--text);">' + m.top4 + '</span></span>';
         if (m.bottom2 > 0) html += '<span class="season-stat-badge" data-sort-key="bottom2" style="font-size:11px;font-family:var(--font-mono);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:' + (activeSortKey === 'bottom2' ? 'none' : 'inline-flex') + ';gap:2px;"><span style="color:var(--red);">Bot 4:</span><span style="color:var(--text);">' + m.bottom2 + '</span></span>';
-        if (m.totalG > 0) html += '<span class="season-stat-badge" data-sort-key="totalG" style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border-radius:6px;padding:3px 8px;display:' + (activeSortKey === 'totalG' ? 'none' : 'inline-flex') + ';gap:2px;"><span style="color:var(--amber);">🍺:</span><span style="color:var(--text);">' + m.totalG + '</span></span>';
-        if (m.gmisses > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--red);">⚠️ Owes:</span><span style="color:var(--text);">' + m.gmisses + '</span></span>';
+        if (m.totalG > 0) html += '<span class="season-stat-badge badge-amber" data-sort-key="totalG" style="display:' + (activeSortKey === 'totalG' ? 'none' : 'inline-flex') + ';"><span style="color:var(--amber);">🍺 Tot:</span><span style="color:var(--text);">' + m.totalG + '</span></span>';
+        if (m.gmisses > 0) html += '<span class="badge-amber"><span style="color:var(--amber);">🍺 Owes:</span><span style="color:var(--text);">' + m.gmisses + '</span></span>';
         if (m.missedG > 0) html += chip('Missed:', m.missedG, 'var(--red)', 'var(--red-dim)');
         html += '</div>';
       }
@@ -3380,7 +3368,7 @@ const subEl = document.getElementById('live-load-sub');
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--text3);background:var(--bg3);border-radius:6px;padding:3px 8px;">$0.00</span>';
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--red);">Bot 4:</span><span style="color:var(--text);">2</span></span>';
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--amber);">Total 🍺:</span><span style="color:var(--text);">5</span></span>';
-        html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--red);">⚠️ Owes:</span><span style="color:var(--text);">4</span></span>';
+        html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--amber);">🍺 Owes:</span><span style="color:var(--text);">4</span></span>';
         html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--red);">Missed:</span><span style="color:var(--text);">3</span></span>';
         html += '</div>';
         html += '</div>';
@@ -5095,7 +5083,8 @@ const subEl = document.getElementById('live-load-sub');
         if (m.bottom2 > 0) html += '<span class="gw-season-badge" data-sort-key="bottom2" style="font-size:11px;font-family:var(--font-mono);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:' + (_gwSortKey === 'bottom2' ? 'none' : 'inline-flex') + ';gap:2px;"><span style="color:var(--red);">Bot 4:</span><span style="color:var(--text);">' + m.bottom2 + '</span></span>';
         const cardOwed = getGuinnessOwedAtGW(m.name, gw);
         const cardMissed = didMissGW(m.name, gw);
-        if (cardOwed > 0) html += '<span class="gw-season-badge" data-sort-key="totalG" style="font-size:11px;font-family:var(--font-mono);color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:3px 8px;display:' + (_gwSortKey === 'totalG' ? 'none' : 'inline-block') + ';">🍺 Owes: ' + cardOwed + '</span>';
+        if (m.totalG > 0) html += '<span class="gw-season-badge badge-amber" data-sort-key="totalG" style="display:' + (_gwSortKey === 'totalG' ? 'none' : 'inline-flex') + ';"><span style="color:var(--amber);">🍺 Tot:</span><span style="color:var(--text);">' + m.totalG + '</span></span>';
+        if (cardOwed > 0) html += '<span class="gw-season-badge badge-amber" data-sort-key="totalG" style="display:' + (_gwSortKey === 'totalG' ? 'none' : 'inline-flex') + ';"><span style="color:var(--amber);">🍺 Owes:</span><span style="color:var(--text);">' + cardOwed + '</span></span>';
         if (cardMissed) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;">❌ Missed</span>';
         html += '</div>';
         // Row 2: GW stats (matching current GW card order)
