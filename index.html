@@ -2441,13 +2441,14 @@ async function init() {
       }
     }
     // Fetch live scores if: live GW, OR GW just ended (latestGW matches and history may be stale)
-    const liveScoreCacheComplete = window._liveScoreCacheGW[currentGW] && 
+    const gwJustCompleted = !state.isLive && currentGW === state.latestGW;
+    const liveScoreCacheComplete = !gwJustCompleted && window._liveScoreCacheGW[currentGW] && 
       Object.keys(window._liveScoreCacheGW[currentGW]).length >= state.managers.length;
     const shouldFetchLive = !liveScoreCacheComplete && !window._liveScoreFetchInProgress &&
       !isSeasonOver &&
       (state.isLive || currentGW === state.latestGW);
     // Always refresh player minutes in background when live (even if we have cached scores)
-    const shouldRefreshMinutes = state.isLive && !window._liveScoreFetchInProgress && !shouldFetchLive &&
+    const shouldRefreshMinutes = (state.isLive || gwJustCompleted) && !window._liveScoreFetchInProgress && !shouldFetchLive &&
       (!window._playerMinutesCache || !Object.keys(window._playerMinutesCache).length ||
        Date.now() - (window._lastMinutesFetch||0) > 2 * 60 * 1000);
     if (shouldRefreshMinutes) {
@@ -2729,11 +2730,7 @@ const subEl = document.getElementById('live-load-sub');
       else { va = a.total || 0; vb = b.total || 0; }
       const diff = activeSortDir * (va - vb);
       if (diff !== 0) return diff;
-      // Tiebreaker: alphabetical for pts sort, total pts for everything else
-      if (activeSortKey === 'pts') return a.name.localeCompare(b.name);
-      const tieA = a.total || 0;
-      const tieB = b.total || 0;
-      if (tieA !== tieB) return activeSortDir === 1 ? tieB - tieA : tieA - tieB;
+      // Always use alphabetical as final tiebreaker for stability
       return a.name.localeCompare(b.name);
     });
     const rankChangeMap = {};
@@ -3225,8 +3222,9 @@ const subEl = document.getElementById('live-load-sub');
     html += `<div id="cards-sort-bar" style="position:sticky;top:var(--sticky-toggle-top,150px);z-index:12;background:var(--bg);padding:4px 0;display:flex;gap:0;flex-wrap:nowrap;align-items:center;margin-bottom:12px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--border);width:100%;">`;
     html += '';
     sortOptions.forEach((opt, i) => {
-      const isActive = i === 0;
-      html += '<button onclick="window._sortCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:' + (isActive ? 'var(--theme-dim)' : 'transparent') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';font-weight:' + (isActive ? '600' : 'normal') + ';padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + (isActive ? ' ↓' : '') + '</button>';
+      const isActive = opt.key === activeSortKey;
+      const arrow = isActive ? (activeSortDir === -1 ? ' ↓' : ' ↑') : '';
+      html += '<button onclick="window._sortCards(\'' + opt.key + '\', this)" data-sort-key="' + opt.key + '" data-label="' + opt.label + '" style="flex:1;border-radius:6px;border:none;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all 0.15s;background:' + (isActive ? 'var(--theme-dim)' : 'transparent') + ';color:' + (isActive ? 'var(--theme)' : 'var(--text3)') + ';font-weight:' + (isActive ? '600' : 'normal') + ';padding:6px 14px;white-space:nowrap;text-align:center;">' + opt.label + arrow + '</button>';
     });
     html += '</div>';
     rows2sorted.forEach((m, idx) => {
@@ -3484,8 +3482,8 @@ const subEl = document.getElementById('live-load-sub');
         shotgun: m._shotgun || false
       };
     });
-    window._cardSortDir = -1;
-    window._cardSortKey = 'pts'; // always default to total pts for standings
+    window._cardSortDir = window._cardSortDir || -1;
+    window._cardSortKey = window._cardSortKey || 'pts'; // preserve user's sort choice, default to pts
 
     window._sortCards = function(key, btn) {
       // Toggle direction if same key
@@ -3554,10 +3552,8 @@ const subEl = document.getElementById('live-load-sub');
         const vb = key === 'gwpts' ? (db?.gwpts ?? 0) : (db?.[key] ?? 0);
         const diff = window._cardSortDir * (va - vb);
         if (diff !== 0) return diff;
-        // Tiebreaker: use original position
-        const posA = da?.pos || 0;
-        const posB = db?.pos || 0;
-        return window._cardSortDir === 1 ? posB - posA : posA - posB;
+        // Alphabetical tiebreaker — matches full re-render for stability
+        return (da?.name || '').localeCompare(db?.name || '');
       });
       // Keep rank numbers fixed — they represent season standing, not sort position
       // (rank numbers are already set correctly when cards are rendered)
