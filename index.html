@@ -5554,7 +5554,25 @@ async function buildPrompt(gw) {
     const ranked = getWeeklyRankings(gw);
 
     if (!ranked.length || !state.managers.length) {
-      throw new Error('No data available for GW' + gw + ' yet — check back after the gameweek completes.');
+      // If recently completed, try building rankings from live score cache
+      if (state.isRecentlyCompleted && Object.keys(window._liveScoreCacheGW?.[gw]||{}).length > 0) {
+        // Inject live scores into gwHistory temporarily for this build
+        state.managers.forEach(m => {
+          const ls = window._liveScoreCacheGW[gw][m.id];
+          if (!ls) return;
+          if (!state.gwHistory[m.id]) state.gwHistory[m.id] = [];
+          if (!state.gwHistory[m.id].find(h => h.event === gw)) {
+            const prevHist = state.gwHistory[m.id].filter(h => h.event < gw).sort((a,b) => b.event - a.event)[0];
+            state.gwHistory[m.id].push({
+              event: gw, points: ls.rawPts, total_points: (prevHist?.total_points || 0) + ls.netPts,
+              event_transfers_cost: ls.hit || 0, points_on_bench: 0, event_transfers: 0
+            });
+          }
+        });
+        ranked.splice(0, ranked.length, ...getWeeklyRankings(gw));
+      } else {
+        throw new Error('No data available for GW' + gw + ' yet — check back after the gameweek completes.');
+      }
     }
 
     const weekPrizes = computeWeeklyPrizes(ranked);
@@ -6069,8 +6087,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       return;
     }
 
-    // Live GW — show pending message
-    if (state.isLive) {
+    // Live GW — show pending message (but not if recently completed)
+    if (state.isLive && !state.isRecentlyCompleted) {
       document.getElementById('recap-content').innerHTML = `
         <div style="text-align:center;padding:3rem 1rem;">
           <div style="font-size:2rem;margin-bottom:1rem;">⏳</div>
@@ -7030,7 +7048,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     if (!recapContent) return;
 
     // Reuse the same recap logic as setupRecapTab but targeting standings-recap-content
-    const isLiveGW = state.isLive;
+    const isLiveGW = state.isLive && !state.isRecentlyCompleted;
 
     if (isLiveGW) {
       recapContent.innerHTML = '<div style="text-align:center;padding:3rem 1rem;"><div style="font-size:2rem;margin-bottom:1rem;">⏳</div><div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px;">GW' + gw + ' Recap Pending</div><div style="font-size:13px;color:var(--text3);max-width:360px;margin:0 auto;line-height:1.6;">The gameweek is still in progress. Come back once all matches are complete and scores are finalized.</div></div>';
