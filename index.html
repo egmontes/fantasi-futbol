@@ -10285,12 +10285,27 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     const _cachedGW = parseInt(localStorage.getItem('ff_latest_gw') || '0');
     const _liveGW = parseInt(localStorage.getItem('ff_live_gw') || '0');
     const _gwForPicks = _liveGW || _cachedGW;
+    const _isRecentlyCompleted = _liveGW > 0 && _liveGW === _cachedGW && !localStorage.getItem('ff_history_gw' + _liveGW);
     if (_gwForPicks > 0) {
       const _picks = localStorage.getItem('ff_picks_cache_gw' + _gwForPicks);
       const _picksTs = parseInt(localStorage.getItem('ff_picks_cache_ts_gw' + _gwForPicks) || '0');
       if (_picks && Date.now() - _picksTs < 30 * 24 * 60 * 60 * 1000) {
-        window._picksCache = { ...(window._picksCache || {}), ...JSON.parse(_picks) };
-        console.log(`[startup] Loaded ${Object.keys(window._picksCache).length} picks from cache for GW${_gwForPicks}`);
+        const _parsed = JSON.parse(_picks);
+        // If recently completed, only load picks that have automatic_subs (otherwise skip — will re-fetch)
+        if (_isRecentlyCompleted) {
+          const gwKey = Object.keys(_parsed).find(k => k.endsWith('_' + _gwForPicks));
+          const hasAutoSubs = gwKey && Array.isArray(_parsed[gwKey]?.automatic_subs);
+          if (hasAutoSubs) {
+            window._picksCache = { ...(window._picksCache || {}), ..._parsed };
+            console.log(`[startup] Loaded ${Object.keys(window._picksCache).length} picks from cache for GW${_gwForPicks} (with auto_subs)`);
+          } else {
+            localStorage.removeItem('ff_picks_cache_gw' + _gwForPicks);
+            console.log(`[startup] Skipped stale picks for GW${_gwForPicks} — no auto_subs, will re-fetch`);
+          }
+        } else {
+          window._picksCache = { ...(window._picksCache || {}), ..._parsed };
+          console.log(`[startup] Loaded ${Object.keys(window._picksCache).length} picks from cache for GW${_gwForPicks}`);
+        }
       }
       // Also load previous GW picks for transfer widget
       if (_gwForPicks > 1) {
@@ -10316,19 +10331,25 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       state.latestGW = _cachedGW;
       state.currentGW = _liveGW;
       // Clear picks cache every load when recently completed — forces fresh fetch with automatic_subs
-      // This is safe since picks are re-fetched and re-saved with automatic_subs included
       try {
         const cachedPicks = localStorage.getItem('ff_picks_cache_gw' + _liveGW);
         if (cachedPicks) {
           const parsed = JSON.parse(cachedPicks);
           const gwKey = Object.keys(parsed).find(k => k.endsWith('_' + _liveGW));
           const hasAutoSubs = gwKey && Array.isArray(parsed[gwKey]?.automatic_subs);
-          if (!hasAutoSubs) localStorage.removeItem('ff_picks_cache_gw' + _liveGW);
+          if (!hasAutoSubs) {
+            localStorage.removeItem('ff_picks_cache_gw' + _liveGW);
+            // Also clear in-memory picks for this GW so they get re-fetched
+            if (window._picksCache) {
+              Object.keys(window._picksCache).filter(k => k.endsWith('_' + _liveGW)).forEach(k => delete window._picksCache[k]);
+            }
+          }
         } else {
           localStorage.removeItem('ff_picks_cache_gw' + _liveGW);
         }
       } catch(e) {
         localStorage.removeItem('ff_picks_cache_gw' + _liveGW);
+        if (window._picksCache) Object.keys(window._picksCache).filter(k => k.endsWith('_' + _liveGW)).forEach(k => delete window._picksCache[k]);
       }
     }
     // Always load cached player pts (needed for score computation)
