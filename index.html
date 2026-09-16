@@ -10315,15 +10315,17 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       state.liveGW = _liveGW;
       state.latestGW = _cachedGW;
       state.currentGW = _liveGW;
-      // Only clear picks cache if it doesn't have automatic_subs yet
+      // Clear picks cache every load when recently completed — forces fresh fetch with automatic_subs
+      // This is safe since picks are re-fetched and re-saved with automatic_subs included
       try {
         const cachedPicks = localStorage.getItem('ff_picks_cache_gw' + _liveGW);
         if (cachedPicks) {
           const parsed = JSON.parse(cachedPicks);
-          // Find a key for this specific GW
           const gwKey = Object.keys(parsed).find(k => k.endsWith('_' + _liveGW));
           const hasAutoSubs = gwKey && Array.isArray(parsed[gwKey]?.automatic_subs);
           if (!hasAutoSubs) localStorage.removeItem('ff_picks_cache_gw' + _liveGW);
+        } else {
+          localStorage.removeItem('ff_picks_cache_gw' + _liveGW);
         }
       } catch(e) {
         localStorage.removeItem('ff_picks_cache_gw' + _liveGW);
