@@ -2641,7 +2641,7 @@ async function init() {
                 for (let i = 0; i < state.managers.length; i += BATCH) {
                   const batch = state.managers.slice(i, i + BATCH);
                   await Promise.all(batch.map(async m => {
-                    if (window._picksCache?.[m.id + '_' + currentGW]) return; // already have it
+                    if (!state.isRecentlyCompleted && window._picksCache?.[m.id + '_' + currentGW]) return; // already have it
                     try {
                       const picks = await fetchFPLQueued('entry/' + m.id + '/event/' + currentGW + '/picks/');
                       if (!window._picksCache) window._picksCache = {};
