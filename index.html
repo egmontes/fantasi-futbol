@@ -1556,7 +1556,7 @@ async function init() {
           const isSeasonOver = !state.isLive && state.latestGW >= 38;
           const gwLabel = isSeasonOver
             ? CURRENT_SEASON_LABEL.replace('/', ' / ')
-            : state.isLive
+            : (state.isLive && !state.isRecentlyCompleted)
               ? 'GW' + currentEvent.id + ' Live'
               : state.isTransition
                 ? 'GW' + state.transitionGW + ' Loading...'
@@ -1685,8 +1685,8 @@ async function init() {
           state.historyLoaded = true;
           _renderStandingsDebounced();
         }
-        // Show export button when GW is complete (not live)
-        if (!state.isLive) {
+        // Show export button when GW is complete (not live) or recently completed
+        if (!state.isLive || state.isRecentlyCompleted) {
           // Clear history cache so we get fresh GW2 data
           try {
             localStorage.removeItem('ff_history_gw' + state.latestGW);
@@ -3080,11 +3080,11 @@ const subEl = document.getElementById('live-load-sub');
       : [['badge-1','🥇','$750'],['badge-2','🥈','$500'],['badge-3','🥉','$300'],['badge-4','4️⃣','$225'],['badge-5','5️⃣','$175'],['badge-4','6️⃣','$125'],['badge-4','7️⃣','$100'],['badge-5','8️⃣','$5']];
     const kluisPrizeDisplay = isCurrent2025 ? '$50' : '$100';
     let html = (state.historyLoaded ? '<div class="stat-ticker-wrap"><div class="stat-ticker">' + cards + cards + '</div></div>' : '') +
-      (state.isLive || state.isTransition ? '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:left;">' +
-        (state.isLive
+      ((state.isLive && !state.isRecentlyCompleted) || state.isTransition ? '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px;text-align:left;">' +
+        ((state.isLive && !state.isRecentlyCompleted)
           ? '<span style="color:var(--red);margin-right:8px;">● Live scores</span>'
           : '<span style="color:var(--amber);margin-right:8px;">⏳ GW' + state.transitionGW + ' Loading</span>') +
-        (state.isLive && state.fixturesTotal !== undefined
+        ((state.isLive && !state.isRecentlyCompleted) && state.fixturesTotal !== undefined
           ? '<br>Games Completed: ' + (state.fixturesTotal - state.fixturesOngoing - state.fixturesRemaining) + ' · Ongoing: ' + state.fixturesOngoing + ' · Remaining: ' + state.fixturesRemaining
           : '') +
         '</div>' : '') +
@@ -6610,7 +6610,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     if (isSeasonOver) {
       standingsItem.innerHTML = (window.__viewingSeason ? window.__viewingSeason.replace('-', ' / ').replace('-', '/') : CURRENT_SEASON_LABEL.replace('/', ' / ')) + ' <span style="font-size:10px;color:var(--text3);">Season</span>';
     } else {
-      standingsItem.innerHTML = 'GW ' + currentGW + (state.isLive ? ' <span style="font-size:10px;color:var(--red);">● Live</span>' : ' <span style="font-size:10px;color:var(--text3);">Current</span>');
+      standingsItem.innerHTML = 'GW ' + currentGW + ((state.isLive && !state.isRecentlyCompleted) ? ' <span style="font-size:10px;color:var(--red);">● Live</span>' : ' <span style="font-size:10px;color:var(--text3);">Current</span>');
     }
     menu.appendChild(standingsItem);
 
@@ -6627,7 +6627,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
 
     label.textContent = isSeasonOver ? (window.__viewingSeason ? window.__viewingSeason.replace(/-/g,'/').replace('2025/2026','2025 / 2026') : CURRENT_SEASON_LABEL.replace('/', ' / ')) : 'Gameweek ' + currentGW;
     const liveEl = document.getElementById('weekly-tab-live');
-    if (liveEl) liveEl.style.display = state.isLive ? 'block' : 'none';
+    if (liveEl) liveEl.style.display = (state.isLive && !state.isRecentlyCompleted) ? 'block' : 'none';
 
     const switchView = (item) => {
       menu.querySelectorAll('.tab-dropdown-item').forEach(i => i.classList.remove('active'));
@@ -6658,7 +6658,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         }
         label.textContent = isSeasonOver ? (window.__viewingSeason ? window.__viewingSeason.replace(/-/g,'/').replace('2025/2026','2025 / 2026') : CURRENT_SEASON_LABEL.replace('/', ' / ')) : 'Gameweek ' + currentGW;
         const liveElS = document.getElementById('weekly-tab-live');
-        if (liveElS) liveElS.style.display = state.isLive ? 'block' : 'none';
+        if (liveElS) liveElS.style.display = (state.isLive && !state.isRecentlyCompleted) ? 'block' : 'none';
         updateExportBtn(currentGW);
         document.getElementById('gw-callout').style.display = isSeasonOver ? 'none' : 'block';
         window.__lastWeeklyView = 'standings';
@@ -8888,7 +8888,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     window._viewingGW = gw;
     const btn = document.getElementById('export-gw-btn');
     if (!btn) return;
-    if (gw && (!state.isLive || gw < state.liveGW)) {
+    if (gw && (!state.isLive || gw < state.liveGW || state.isRecentlyCompleted)) {
       btn.style.display = 'inline-flex';
       btn.style.color = 'var(--theme)';
       btn.style.borderColor = 'var(--theme-border)';
@@ -10408,7 +10408,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
 
   function updateBottomNav(active) {
     const refreshBtn = document.getElementById('refresh-btn');
-    if (refreshBtn) { refreshBtn.style.display = (active === 'current' && state.isLive) ? 'flex' : 'none'; }
+    if (refreshBtn) { refreshBtn.style.display = (active === 'current' && state.isLive && !state.isRecentlyCompleted) ? 'flex' : 'none'; }
     const scrollTopBtn = document.getElementById('scroll-top-btn');
     if (scrollTopBtn) scrollTopBtn.style.display = (active === 'current' || active === 'history') ? 'flex' : 'none';
     ['current', 'history', 'seasons', 'rules', 'stats'].forEach(key => {
