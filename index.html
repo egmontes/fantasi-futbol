@@ -2422,7 +2422,7 @@ async function init() {
     // If live, fetch real-time player scores — use cache, fire in background if missing
     if (!window._liveScoreCacheGW) window._liveScoreCacheGW = {};
     // Restore live scores from localStorage if available and fresh
-    if (!window._liveScoreCacheGW[currentGW]) {
+    if (!window._liveScoreCacheGW[currentGW] && !state.isRecentlyCompleted) {
       try {
         const saved = localStorage.getItem('ff_live_scores_v2_' + currentGW);
         if (saved) {
@@ -10330,6 +10330,9 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       state.liveGW = _liveGW;
       state.latestGW = _cachedGW;
       state.currentGW = _liveGW;
+      // Clear stale live scores — they don't have confirmed subs applied
+      try { localStorage.removeItem('ff_live_scores_v2_' + _liveGW); } catch(e) {}
+      if (window._liveScoreCacheGW) delete window._liveScoreCacheGW[_liveGW];
       // Clear picks cache every load when recently completed — forces fresh fetch with automatic_subs
       try {
         const cachedPicks = localStorage.getItem('ff_picks_cache_gw' + _liveGW);
