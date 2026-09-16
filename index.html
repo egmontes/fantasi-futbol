@@ -8868,6 +8868,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       });
 
       _gwCacheLoaded[gw] = true;
+      // Mark this GW as having saved JSON — clears isRecentlyCompleted on next load
+      try { localStorage.setItem('ff_history_gw' + gw, '1'); } catch(e) {}
       console.log(`✓ GW${gw} loaded from static cache (data/${CURRENT_SEASON}/gw${String(gw).padStart(2,'0')}.json)`);
       // Show indicator in export button
       const btn = document.getElementById('export-gw-btn');
