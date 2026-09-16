@@ -1469,8 +1469,8 @@ async function init() {
                   const cachedPicks = localStorage.getItem('ff_picks_cache_gw' + state.latestGW);
                   if (cachedPicks) {
                     const parsed = JSON.parse(cachedPicks);
-                    const firstKey = Object.keys(parsed)[0];
-                    const hasAutoSubs = firstKey && Array.isArray(parsed[firstKey]?.automatic_subs);
+                    const gwKey = Object.keys(parsed).find(k => k.endsWith('_' + state.latestGW));
+                    const hasAutoSubs = gwKey && Array.isArray(parsed[gwKey]?.automatic_subs);
                     if (!hasAutoSubs) localStorage.removeItem('ff_picks_cache_gw' + state.latestGW);
                   } else {
                     localStorage.removeItem('ff_picks_cache_gw' + state.latestGW);
@@ -10320,9 +10320,9 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         const cachedPicks = localStorage.getItem('ff_picks_cache_gw' + _liveGW);
         if (cachedPicks) {
           const parsed = JSON.parse(cachedPicks);
-          const firstKey = Object.keys(parsed)[0];
-          // automatic_subs must be an array (even empty []) — null/undefined means stale cache
-          const hasAutoSubs = firstKey && Array.isArray(parsed[firstKey]?.automatic_subs);
+          // Find a key for this specific GW
+          const gwKey = Object.keys(parsed).find(k => k.endsWith('_' + _liveGW));
+          const hasAutoSubs = gwKey && Array.isArray(parsed[gwKey]?.automatic_subs);
           if (!hasAutoSubs) localStorage.removeItem('ff_picks_cache_gw' + _liveGW);
         }
       } catch(e) {
