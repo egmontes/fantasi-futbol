@@ -1470,14 +1470,14 @@ async function init() {
                   if (cachedPicks) {
                     const parsed = JSON.parse(cachedPicks);
                     const firstKey = Object.keys(parsed)[0];
-                    const hasAutoSubs = firstKey && parsed[firstKey]?.automatic_subs !== undefined;
+                    const hasAutoSubs = firstKey && Array.isArray(parsed[firstKey]?.automatic_subs);
                     if (!hasAutoSubs) localStorage.removeItem('ff_picks_cache_gw' + state.latestGW);
                   } else {
                     localStorage.removeItem('ff_picks_cache_gw' + state.latestGW);
                   }
                 } catch(e) {}
                 if (window._picksCache) {
-                  const hasAutoSubs = Object.entries(window._picksCache).some(([k,v]) => k.endsWith('_'+state.latestGW) && v?.automatic_subs !== undefined);
+                  const hasAutoSubs = Object.entries(window._picksCache).some(([k,v]) => k.endsWith('_'+state.latestGW) && Array.isArray(v?.automatic_subs));
                   if (!hasAutoSubs) Object.keys(window._picksCache).filter(k => k.endsWith('_' + state.latestGW)).forEach(k => delete window._picksCache[k]);
                 }
               }
@@ -10316,16 +10316,14 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       state.latestGW = _cachedGW;
       state.currentGW = _liveGW;
       // Only clear picks cache if it doesn't have automatic_subs yet
-      // Check if cached picks have automatic_subs populated
       try {
         const cachedPicks = localStorage.getItem('ff_picks_cache_gw' + _liveGW);
         if (cachedPicks) {
           const parsed = JSON.parse(cachedPicks);
           const firstKey = Object.keys(parsed)[0];
-          const hasAutoSubs = firstKey && parsed[firstKey]?.automatic_subs !== undefined;
-          if (!hasAutoSubs) {
-            localStorage.removeItem('ff_picks_cache_gw' + _liveGW);
-          }
+          // automatic_subs must be an array (even empty []) — null/undefined means stale cache
+          const hasAutoSubs = firstKey && Array.isArray(parsed[firstKey]?.automatic_subs);
+          if (!hasAutoSubs) localStorage.removeItem('ff_picks_cache_gw' + _liveGW);
         }
       } catch(e) {
         localStorage.removeItem('ff_picks_cache_gw' + _liveGW);
