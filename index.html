@@ -2787,7 +2787,7 @@ const subEl = document.getElementById('live-load-sub');
       const hasLiveScoresForMover = (state.isLive || currentGW === state.latestGW) && liveScoreMap && Object.keys(liveScoreMap).length > 0;
       const maxScoreForMover = hasLiveScoresForMover ? Math.max(...Object.values(liveScoreMap).map(s => s.netPts || 0)) : 0;
       allZeroForMover = maxScoreForMover <= 0;
-      const moverGW = allZeroForMover ? currentGW - 1 : currentGW;
+      const moverGW = currentGW; // always compare current GW total vs previous
 
       if (moverGW > 1) {
         const calcRankMap = (upToGW) => {
