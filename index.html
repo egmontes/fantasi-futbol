@@ -1708,9 +1708,21 @@ async function init() {
       }
 
       // Picks are fetched by phase 2 in renderStandings
-      // Immediately refresh live scores after init so cards show correct sub-adjusted scores
-      if (state.isLive && window._refreshLiveScores) {
-        window._refreshLiveScores();
+      // Refresh live scores after picks are loaded so sub detection works correctly
+      if (state.isLive) {
+        const gw = state.liveGW;
+        const waitForPicks = async () => {
+          if (!window._refreshLiveScores) { setTimeout(waitForPicks, 100); return; }
+          const pickCount = Object.keys(window._picksCache || {}).filter(k => k.endsWith('_' + gw)).length;
+          console.log('[waitForPicks] pickCount:', pickCount, '/', state.managers.length, 'inProgress:', window._picksFetchInProgress);
+          if (window._picksFetchInProgress || pickCount < state.managers.length) {
+            setTimeout(waitForPicks, 300);
+          } else {
+            console.log('[waitForPicks] firing _refreshLiveScores');
+            await window._refreshLiveScores();
+          }
+        };
+        setTimeout(waitForPicks, 300);
       }
 
     } catch (e) {
@@ -2216,23 +2228,9 @@ async function init() {
     const isManualRefresh = window._lastManualRefresh && (Date.now() - window._lastManualRefresh < 30000);
 
     // If we have cached picks, compute scores immediately and render — don't show loading screen
-    if (state.isLive && !hasLiveScoresNow && hasCachedPicks && window._playerPtsCache && Object.keys(window._playerPtsCache).length > 0) {
-      if (!window._liveScoreCacheGW) window._liveScoreCacheGW = {};
-      if (!window._liveScoreCacheGW[currentGW]) window._liveScoreCacheGW[currentGW] = {};
-      state.managers.forEach(m => {
-        if (window._liveScoreCacheGW[currentGW][m.id]) return;
-        const picks = window._picksCache[m.id + '_' + currentGW];
-        if (!picks?.picks) return;
-        const isBB = picks.active_chip === 'bboost';
-        const maxPos = isBB ? 15 : 11;
-        let rawPts = 0;
-        picks.picks.filter(p => p.position <= maxPos).forEach(p => { rawPts += (window._playerPtsCache[p.element] || 0) * p.multiplier; });
-        const hit = picks.entry_history?.event_transfers_cost || 0;
-        const { played, remaining, stuck } = computePlayedRemaining(picks.picks, maxPos);
-        window._liveScoreCacheGW[currentGW][m.id] = { rawPts, netPts: rawPts - hit, hit, played, remaining, stuck: stuck||0 };
-      });
-      // Fall through to render with computed scores
-    } else if (state.isLive && !hasLiveScoresNow && !loadingTooLong && !isManualRefresh) {
+    // REMOVED: this path used stale playerPtsCache without sub logic, causing wrong scores
+    // Instead, always show loading screen until _refreshLiveScores completes with fresh data
+    if (state.isLive && !hasLiveScoresNow && !loadingTooLong && !isManualRefresh) {
       if (!window._liveLoadStartTime) window._liveLoadStartTime = Date.now();
       document.getElementById('standings-content').innerHTML =
         '<div class="loading-state"><span class="spinner"></span><div style="text-align:center"><div id="live-load-msg">Fetching live scores...</div><div id="live-load-sub" style="font-size:11px;color:var(--text3);margin-top:6px;font-family:var(--font-mono);">GW' + currentGW + ' · 0/' + state.managers.length + ' managers</div></div></div>';
@@ -10108,13 +10106,22 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     // Clear stale localStorage cache immediately
     try { localStorage.removeItem('ff_live_scores_v2_' + gw); } catch(e) {}
     try {
-      // Re-fetch live player data only (1 call)
-      const liveData = await fetchFPL('event/' + gw + '/live/?t=' + Date.now());
+      // Re-fetch live player data and fixtures
+      const [liveData, fixtureData] = await Promise.all([
+        fetchFPL('event/' + gw + '/live/?t=' + Date.now()),
+        fetchFPL('fixtures/?event=' + gw + '&t=' + Date.now())
+      ]);
       if (!window._playerPtsCache) window._playerPtsCache = {};
       if (!window._playerMinutesCache) window._playerMinutesCache = {};
       liveData.elements.forEach(e => {
         window._playerPtsCache[e.id] = e.stats.total_points;
         window._playerMinutesCache[e.id] = e.stats.minutes;
+      });
+      // Update fixture map for sub detection
+      window._fixturesByTeam = {};
+      fixtureData.forEach(f => {
+        window._fixturesByTeam[f.team_h] = f;
+        window._fixturesByTeam[f.team_a] = f;
       });
 
       // Recompute scores from existing picks + fresh player data
