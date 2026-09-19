@@ -3877,14 +3877,11 @@ const subEl = document.getElementById('live-load-sub');
               requestAnimationFrame(syncDrawerScroll);
               return;
             }
-            console.log('[drawer] start', drawerGW, managerId);
-            // Fetch GW cache file for past season data (picks + points)
+// Fetch GW cache file for past season data (picks + points)
             const seasonForCache = window.__viewingSeason || (drawerGW < (state.liveGW || (state.latestGW + 1)) ? CURRENT_SEASON : null);
-            console.log('[drawer] seasonForCache:', seasonForCache);
-            const gwCacheFile = seasonForCache ? 
+const gwCacheFile = seasonForCache ? 
               await fetch(`data/${seasonForCache}/gw${String(drawerGW).padStart(2,'0')}.json`).then(r => r.ok ? r.json() : null).catch(() => null) : null;
-            console.log('[drawer] gwCacheFile loaded:', !!gwCacheFile, 'players:', !!gwCacheFile?.players, 'managers:', gwCacheFile?.managers?.length);
-            const cachedManager = gwCacheFile?.managers?.find(m => m.id === managerId);
+const cachedManager = gwCacheFile?.managers?.find(m => m.id === managerId);
 
             const cacheKey = managerId + '_' + drawerGW;
             let picks;
@@ -3896,8 +3893,7 @@ const subEl = document.getElementById('live-load-sub');
             }
             if (!window._picksCache) window._picksCache = {};
             window._picksCache[cacheKey] = picks;
-            console.log('[drawer] picks loaded, source:', cachedManager?.picks?.length ? 'json' : (window._picksCache?.[cacheKey] ? 'memory' : 'api'));
-            const chip = picks.active_chip || null;
+const chip = picks.active_chip || null;
             const isBB = chip === 'bboost';
 
             // Get player scores
@@ -3905,36 +3901,42 @@ const subEl = document.getElementById('live-load-sub');
             let playerStats = {};
             let fixtureMap = {}; // teamId -> fixture
             if (state.isLive && window._liveScoreCacheGW?.[drawerGW]) {
-              // Fetch live player stats and fixtures with cache-bust
-              try {
-                const [liveData, fixtureData] = await Promise.all([
-                  fetchFPL('event/' + drawerGW + '/live/?t=' + Date.now()),
-                  fetchFPL('fixtures/?event=' + drawerGW + '&t=' + Date.now())
-                ]);
-                liveData.elements.forEach(e => { 
-                  playerPts[e.id] = e.stats.total_points; 
-                  playerStats[e.id] = e.stats;
-                  // Update global cache with fresh data
-                  if (!window._playerPtsCache) window._playerPtsCache = {};
-                  window._playerPtsCache[e.id] = e.stats.total_points;
-                  if (!window._playerMinutesCache) window._playerMinutesCache = {};
-                  window._playerMinutesCache[e.id] = e.stats.minutes;
-                });
-                fixtureData.forEach(f => {
-                  if (f.started) { fixtureMap[f.team_h] = f; fixtureMap[f.team_a] = f; }
-                });
-              } catch(e) {}
+              // Use cached drawer data if fresh (within 90s), otherwise fetch fresh
+              const cacheAge = Date.now() - (window._drawerLiveDataTs || 0);
+              if (window._drawerLiveData && window._drawerFixtureData && cacheAge < 90000) {
+                window._drawerLiveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; playerStats[e.id] = e.stats; });
+                window._drawerFixtureData.forEach(f => { if (f.started) { fixtureMap[f.team_h] = f; fixtureMap[f.team_a] = f; } });
+              } else {
+                try {
+                  const [liveData, fixtureData] = await Promise.all([
+                    fetchFPL('event/' + drawerGW + '/live/?t=' + Date.now()),
+                    fetchFPL('fixtures/?event=' + drawerGW + '&t=' + Date.now())
+                  ]);
+                  window._drawerLiveData = liveData;
+                  window._drawerFixtureData = fixtureData;
+                  window._drawerLiveDataTs = Date.now();
+                  liveData.elements.forEach(e => { 
+                    playerPts[e.id] = e.stats.total_points; 
+                    playerStats[e.id] = e.stats;
+                    if (!window._playerPtsCache) window._playerPtsCache = {};
+                    window._playerPtsCache[e.id] = e.stats.total_points;
+                    if (!window._playerMinutesCache) window._playerMinutesCache = {};
+                    window._playerMinutesCache[e.id] = e.stats.minutes;
+                  });
+                  fixtureData.forEach(f => {
+                    if (f.started) { fixtureMap[f.team_h] = f; fixtureMap[f.team_a] = f; }
+                  });
+                } catch(e) {}
+              }
             } else {
               // For past GWs with saved JSON, use cached player data — instant, no API call needed
               if (gwCacheFile?.players) {
-                console.log('[drawer] using json player data');
                 Object.entries(gwCacheFile.players).forEach(([id, p]) => {
                   playerPts[parseInt(id)] = p.pts || 0;
                   playerStats[parseInt(id)] = { total_points: p.pts || 0, minutes: p.minutes || 0, goals_scored: p.goals || 0, assists: p.assists || 0, clean_sheets: p.cs || 0, bonus: p.bonus || 0, saves: p.saves || 0, yellow_cards: p.yc || 0, red_cards: p.rc || 0 };
                 });
               } else {
-                console.log('[drawer] no json players, fetching from API');
-                try {
+try {
                   const [liveData, fixtureData] = await Promise.all([
                     fetchFPL('event/' + drawerGW + '/live/?t=' + Date.now()),
                     fetchFPL('fixtures/?event=' + drawerGW + '&t=' + Date.now())
@@ -4169,8 +4171,7 @@ const subEl = document.getElementById('live-load-sub');
             }
 
             // Transfers made this GW
-            console.log('[drawer] loading transfers, cached:', !!cachedManager?.transfers?.length);
-            try {
+try {
               let gwTransfers = [];
               if (cachedManager?.transfers?.length) {
                 // Use transfers from saved GW JSON — instant, no API call
