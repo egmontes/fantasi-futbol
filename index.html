@@ -3316,7 +3316,7 @@ const subEl = document.getElementById('live-load-sub');
           const allPlayed = m.remaining === 0;
           html += '<span class="s-card-played" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">' + displayPlayed + '/' + total + (allPlayed ? ' ✓' : '') + '</span>';
         }
-        if (m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">©' + esc(m.captain.name) + (m.captain.isVC ? ' <span style="color:var(--text3);font-size:10px;">(vc)</span>' : '') + '</span>';
+        if (m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">©' + esc(m.captain.name) + (m.captain.isVC ? ' <span style="color:var(--theme) !important;font-size:10px;">(vc)</span>' : '') + '</span>';
         html += '</div>';
       }
       html += '</div>'; // close name+chips column
@@ -4016,7 +4016,7 @@ const subEl = document.getElementById('live-load-sub');
               // If captain is subbed out, transfer captaincy to vice captain
               if (outPlayer.is_captain || outPlayer.multiplier > 1) {
                 const vc = startingPicks.find(p => p.is_vice_captain);
-                if (vc) { vc.multiplier = 2; vc.is_captain = true; vc.is_vice_captain = false; }
+                if (vc) { vc._vcActing = true; } // flag VC as acting captain — don't change multiplier
               }
               // Swap
               startingPicks[outIdx] = { ...inPlayer, multiplier: 1, is_captain: false, is_vice_captain: false, _subIn: true, _confirmed: sub.confirmed };
@@ -4037,8 +4037,15 @@ const subEl = document.getElementById('live-load-sub');
             const renderPick = (p, isBench = false) => {
               const name = state.bootstrapPlayers[p.element] || ('Player ' + p.element);
               const pts = playerPts[p.element] ?? '—';
-              const effectivePts = isBench ? pts : (pts !== '—' ? pts * p.multiplier : '—');
-              const capLabel = p.multiplier === 3 ? ' (TC)' : p.multiplier === 2 ? ' (C)' : p.is_vice_captain ? ' (VC)' : '';
+              const effectivePts = isBench ? pts : (pts !== '—' ? pts * (p._vcActing ? 2 : p.multiplier) : '—');
+              // Determine if captain didn't play (VC becomes active)
+              const capEl2 = startingPicks.find(sp => sp.multiplier >= 2 && !p.is_vice_captain);
+              const capFixt = capEl2 ? (window._fixturesByTeam||{})[(state.bootstrapElements||[]).find(e=>e.id===capEl2.element)?.team] : null;
+              const capDone = capFixt && (capFixt.finished || capFixt.finished_provisional);
+              const capMins = capEl2 ? (playerStats[capEl2.element]?.minutes ?? -1) : -1;
+              const vcActive = p.is_vice_captain && capDone && capMins === 0;
+              const capLabelColor = p.multiplier >= 2 ? 'var(--theme)' : (vcActive || p._vcActing) ? 'var(--theme)' : 'var(--text3)';
+              const capLabel = p.multiplier === 3 ? ' (TC)' : p.multiplier === 2 ? ' (C)' : (p.is_vice_captain || p._vcActing) ? ' (VC)' : '';
               const mins = playerStats[p.element]?.minutes ?? null;
               const played = mins !== null && mins !== undefined && mins > 0;
               const nameColor = isBench && !p._subOut ? 'var(--text3)' : (played ? 'var(--text)' : 'var(--text3)');
@@ -4074,7 +4081,7 @@ const subEl = document.getElementById('live-load-sub');
               return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">' +
                 '<div>' +
                 '<div style="color:' + nameColor + ';font-size:12px;">' + esc(name) +
-                '<span style="color:var(--theme);font-size:10px;">' + capLabel + '</span>' +
+                '<span style="color:' + capLabelColor + ';font-size:10px;">' + capLabel + '</span>' +
                 (p._subIn ? '<span style="font-size:11px;margin-left:4px;">' + (p._confirmed ? '↕️' : '⚡') + '</span>' : '') +
                 (p._subOut ? '<span style="font-size:11px;margin-left:4px;opacity:0.6;">' + (p._confirmed ? '↕️' : '⚡') + '</span>' : '') +
                 (emojis ? '<span style="font-size:10px;margin-left:4px;letter-spacing:2px;">' + emojis + '</span>' : '') +
@@ -4100,7 +4107,8 @@ const subEl = document.getElementById('live-load-sub');
             // Compute total from startingPicks (after subs applied) for accuracy
             const computedTotal = startingPicks.reduce((sum, p) => {
               const pts = playerPts[p.element] ?? 0;
-              return sum + pts * p.multiplier;
+              const mult = p._vcActing ? 2 : p.multiplier;
+              return sum + pts * mult;
             }, 0) + (isBB ? benchPicks.reduce((sum, p) => sum + (playerPts[p.element] ?? 0), 0) : 0);
             const hit = picks.entry_history?.event_transfers_cost || (state.gwHistory[managerId]||[]).find(h=>h.event===drawerGW)?.event_transfers_cost || 0;
             const totalPts = computedTotal - hit;
