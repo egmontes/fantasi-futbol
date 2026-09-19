@@ -3877,9 +3877,13 @@ const subEl = document.getElementById('live-load-sub');
               requestAnimationFrame(syncDrawerScroll);
               return;
             }
+            console.log('[drawer] start', drawerGW, managerId);
             // Fetch GW cache file for past season data (picks + points)
-            const gwCacheFile = window.__viewingSeason ? 
-              await fetch(`data/${window.__viewingSeason}/gw${String(drawerGW).padStart(2,'0')}.json`).then(r => r.ok ? r.json() : null).catch(() => null) : null;
+            const seasonForCache = window.__viewingSeason || (drawerGW < (state.liveGW || (state.latestGW + 1)) ? CURRENT_SEASON : null);
+            console.log('[drawer] seasonForCache:', seasonForCache);
+            const gwCacheFile = seasonForCache ? 
+              await fetch(`data/${seasonForCache}/gw${String(drawerGW).padStart(2,'0')}.json`).then(r => r.ok ? r.json() : null).catch(() => null) : null;
+            console.log('[drawer] gwCacheFile loaded:', !!gwCacheFile, 'players:', !!gwCacheFile?.players, 'managers:', gwCacheFile?.managers?.length);
             const cachedManager = gwCacheFile?.managers?.find(m => m.id === managerId);
 
             const cacheKey = managerId + '_' + drawerGW;
@@ -3892,6 +3896,7 @@ const subEl = document.getElementById('live-load-sub');
             }
             if (!window._picksCache) window._picksCache = {};
             window._picksCache[cacheKey] = picks;
+            console.log('[drawer] picks loaded, source:', cachedManager?.picks?.length ? 'json' : (window._picksCache?.[cacheKey] ? 'memory' : 'api'));
             const chip = picks.active_chip || null;
             const isBB = chip === 'bboost';
 
@@ -3920,16 +3925,26 @@ const subEl = document.getElementById('live-load-sub');
                 });
               } catch(e) {}
             } else {
-              try {
-                const [liveData, fixtureData] = await Promise.all([
-                  fetchFPL('event/' + drawerGW + '/live/?t=' + Date.now()),
-                  fetchFPL('fixtures/?event=' + drawerGW + '&t=' + Date.now())
-                ]);
-                liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; playerStats[e.id] = e.stats; });
-                fixtureData.forEach(f => {
-                  if (f.started) { fixtureMap[f.team_h] = f; fixtureMap[f.team_a] = f; }
+              // For past GWs with saved JSON, use cached player data — instant, no API call needed
+              if (gwCacheFile?.players) {
+                console.log('[drawer] using json player data');
+                Object.entries(gwCacheFile.players).forEach(([id, p]) => {
+                  playerPts[parseInt(id)] = p.pts || 0;
+                  playerStats[parseInt(id)] = { total_points: p.pts || 0, minutes: p.minutes || 0, goals_scored: p.goals || 0, assists: p.assists || 0, clean_sheets: p.cs || 0, bonus: p.bonus || 0, saves: p.saves || 0, yellow_cards: p.yc || 0, red_cards: p.rc || 0 };
                 });
-              } catch(e) {}
+              } else {
+                console.log('[drawer] no json players, fetching from API');
+                try {
+                  const [liveData, fixtureData] = await Promise.all([
+                    fetchFPL('event/' + drawerGW + '/live/?t=' + Date.now()),
+                    fetchFPL('fixtures/?event=' + drawerGW + '&t=' + Date.now())
+                  ]);
+                  liveData.elements.forEach(e => { playerPts[e.id] = e.stats.total_points; playerStats[e.id] = e.stats; });
+                  fixtureData.forEach(f => {
+                    if (f.started) { fixtureMap[f.team_h] = f; fixtureMap[f.team_a] = f; }
+                  });
+                } catch(e) {}
+              }
             }
 
             // Build emoji badge string from player stats
@@ -4048,8 +4063,9 @@ const subEl = document.getElementById('live-load-sub');
               const capLabel = p.multiplier === 3 ? ' (TC)' : p.multiplier === 2 ? ' (C)' : (p.is_vice_captain || p._vcActing) ? ' (VC)' : '';
               const mins = playerStats[p.element]?.minutes ?? null;
               const played = mins !== null && mins !== undefined && mins > 0;
-              const nameColor = isBench && !p._subOut ? 'var(--text3)' : (played ? 'var(--text)' : 'var(--text3)');
-              const ptsColor = isBench && !p._subOut ? 'var(--text3)' : (effectivePts !== '—' && effectivePts > 0 ? 'var(--green)' : 'var(--text3)');
+              const isLiveDrawer = state.isLive && window._liveScoreCacheGW?.[drawerGW];
+              const nameColor = isBench && !p._subOut ? 'var(--text3)' : (!isLiveDrawer || played ? 'var(--text)' : 'var(--text3)');
+              const ptsColor = isBench && !p._subOut ? 'var(--text3)' : (effectivePts !== '—' && effectivePts > 0 ? 'var(--green)' : (!isLiveDrawer ? 'var(--text3)' : 'var(--text3)'));
               const subInBadge = p._subIn ? '<span style="font-size:10px;color:var(--green);margin-left:4px;">' + (p._confirmed ? '↕️' : '⚡') + '</span>' : '';
               const subOutBadge = p._subOut ? '<span style="font-size:10px;color:var(--red);margin-left:4px;">' + (p._confirmed ? '↕️' : '⚡') + '</span>' : '';              const { badges: emojis, bonusStr } = getEmojis(p.element);
               const el = (state.bootstrapElements || []).find(e => e.id === p.element);
@@ -4071,10 +4087,10 @@ const subEl = document.getElementById('live-load-sub');
               const ownershipPct = !isBench && ownershipTotal > 0
                 ? Math.round((leagueOwnership[p.element] || 0) / ownershipTotal * 100)
                 : null;
-              const subLine = (teamName || (mins !== null && mins !== undefined) || scoreStr) ?
+              const subLine = (teamName || (isLiveDrawer && mins !== null && mins !== undefined) || scoreStr) ?
                 '<div style="font-size:10px;color:var(--text3);margin-top:1px;display:flex;gap:4px;align-items:center;">' +
                 (teamName ? '<span>' + esc(teamName) + '</span>' : '') +
-                (mins !== null && mins !== undefined ? '<span>· ' + mins + ' min</span>' : '') +
+                (isLiveDrawer && mins !== null && mins !== undefined ? '<span>· ' + mins + ' min</span>' : '') +
                 (scoreStr ? '<span>· ' + scoreStr + '</span>' : '') +
                 (ownershipPct !== null ? '<span style="color:var(--theme);margin-left:2px;">· ' + ownershipPct + '% start</span>' : '') +
                 '</div>' : (ownershipPct !== null ? '<div style="font-size:10px;color:var(--theme);margin-top:1px;">' + ownershipPct + '% start</div>' : '');
@@ -4153,9 +4169,21 @@ const subEl = document.getElementById('live-load-sub');
             }
 
             // Transfers made this GW
+            console.log('[drawer] loading transfers, cached:', !!cachedManager?.transfers?.length);
             try {
-              const transfers = await fetchFPL('entry/' + managerId + '/transfers/');
-              const gwTransfers = transfers.filter(t => t.event === drawerGW);
+              let gwTransfers = [];
+              if (cachedManager?.transfers?.length) {
+                // Use transfers from saved GW JSON — instant, no API call
+                gwTransfers = cachedManager.transfers.map(t => ({
+                  element_in: t.element_in, element_out: t.element_out,
+                  element_in_name: t.element_in_name, element_out_name: t.element_out_name,
+                  element_in_pts: t.element_in_pts, element_out_pts: t.element_out_pts,
+                  event: drawerGW
+                }));
+              } else {
+                const transfers = await fetchFPL('entry/' + managerId + '/transfers/');
+                gwTransfers = transfers.filter(t => t.event === drawerGW);
+              }
 
               if (gwTransfers.length > 0) {
                 html += '<div style="font-size:11px;color:var(--theme);text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 6px;">Transfers' + (hit > 0 ? ' <span style="color:var(--red);text-transform:none;">(-' + hit + ' pt hit)</span>' : '') + '</div>';
