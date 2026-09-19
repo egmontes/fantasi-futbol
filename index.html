@@ -1714,11 +1714,9 @@ async function init() {
         const waitForPicks = async () => {
           if (!window._refreshLiveScores) { setTimeout(waitForPicks, 100); return; }
           const pickCount = Object.keys(window._picksCache || {}).filter(k => k.endsWith('_' + gw)).length;
-          console.log('[waitForPicks] pickCount:', pickCount, '/', state.managers.length, 'inProgress:', window._picksFetchInProgress);
           if (window._picksFetchInProgress || pickCount < state.managers.length) {
             setTimeout(waitForPicks, 300);
           } else {
-            console.log('[waitForPicks] firing _refreshLiveScores');
             await window._refreshLiveScores();
           }
         };
@@ -2473,7 +2471,6 @@ async function init() {
     const shouldRefreshMinutes = state.isLive && !window._liveScoreFetchInProgress && !shouldFetchLive &&
       (!window._playerMinutesCache || !Object.keys(window._playerMinutesCache).length ||
        Date.now() - (window._lastMinutesFetch||0) > 30 * 1000);
-    console.log('[render] hasLiveScoresNow:', hasLiveScoresNow, 'cacheSize:', Object.keys(liveScoreMap).length, 'fetchedOnce:', !!window._liveScoreFetchedOnce, 'shouldFetch:', shouldFetchLive, 'shouldRefresh:', shouldRefreshMinutes);
       (!window._playerMinutesCache || !Object.keys(window._playerMinutesCache).length ||
        Date.now() - (window._lastMinutesFetch||0) > 30 * 1000);
     if (shouldRefreshMinutes) {
@@ -2666,8 +2663,18 @@ const subEl = document.getElementById('live-load-sub');
       const picks = window._picksCache?.[m.id + '_' + currentGW];
       const chip = (picks?.active_chip) || _chipCache[currentGW]?.[m.id] || state.chipsHistory?.[m.id]?.[currentGW] || null;
       const capPick = picks?.picks?.find(p => p.is_captain);
+      const vcPick = picks?.picks?.find(p => p.is_vice_captain);
       const capName = capPick ? (state.bootstrapPlayers[capPick.element] || null) : null;
-      const captain = capName ? { name: capName, isVC: false } : (standingsCaptains[m.id] || null);
+      // Check if captain's fixture is done but they didn't play — show VC instead
+      const capEl = capPick ? (state.bootstrapElements||[]).find(e=>e.id===capPick.element) : null;
+      const capFixture = capEl ? (window._fixturesByTeam||{})[capEl.team] : null;
+      const capFixtureDone = capFixture && (capFixture.finished || capFixture.finished_provisional);
+      const capDidntPlay = capPick && capFixtureDone && (window._playerMinutesCache?.[capPick.element] ?? -1) === 0;
+      const vcName = vcPick ? (state.bootstrapPlayers[vcPick.element] || null) : null;
+      const captainDisplay = capDidntPlay && vcName
+        ? { name: vcName, isVC: true }
+        : capName ? { name: capName, isVC: false } : (standingsCaptains[m.id] || null);
+      const captain = captainDisplay;
       return { ...m, total: liveTotal, top4: s.top4 || 0, bottom2: s.bottom2 || 0, earned: s.moneyWon || 0, gmisses, missedG, totalG, gwLatestPts, gwRawPts, gwHit, chip, captain,
         played: liveScore?.played ?? null, remaining: liveScore?.remaining ?? null, stuck: liveScore?.stuck ?? 0 };
     });
@@ -3309,7 +3316,7 @@ const subEl = document.getElementById('live-load-sub');
           const allPlayed = m.remaining === 0;
           html += '<span class="s-card-played" style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">' + displayPlayed + '/' + total + (allPlayed ? ' ✓' : '') + '</span>';
         }
-        if (m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">©' + esc(m.captain.name) + '</span>';
+        if (m.captain?.name) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--theme);background:var(--bg3);border-radius:6px;padding:3px 8px;">©' + esc(m.captain.name) + (m.captain.isVC ? ' <span style="color:var(--text3);font-size:10px;">(vc)</span>' : '') + '</span>';
         html += '</div>';
       }
       html += '</div>'; // close name+chips column
@@ -3472,7 +3479,7 @@ const subEl = document.getElementById('live-load-sub');
       };
     });
     window._cardSortDir = window._cardSortDir || -1;
-    window._cardSortKey = window._cardSortKey || 'pts'; // preserve user's sort choice, default to pts
+    window._cardSortKey = window._cardSortKey || 'pts';
 
     window._sortCards = function(key, btn) {
       // Toggle direction if same key
@@ -4031,7 +4038,7 @@ const subEl = document.getElementById('live-load-sub');
               const name = state.bootstrapPlayers[p.element] || ('Player ' + p.element);
               const pts = playerPts[p.element] ?? '—';
               const effectivePts = isBench ? pts : (pts !== '—' ? pts * p.multiplier : '—');
-              const capLabel = p.multiplier === 3 ? ' (TC)' : p.multiplier === 2 ? ' (C)' : '';
+              const capLabel = p.multiplier === 3 ? ' (TC)' : p.multiplier === 2 ? ' (C)' : p.is_vice_captain ? ' (VC)' : '';
               const mins = playerStats[p.element]?.minutes ?? null;
               const played = mins !== null && mins !== undefined && mins > 0;
               const nameColor = isBench && !p._subOut ? 'var(--text3)' : (played ? 'var(--text)' : 'var(--text3)');
