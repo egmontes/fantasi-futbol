@@ -1428,6 +1428,16 @@ async function init() {
         if (!state.isLive && state.isRecentlyCompleted) {
           state.isLive = true;
         }
+        // Fresh device / stale localStorage: GW finished but its JSON isn't saved yet -> behave like recently completed
+        let _gwJsonSaved = null;
+        if (!state.isLive && currentGWEvent && (currentGWEvent.finished || currentGWEvent.data_checked) && currentDeadline && now >= currentDeadline) {
+          try {
+            const r = await fetch(`data/${CURRENT_SEASON}/gw${String(currentGWEvent.id).padStart(2,'0')}.json?nocache=${Date.now()}`, { method: 'HEAD' });
+            _gwJsonSaved = r.ok;
+          } catch(e) { _gwJsonSaved = null; }
+          console.log('[bootstrap] GW'+currentGWEvent.id+' finished, json saved='+_gwJsonSaved);
+          if (_gwJsonSaved === false) { state.isLive = true; state.isRecentlyCompleted = true; }
+        }
         if (state.isLive) {
           const rb = document.getElementById('refresh-btn');
           if (rb) rb.style.display = 'flex';
@@ -1459,7 +1469,7 @@ async function init() {
               state.latestGW = currentGWEvent.id;
               state.currentGW = state.latestGW;
               // Mark as recently completed — behave like live until JSON is saved
-              const gwCacheSaved = !!localStorage.getItem('ff_history_gw' + state.latestGW);
+              const gwCacheSaved = _gwJsonSaved !== null ? _gwJsonSaved : !!localStorage.getItem('ff_history_gw' + state.latestGW);
               state.isRecentlyCompleted = !gwCacheSaved;
               state.liveGW = currentGWEvent.id; // keep liveGW set so live paths still work
               if (state.isRecentlyCompleted) {
@@ -2656,9 +2666,9 @@ const subEl = document.getElementById('live-load-sub');
       // Live total = last known total + live GW net score
       const prevHist = (state.gwHistory[m.id] || []).filter(h => h.event < currentGW).sort((a,b) => b.event - a.event)[0];
       // Use live score for total when available (covers live GW and post-GW stale history)
-      const liveTotal = liveScore
-        ? (prevHist ? prevHist.total_points : 0) + liveScore.netPts
-        : m.total;
+      const liveTotal = (liveScore && prevHist && prevHist.event === currentGW - 1)
+        ? prevHist.total_points + liveScore.netPts
+        : (latestHist ? latestHist.total_points : m.total);
       // Read captain and chip directly from picks cache — no dependency on fetchChipsForGW
       const picks = window._picksCache?.[m.id + '_' + currentGW];
       const chip = (picks?.active_chip) || _chipCache[currentGW]?.[m.id] || state.chipsHistory?.[m.id]?.[currentGW] || null;
@@ -2745,7 +2755,8 @@ const subEl = document.getElementById('live-load-sub');
             let total = entry ? entry.total_points : 0;
             if (state.isLive && upToGW === currentGW && liveScoreMap[m.id]) {
               const prev = [...hist].filter(h => h.event < currentGW).sort((a, b) => b.event - a.event)[0];
-              total = (prev ? prev.total_points : 0) + (liveScoreMap[m.id].netPts || 0);
+              if (prev && prev.event === currentGW - 1) total = prev.total_points + (liveScoreMap[m.id].netPts || 0);
+              else if (!entry || entry.event < currentGW) total = m.total || total;
             }
             return { id: m.id, total };
           }).sort((a, b) => b.total - a.total);
@@ -2865,7 +2876,8 @@ const subEl = document.getElementById('live-load-sub');
             // Add live score on top when calculating rank for the live GW
             if (state.isLive && upToGW === gwLabel && liveScoreMap[m.id]) {
               const prevEntry = [...hist].filter(h => h.event < gwLabel).sort((a, b) => b.event - a.event)[0];
-              total = (prevEntry ? prevEntry.total_points : 0) + (liveScoreMap[m.id].netPts || 0);
+              if (prevEntry && prevEntry.event === gwLabel - 1) total = prevEntry.total_points + (liveScoreMap[m.id].netPts || 0);
+              else if (!entry || entry.event < gwLabel) total = m.total || total;
             }
             return { id: m.id, name: m.name, total };
           }).sort((a, b) => b.total - a.total);
