@@ -2359,7 +2359,29 @@ async function init() {
       }
       return;
     }
-    const completedGWs = state.isLive ? state.liveGW - 1 : state.latestGW;
+    // GW complete but JSON not saved: fold live scores into history so money/top/bottom/beers include this GW
+    if (state.isRecentlyCompleted && state.liveGW) {
+      const _rcGW = state.liveGW;
+      const _ls = window._liveScoreCacheGW?.[_rcGW] || {};
+      if (state.managers.length && state.managers.every(m => _ls[m.id])) {
+        let _changed = false;
+        state.managers.forEach(m => {
+          const ls = _ls[m.id];
+          if (!state.gwHistory[m.id]) state.gwHistory[m.id] = [];
+          const hist = state.gwHistory[m.id];
+          const idx = hist.findIndex(h => h.event === _rcGW);
+          if (idx >= 0 && !hist[idx]._injected) return; // official entry exists — keep it
+          const prev = hist.filter(h => h.event === _rcGW - 1)[0];
+          const total = prev ? prev.total_points + ls.netPts : (m.total || 0);
+          const entry = { event: _rcGW, points: ls.rawPts, total_points: total, event_transfers_cost: ls.hit || 0, points_on_bench: 0, event_transfers: 0, _injected: true };
+          if (idx >= 0) {
+            if (hist[idx].points !== entry.points || hist[idx].event_transfers_cost !== entry.event_transfers_cost) { hist[idx] = entry; _changed = true; }
+          } else { hist.push(entry); _changed = true; }
+        });
+        if (_changed) delete _shotgunCache[_rcGW];
+      }
+    }
+    const completedGWs = state.isRecentlyCompleted ? state.liveGW : (state.isLive ? state.liveGW - 1 : state.latestGW);
     const stats = completedGWs > 0 ? computeSeasonStats(completedGWs) : (() => { const s = {}; state.managers.forEach(m => { s[m.id] = { top4: 0, bottom2: 0, moneyWon: 0 }; }); return s; })();
     const completedGWsForPool = state.latestGW; // latestGW is always the last completed GW
     const gwPoolAmount = (window.__viewingSeason === '2025-2026') ? 60 : 65;
@@ -2649,11 +2671,14 @@ const subEl = document.getElementById('live-load-sub');
       })();
     }
 
+    // Beers drunk only count once the next GW starts (same with or without saved JSON)
+    const _beerGW = (state.isLive && !state.isRecentlyCompleted) ? state.liveGW - 1 : state.latestGW - 1;
+    const _beerStats = _beerGW === completedGWs ? stats : (_beerGW > 0 ? computeSeasonStats(_beerGW) : {});
     const rows = state.managers.map(m => {
       const s = stats[m.id] || {};
       const gmisses = getGuinnessOwed(m.name);
       const missedG = (state.guinnessDebts[m.name]?.missed_gws || []).length;
-      const totalG = getTotalGuinnesses(m.name, s.bottom2 || 0);
+      const totalG = getTotalGuinnesses(m.name, _beerStats[m.id]?.bottom2 || 0);
       const latestHist = (state.gwHistory[m.id] || []).find(h => h.event === currentGW);
       // Use live score if available, fall back to history
       const liveScore = liveScoreMap[m.id];
@@ -2983,7 +3008,7 @@ const subEl = document.getElementById('live-load-sub');
     const mostTop4 = state.historyLoaded ? [...rows2].sort((a,b) => b.top4 - a.top4)[0] : null;
     const mostGuinness = state.historyLoaded ? [...rows2].sort((a,b) => b.totalG - a.totalG)[0] : null;
     // Guinness only confirmed after next GW starts — between GWs use previous GW stats
-    const guinnessGW = state.isLive ? currentGW : Math.max(1, currentGW - 1);
+    const guinnessGW = (state.isLive && !state.isRecentlyCompleted) ? currentGW : Math.max(1, currentGW - 1);
     const guinnessStats = computeSeasonStats(guinnessGW);
     const guinnessRows = rows2.map(m => ({ ...m, totalG: getTotalGuinnesses(m.name, guinnessStats[m.id]?.bottom2 || 0) }));
     const totalGuinnessChugged = guinnessRows.reduce((sum, m) => sum + m.totalG, 0);
