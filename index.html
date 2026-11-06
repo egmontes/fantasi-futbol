@@ -9438,7 +9438,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       if (has(Cu.winner)) tags.push('🏆 Cup winner'); else if (has(Cu.runner_up)) tags.push('Cup runner-up');
       if (has(aw.Kluis?.winner)) tags.push('Kluis award');
       const total = m?.earned || 0;
-      const prizes = Math.max(0, Math.round((total - (weekly || 0)) * 100) / 100);
+      let prizes = Math.max(0, Math.round((total - (weekly || 0)) * 100) / 100);
+      if (prizes < 1) prizes = 0; // rounding leftovers from split weekly payouts (e.g. 3-way ties)
       if (!prizes && !tags.length) return '';
       return '<div style="font-size:11px;font-family:var(--font-mono);color:var(--amber);margin:-4px 0 8px;">'
         + (prizes ? '$' + prizes.toFixed(2) + ' season & cup prizes' : '') + (prizes && tags.length ? ' · ' : '') + tags.join(' · ')
