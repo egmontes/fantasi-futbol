@@ -3362,7 +3362,7 @@ const subEl = document.getElementById('live-load-sub');
         html += '</div>';
       }
       html += '</div>'; // close name+chips column
-      html += '<div style="text-align:right;flex-shrink:0;align-self:center;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">';
+      html += '<div style="text-align:right;flex-shrink:0;align-self:center;display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding-top:30px;">';
       const gwRightVal = (() => {
         if (activeSortKey === 'gwpts') {
           const rawPts = (m.gwRawPts || 0);
@@ -9405,7 +9405,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       out.textContent = el.getAttribute('data-tip'); out.style.display = 'block';
     };
     const posColor = pos => pos === 1 ? ['#f5c542','rgba(245,197,66,0.16)'] : pos === 2 ? ['var(--silver)','rgba(203,213,225,0.14)'] : pos === 3 ? ['#e0995e','rgba(205,127,50,0.18)'] : ['var(--green)','var(--green-dim)'];
-    const ord = n => n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
+    const ord = n => { const t = n % 100, o = n % 10; return n + ((t >= 11 && t <= 13) ? 'th' : o === 1 ? 'st' : o === 2 ? 'nd' : o === 3 ? 'rd' : 'th'); };
 
     let html = '<div style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.25);">';
     html += '<div style="font-size:9px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">📅 Week by Week</div>';
