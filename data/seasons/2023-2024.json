@@ -370,7 +370,8 @@
           "names": [
             "Richard Katz"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 87.0
         },
         {
           "pos": 2,
@@ -378,7 +379,8 @@
             "Eddy GM",
             "Jimmy Romanelli"
           ],
-          "payout": 8.75
+          "payout": 8.75,
+          "pts": 80.0
         },
         {
           "pos": 4,
@@ -387,7 +389,8 @@
             "Liam Cashman",
             "Harry Wang"
           ],
-          "payout": 0.83
+          "payout": 0.83,
+          "pts": 79.0
         }
       ],
       "shotguns": [
@@ -397,13 +400,15 @@
             "Liam Kelly",
             "Logan Kluis",
             "Jack Bernatchez"
-          ]
+          ],
+          "pts": 60.0
         },
         {
           "pos": "last",
           "names": [
             "JCarr Gamble"
-          ]
+          ],
+          "pts": 58.0
         }
       ]
     },
@@ -415,21 +420,24 @@
           "names": [
             "Tucker Cina"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 64.0
         },
         {
           "pos": 2,
           "names": [
             "Tom Raggio"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 60.0
         },
         {
           "pos": 3,
           "names": [
             "Liam Cashman"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 59.0
         },
         {
           "pos": 4,
@@ -438,7 +446,8 @@
             "James McMullen",
             "Jimmy Romanelli"
           ],
-          "payout": 0.83
+          "payout": 0.83,
+          "pts": 58.0
         }
       ],
       "shotguns": [
@@ -446,13 +455,15 @@
           "pos": "2nd last",
           "names": [
             "Logan Kluis"
-          ]
+          ],
+          "pts": 29.0
         },
         {
           "pos": "last",
           "names": [
             "JCarr Gamble"
-          ]
+          ],
+          "pts": 27.0
         }
       ]
     },
@@ -464,28 +475,32 @@
           "names": [
             "Mike Delaus"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 62.0
         },
         {
           "pos": 2,
           "names": [
             "Matt Nicolai"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 60.0
         },
         {
           "pos": 3,
           "names": [
             "Mitch Maisel"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 59.0
         },
         {
           "pos": 4,
           "names": [
             "Jimmy Romanelli"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 58.0
         }
       ],
       "shotguns": [
@@ -493,13 +508,15 @@
           "pos": "2nd last",
           "names": [
             "Richard Katz"
-          ]
+          ],
+          "pts": 32.0
         },
         {
           "pos": "last",
           "names": [
             "Kemdi Onwuzurike"
-          ]
+          ],
+          "pts": 30.0
         }
       ]
     },
@@ -511,28 +528,32 @@
           "names": [
             "John King"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 91.0
         },
         {
           "pos": 2,
           "names": [
             "Tyler Ray"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 87.0
         },
         {
           "pos": 3,
           "names": [
             "Liam Kelly"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 86.0
         },
         {
           "pos": 4,
           "names": [
             "James McMullen"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 85.0
         }
       ],
       "shotguns": [
@@ -540,13 +561,15 @@
           "pos": "2nd last",
           "names": [
             "Dave Bambrick"
-          ]
+          ],
+          "pts": 69.0
         },
         {
           "pos": "last",
           "names": [
             "Cole Baker"
-          ]
+          ],
+          "pts": 58.0
         }
       ]
     },
@@ -558,28 +581,32 @@
           "names": [
             "JCarr Gamble"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 64.0
         },
         {
           "pos": 2,
           "names": [
             "Luke Civantos"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 57.0
         },
         {
           "pos": 3,
           "names": [
             "Logan Kluis"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 56.0
         },
         {
           "pos": 4,
           "names": [
             "Eddy GM"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 54.0
         }
       ],
       "shotguns": [
@@ -587,13 +614,15 @@
           "pos": "2nd last",
           "names": [
             "Liam Cashman"
-          ]
+          ],
+          "pts": 36.0
         },
         {
           "pos": "last",
           "names": [
             "Aidan White"
-          ]
+          ],
+          "pts": 34.0
         }
       ]
     },
@@ -605,28 +634,32 @@
           "names": [
             "Mike Delaus"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 97.0
         },
         {
           "pos": 2,
           "names": [
             "Tyler Ray"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 95.0
         },
         {
           "pos": 3,
           "names": [
             "Eric Wallerstein"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 94.0
         },
         {
           "pos": 4,
           "names": [
             "Richard Katz"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 92.0
         }
       ],
       "shotguns": [
@@ -634,13 +667,15 @@
           "pos": "2nd last",
           "names": [
             "Luke Civantos"
-          ]
+          ],
+          "pts": 60.0
         },
         {
           "pos": "last",
           "names": [
             "Kemdi Onwuzurike"
-          ]
+          ],
+          "pts": 58.0
         }
       ]
     },
@@ -652,28 +687,32 @@
           "names": [
             "Logan Kluis"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 90.0
         },
         {
           "pos": 2,
           "names": [
             "Liam Cashman"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 68.0
         },
         {
           "pos": 3,
           "names": [
             "John Morcos"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 67.0
         },
         {
           "pos": 4,
           "names": [
             "Christian Jamison"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 66.0
         }
       ],
       "shotguns": [
@@ -681,13 +720,15 @@
           "pos": "2nd last",
           "names": [
             "JCarr Gamble"
-          ]
+          ],
+          "pts": 29.0
         },
         {
           "pos": "last",
           "names": [
             "Harry Wang"
-          ]
+          ],
+          "pts": 23.0
         }
       ]
     },
@@ -699,28 +740,32 @@
           "names": [
             "Tommy Mayer"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 62.0
         },
         {
           "pos": 2,
           "names": [
             "John King"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 60.0
         },
         {
           "pos": 3,
           "names": [
             "Tyler Wasser"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 58.0
         },
         {
           "pos": 4,
           "names": [
             "Mitch Maisel"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 56.0
         }
       ],
       "shotguns": [
@@ -729,7 +774,8 @@
           "names": [
             "Christian Jamison",
             "Mike Delaus"
-          ]
+          ],
+          "pts": 30.0
         }
       ]
     },
@@ -741,28 +787,32 @@
           "names": [
             "Mitch Maisel"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 101.0
         },
         {
           "pos": 2,
           "names": [
             "Dave Bambrick"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 98.0
         },
         {
           "pos": 3,
           "names": [
             "Eddy GM"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 91.0
         },
         {
           "pos": 4,
           "names": [
             "Tucker Cina"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 89.0
         }
       ],
       "shotguns": [
@@ -770,13 +820,15 @@
           "pos": "2nd last",
           "names": [
             "Jack Bernatchez"
-          ]
+          ],
+          "pts": 51.0
         },
         {
           "pos": "last",
           "names": [
             "Kemdi Onwuzurike"
-          ]
+          ],
+          "pts": 46.0
         }
       ]
     },
@@ -788,14 +840,16 @@
           "names": [
             "Rob Disanto"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 88.0
         },
         {
           "pos": 2,
           "names": [
             "Tom Raggio"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 87.0
         },
         {
           "pos": 3,
@@ -804,7 +858,8 @@
             "Luke Civantos",
             "Cole Baker"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 80.0
         }
       ],
       "shotguns": [
@@ -812,13 +867,15 @@
           "pos": "2nd last",
           "names": [
             "Eddy GM"
-          ]
+          ],
+          "pts": 44.0
         },
         {
           "pos": "last",
           "names": [
             "Christian Jamison"
-          ]
+          ],
+          "pts": 43.0
         }
       ]
     },
@@ -830,14 +887,16 @@
           "names": [
             "John Morcos"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 69.0
         },
         {
           "pos": 2,
           "names": [
             "Richard Katz"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 50.0
         },
         {
           "pos": 3,
@@ -845,7 +904,8 @@
             "Christian Jamison",
             "Jack Bernatchez"
           ],
-          "payout": 3.75
+          "payout": 3.75,
+          "pts": 44.0
         }
       ],
       "shotguns": [
@@ -854,13 +914,15 @@
           "names": [
             "Tom Raggio",
             "Tommy Mayer"
-          ]
+          ],
+          "pts": 22.0
         },
         {
           "pos": "last",
           "names": [
             "Tucker Cina"
-          ]
+          ],
+          "pts": 18.0
         }
       ]
     },
@@ -872,21 +934,24 @@
           "names": [
             "John King"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 92.0
         },
         {
           "pos": 2,
           "names": [
             "Luke Civantos"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 83.0
         },
         {
           "pos": 3,
           "names": [
             "Andrew Denucci"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 80.0
         },
         {
           "pos": 4,
@@ -894,7 +959,8 @@
             "Tucker Cina",
             "JCarr Gamble"
           ],
-          "payout": 1.25
+          "payout": 1.25,
+          "pts": 77.0
         }
       ],
       "shotguns": [
@@ -902,13 +968,15 @@
           "pos": "2nd last",
           "names": [
             "John Morcos"
-          ]
+          ],
+          "pts": 41.0
         },
         {
           "pos": "last",
           "names": [
             "John Heyer"
-          ]
+          ],
+          "pts": 37.0
         }
       ]
     },
@@ -920,14 +988,16 @@
           "names": [
             "Luke Civantos"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 68.0
         },
         {
           "pos": 2,
           "names": [
             "John King"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 61.0
         },
         {
           "pos": 3,
@@ -935,7 +1005,8 @@
             "Cole Baker",
             "Ryan Kelly"
           ],
-          "payout": 3.75
+          "payout": 3.75,
+          "pts": 59.0
         }
       ],
       "shotguns": [
@@ -943,13 +1014,15 @@
           "pos": "2nd last",
           "names": [
             "Matt Nicolai"
-          ]
+          ],
+          "pts": 36.0
         },
         {
           "pos": "last",
           "names": [
             "Harry Wang"
-          ]
+          ],
+          "pts": 33.0
         }
       ]
     },
@@ -961,7 +1034,8 @@
           "names": [
             "Dave Bambrick"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 81.0
         },
         {
           "pos": 2,
@@ -969,14 +1043,16 @@
             "Tyler Wasser",
             "John Morcos"
           ],
-          "payout": 8.75
+          "payout": 8.75,
+          "pts": 79.0
         },
         {
           "pos": 4,
           "names": [
             "Matt Nicolai"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 68.0
         }
       ],
       "shotguns": [
@@ -985,7 +1061,8 @@
           "names": [
             "Luke Civantos",
             "Liam Kelly"
-          ]
+          ],
+          "pts": 43.0
         }
       ]
     },
@@ -997,21 +1074,24 @@
           "names": [
             "Richard Katz"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 69.0
         },
         {
           "pos": 2,
           "names": [
             "Eddy GM"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 48.0
         },
         {
           "pos": 3,
           "names": [
             "Tucker Cina"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 43.0
         },
         {
           "pos": 4,
@@ -1019,7 +1099,8 @@
             "Andrew Denucci",
             "Luke Civantos"
           ],
-          "payout": 1.25
+          "payout": 1.25,
+          "pts": 42.0
         }
       ],
       "shotguns": [
@@ -1027,13 +1108,15 @@
           "pos": "2nd last",
           "names": [
             "Tommy Mayer"
-          ]
+          ],
+          "pts": 21.0
         },
         {
           "pos": "last",
           "names": [
             "John Morcos"
-          ]
+          ],
+          "pts": 20.0
         }
       ]
     },
@@ -1045,14 +1128,16 @@
           "names": [
             "Eddy GM"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 69.0
         },
         {
           "pos": 2,
           "names": [
             "Liam Kelly"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 67.0
         },
         {
           "pos": 3,
@@ -1060,7 +1145,8 @@
             "James McMullen",
             "Tommy Mayer"
           ],
-          "payout": 3.75
+          "payout": 3.75,
+          "pts": 63.0
         }
       ],
       "shotguns": [
@@ -1068,13 +1154,15 @@
           "pos": "2nd last",
           "names": [
             "Christian Jamison"
-          ]
+          ],
+          "pts": 20.0
         },
         {
           "pos": "last",
           "names": [
             "Tyler Ray"
-          ]
+          ],
+          "pts": 18.0
         }
       ]
     },
@@ -1086,28 +1174,32 @@
           "names": [
             "Aidan White"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 74.0
         },
         {
           "pos": 2,
           "names": [
             "Mitch Maisel"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 65.0
         },
         {
           "pos": 3,
           "names": [
             "Mike Delaus"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 64.0
         },
         {
           "pos": 4,
           "names": [
             "Harry Wang"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 62.0
         }
       ],
       "shotguns": [
@@ -1115,13 +1207,15 @@
           "pos": "2nd last",
           "names": [
             "Rob Disanto"
-          ]
+          ],
+          "pts": 32.0
         },
         {
           "pos": "last",
           "names": [
             "Tommy Mayer"
-          ]
+          ],
+          "pts": 28.0
         }
       ]
     },
@@ -1133,21 +1227,24 @@
           "names": [
             "Christian Jamison"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 64.0
         },
         {
           "pos": 2,
           "names": [
             "Ryan Kelly"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 59.0
         },
         {
           "pos": 3,
           "names": [
             "John Morcos"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 57.0
         },
         {
           "pos": 4,
@@ -1156,7 +1253,8 @@
             "Dave Bambrick",
             "Eddy GM"
           ],
-          "payout": 0.83
+          "payout": 0.83,
+          "pts": 55.0
         }
       ],
       "shotguns": [
@@ -1165,7 +1263,8 @@
           "names": [
             "Cole Baker",
             "Aidan White"
-          ]
+          ],
+          "pts": 29.0
         }
       ]
     },
@@ -1178,7 +1277,8 @@
             "Matt Nicolai",
             "James McMullen"
           ],
-          "payout": 18.75
+          "payout": 18.75,
+          "pts": 55.0
         },
         {
           "pos": 3,
@@ -1186,7 +1286,8 @@
             "Jimmy Romanelli",
             "Dave Bambrick"
           ],
-          "payout": 3.75
+          "payout": 3.75,
+          "pts": 53.0
         }
       ],
       "shotguns": [
@@ -1194,13 +1295,15 @@
           "pos": "2nd last",
           "names": [
             "Aidan White"
-          ]
+          ],
+          "pts": 32.0
         },
         {
           "pos": "last",
           "names": [
             "Logan Kluis"
-          ]
+          ],
+          "pts": 31.0
         }
       ]
     },
@@ -1212,28 +1315,32 @@
           "names": [
             "JCarr Gamble"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 98.0
         },
         {
           "pos": 2,
           "names": [
             "Luke Civantos"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 95.0
         },
         {
           "pos": 3,
           "names": [
             "Jimmy Romanelli"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 94.0
         },
         {
           "pos": 4,
           "names": [
             "Matt Nicolai"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 89.0
         }
       ],
       "shotguns": [
@@ -1241,13 +1348,15 @@
           "pos": "2nd last",
           "names": [
             "Tyler Ray"
-          ]
+          ],
+          "pts": 46.0
         },
         {
           "pos": "last",
           "names": [
             "Ryan Kelly"
-          ]
+          ],
+          "pts": 44.0
         }
       ]
     },
@@ -1259,14 +1368,16 @@
           "names": [
             "James McMullen"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 82.0
         },
         {
           "pos": 2,
           "names": [
             "Mike Delaus"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 77.0
         },
         {
           "pos": 3,
@@ -1274,7 +1385,8 @@
             "Liam Kelly",
             "John Morcos"
           ],
-          "payout": 3.75
+          "payout": 3.75,
+          "pts": 65.0
         }
       ],
       "shotguns": [
@@ -1282,13 +1394,15 @@
           "pos": "2nd last",
           "names": [
             "Richard Katz"
-          ]
+          ],
+          "pts": 32.0
         },
         {
           "pos": "last",
           "names": [
             "Eddy GM"
-          ]
+          ],
+          "pts": 28.0
         }
       ]
     },
@@ -1300,7 +1414,8 @@
           "names": [
             "Liam Cashman"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 62.0
         },
         {
           "pos": 2,
@@ -1309,7 +1424,8 @@
             "Tucker Cina",
             "Mike Delaus"
           ],
-          "payout": 6.67
+          "payout": 6.67,
+          "pts": 59.0
         }
       ],
       "shotguns": [
@@ -1318,13 +1434,15 @@
           "names": [
             "Mitch Maisel",
             "Aidan White"
-          ]
+          ],
+          "pts": 39.0
         },
         {
           "pos": "last",
           "names": [
             "Dave Bambrick"
-          ]
+          ],
+          "pts": 20.0
         }
       ]
     },
@@ -1336,28 +1454,32 @@
           "names": [
             "Luke Civantos"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 102.0
         },
         {
           "pos": 2,
           "names": [
             "John King"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 98.0
         },
         {
           "pos": 3,
           "names": [
             "Liam Cashman"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 94.0
         },
         {
           "pos": 4,
           "names": [
             "Aidan White"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 92.0
         }
       ],
       "shotguns": [
@@ -1365,13 +1487,15 @@
           "pos": "2nd last",
           "names": [
             "Cole Baker"
-          ]
+          ],
+          "pts": 46.0
         },
         {
           "pos": "last",
           "names": [
             "Tucker Cina"
-          ]
+          ],
+          "pts": 35.0
         }
       ]
     },
@@ -1383,21 +1507,24 @@
           "names": [
             "John King"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 92.0
         },
         {
           "pos": 2,
           "names": [
             "Jack Bernatchez"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 85.0
         },
         {
           "pos": 3,
           "names": [
             "Tyler Wasser"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 83.0
         },
         {
           "pos": 4,
@@ -1405,7 +1532,8 @@
             "Christian Jamison",
             "Rob DiSanto"
           ],
-          "payout": 1.25
+          "payout": 1.25,
+          "pts": 81.0
         }
       ],
       "shotguns": [
@@ -1413,13 +1541,15 @@
           "pos": "2nd last",
           "names": [
             "Eric Wallerstein"
-          ]
+          ],
+          "pts": 43.0
         },
         {
           "pos": "last",
           "names": [
             "Logan Kluis"
-          ]
+          ],
+          "pts": 39.0
         }
       ]
     },
@@ -1431,21 +1561,24 @@
           "names": [
             "Jack Bernatchez"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 116.0
         },
         {
           "pos": 2,
           "names": [
             "Tyler Ray"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 98.0
         },
         {
           "pos": 3,
           "names": [
             "Ryan Kelly"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 93.0
         },
         {
           "pos": 4,
@@ -1453,7 +1586,8 @@
             "Christian Jamison",
             "JCarr Gamble"
           ],
-          "payout": 1.25
+          "payout": 1.25,
+          "pts": 92.0
         }
       ],
       "shotguns": [
@@ -1461,13 +1595,15 @@
           "pos": "2nd last",
           "names": [
             "Luke Civantos"
-          ]
+          ],
+          "pts": 61.0
         },
         {
           "pos": "last",
           "names": [
             "Liam Cashman"
-          ]
+          ],
+          "pts": 55.0
         }
       ]
     },
@@ -1479,14 +1615,16 @@
           "names": [
             "Mike Delaus"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 73.0
         },
         {
           "pos": 2,
           "names": [
             "Eddy GM"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 68.0
         },
         {
           "pos": 3,
@@ -1495,7 +1633,8 @@
             "JCarr Gamble",
             "Tucker Cina"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 64.0
         }
       ],
       "shotguns": [
@@ -1503,13 +1642,15 @@
           "pos": "2nd last",
           "names": [
             "John Heyer"
-          ]
+          ],
+          "pts": 21.0
         },
         {
           "pos": "last",
           "names": [
             "Harry Wang"
-          ]
+          ],
+          "pts": 18.0
         }
       ]
     },
@@ -1521,21 +1662,24 @@
           "names": [
             "Tommy Mayer"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 90.0
         },
         {
           "pos": 2,
           "names": [
             "Andrew Denucci"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 88.0
         },
         {
           "pos": 3,
           "names": [
             "Jimmy Romanelli"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 87.0
         },
         {
           "pos": 4,
@@ -1543,7 +1687,8 @@
             "Dave Bambrick",
             "Rob Disanto"
           ],
-          "payout": 1.25
+          "payout": 1.25,
+          "pts": 86.0
         }
       ],
       "shotguns": [
@@ -1551,13 +1696,15 @@
           "pos": "2nd last",
           "names": [
             "Logan Kluis"
-          ]
+          ],
+          "pts": 44.0
         },
         {
           "pos": "last",
           "names": [
             "Cole Baker"
-          ]
+          ],
+          "pts": 38.0
         }
       ]
     },
@@ -1569,28 +1716,32 @@
           "names": [
             "Harry Wang"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 86.0
         },
         {
           "pos": 2,
           "names": [
             "Rob Disanto"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 80.0
         },
         {
           "pos": 3,
           "names": [
             "Tyler Wasser"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 72.0
         },
         {
           "pos": 4,
           "names": [
             "Jimmy Romanelli"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 70.0
         }
       ],
       "shotguns": [
@@ -1598,13 +1749,15 @@
           "pos": "2nd last",
           "names": [
             "Dave Bambrick"
-          ]
+          ],
+          "pts": 29.0
         },
         {
           "pos": "last",
           "names": [
             "Tyler Ray"
-          ]
+          ],
+          "pts": 26.0
         }
       ]
     },
@@ -1616,7 +1769,8 @@
           "names": [
             "Jack Bernatchez"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 36.0
         },
         {
           "pos": 2,
@@ -1624,14 +1778,16 @@
             "John Morcos",
             "Ryan Kelly"
           ],
-          "payout": 8.75
+          "payout": 8.75,
+          "pts": 31.0
         },
         {
           "pos": 4,
           "names": [
             "Tyler Ray"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 26.0
         }
       ],
       "shotguns": [
@@ -1639,13 +1795,15 @@
           "pos": "2nd last",
           "names": [
             "James McMullen"
-          ]
+          ],
+          "pts": 9.0
         },
         {
           "pos": "last",
           "names": [
             "Harry Wang"
-          ]
+          ],
+          "pts": 3.0
         }
       ]
     },
@@ -1657,21 +1815,24 @@
           "names": [
             "JCarr Gamble"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 85.0
         },
         {
           "pos": 2,
           "names": [
             "Eric Wallerstein"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 76.0
         },
         {
           "pos": 3,
           "names": [
             "Aidan White"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 69.0
         },
         {
           "pos": 4,
@@ -1680,7 +1841,8 @@
             "Matt Nicolai",
             "Liam Kelly"
           ],
-          "payout": 0.83
+          "payout": 0.83,
+          "pts": 65.0
         }
       ],
       "shotguns": [
@@ -1688,13 +1850,15 @@
           "pos": "2nd last",
           "names": [
             "Tyler Ray"
-          ]
+          ],
+          "pts": 30.0
         },
         {
           "pos": "last",
           "names": [
             "John King"
-          ]
+          ],
+          "pts": 18.0
         }
       ]
     },
@@ -1706,14 +1870,16 @@
           "names": [
             "Liam Cashman"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 82.0
         },
         {
           "pos": 2,
           "names": [
             "Dave Bambrick"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 75.0
         },
         {
           "pos": 3,
@@ -1721,7 +1887,8 @@
             "Jack Bernatchez",
             "Christian Jamison"
           ],
-          "payout": 3.75
+          "payout": 3.75,
+          "pts": 70.0
         }
       ],
       "shotguns": [
@@ -1729,13 +1896,15 @@
           "pos": "2nd last",
           "names": [
             "Tyler Ray"
-          ]
+          ],
+          "pts": 32.0
         },
         {
           "pos": "last",
           "names": [
             "Tyler Wasser"
-          ]
+          ],
+          "pts": 23.0
         }
       ]
     },
@@ -1747,14 +1916,16 @@
           "names": [
             "Harry Wang"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 75.0
         },
         {
           "pos": 2,
           "names": [
             "Liam Kelly"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 71.0
         },
         {
           "pos": 3,
@@ -1762,7 +1933,8 @@
             "Luke Civantos",
             "Mitch Maisel"
           ],
-          "payout": 3.75
+          "payout": 3.75,
+          "pts": 70.0
         }
       ],
       "shotguns": [
@@ -1770,13 +1942,15 @@
           "pos": "2nd last",
           "names": [
             "Aidan White"
-          ]
+          ],
+          "pts": 47.0
         },
         {
           "pos": "last",
           "names": [
             "Rob Disanto"
-          ]
+          ],
+          "pts": 40.0
         }
       ]
     },
@@ -1788,28 +1962,32 @@
           "names": [
             "Mitch Maisel"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 106.0
         },
         {
           "pos": 2,
           "names": [
             "Ryan Kelly"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 105.0
         },
         {
           "pos": 3,
           "names": [
             "Liam Cashman"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 92.0
         },
         {
           "pos": 4,
           "names": [
             "Eric Wallerstein"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 90.0
         }
       ],
       "shotguns": [
@@ -1817,13 +1995,15 @@
           "pos": "2nd last",
           "names": [
             "Tyler Ray"
-          ]
+          ],
+          "pts": 37.0
         },
         {
           "pos": "last",
           "names": [
             "Tommy Mayer"
-          ]
+          ],
+          "pts": 35.0
         }
       ]
     },
@@ -1835,7 +2015,8 @@
           "names": [
             "Aidan White"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 153.0
         },
         {
           "pos": 2,
@@ -1843,14 +2024,16 @@
             "Matt Nicolai",
             "Ryan Kelly"
           ],
-          "payout": 8.75
+          "payout": 8.75,
+          "pts": 114.0
         },
         {
           "pos": 4,
           "names": [
             "James McMullen"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 110.0
         }
       ],
       "shotguns": [
@@ -1858,13 +2041,15 @@
           "pos": "2nd last",
           "names": [
             "Luke Civantos"
-          ]
+          ],
+          "pts": 54.0
         },
         {
           "pos": "last",
           "names": [
             "Harry Wang"
-          ]
+          ],
+          "pts": 48.0
         }
       ]
     },
@@ -1876,28 +2061,32 @@
           "names": [
             "Jimmy Romanelli"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 97.0
         },
         {
           "pos": 2,
           "names": [
             "Andrew Denucci"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 94.0
         },
         {
           "pos": 3,
           "names": [
             "Tucker Cina"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 85.0
         },
         {
           "pos": 4,
           "names": [
             "Mitch Maisel"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 80.0
         }
       ],
       "shotguns": [
@@ -1905,13 +2094,15 @@
           "pos": "2nd last",
           "names": [
             "Cole Baker"
-          ]
+          ],
+          "pts": 40.0
         },
         {
           "pos": "last",
           "names": [
             "Rob Disanto"
-          ]
+          ],
+          "pts": 36.0
         }
       ]
     },
@@ -1923,28 +2114,32 @@
           "names": [
             "John Morcos"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 119.0
         },
         {
           "pos": 2,
           "names": [
             "Liam Kelly"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 113.0
         },
         {
           "pos": 3,
           "names": [
             "Andrew Denucci"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 105.0
         },
         {
           "pos": 4,
           "names": [
             "Jimmy Romanelli"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 101.0
         }
       ],
       "shotguns": [
@@ -1952,13 +2147,15 @@
           "pos": "2nd last",
           "names": [
             "Ryan Kelly"
-          ]
+          ],
+          "pts": 52.0
         },
         {
           "pos": "last",
           "names": [
             "Harry Wang"
-          ]
+          ],
+          "pts": 49.0
         }
       ]
     },
@@ -1970,28 +2167,32 @@
           "names": [
             "Liam Kelly"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 146.0
         },
         {
           "pos": 2,
           "names": [
             "Aidan White"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 141.0
         },
         {
           "pos": 3,
           "names": [
             "Andrew Denucci"
           ],
-          "payout": 5.0
+          "payout": 5.0,
+          "pts": 136.0
         },
         {
           "pos": 4,
           "names": [
             "Jimmy Romanelli"
           ],
-          "payout": 2.5
+          "payout": 2.5,
+          "pts": 132.0
         }
       ],
       "shotguns": [
@@ -1999,13 +2200,15 @@
           "pos": "2nd last",
           "names": [
             "Tommy Mayer"
-          ]
+          ],
+          "pts": 62.0
         },
         {
           "pos": "last",
           "names": [
             "Christian Jamison"
-          ]
+          ],
+          "pts": 54.0
         }
       ]
     },
@@ -2017,14 +2220,16 @@
           "names": [
             "Harry Wang"
           ],
-          "payout": 25.0
+          "payout": 25.0,
+          "pts": 97.0
         },
         {
           "pos": 2,
           "names": [
             "Dave Bambrick"
           ],
-          "payout": 12.5
+          "payout": 12.5,
+          "pts": 81.0
         },
         {
           "pos": 3,
@@ -2032,7 +2237,8 @@
             "James McMullen",
             "Mike Delaus"
           ],
-          "payout": 3.75
+          "payout": 3.75,
+          "pts": 77.0
         }
       ],
       "shotguns": [
@@ -2040,13 +2246,15 @@
           "pos": "2nd last",
           "names": [
             "Tyler Wasser"
-          ]
+          ],
+          "pts": 47.0
         },
         {
           "pos": "last",
           "names": [
             "Richard Katz"
-          ]
+          ],
+          "pts": 44.0
         }
       ]
     }

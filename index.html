@@ -9360,8 +9360,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       if (!sd?.weeks) return null;
       const weeks = sd.weeks.map(w => {
         const rows = {};
-        w.places.forEach(p => p.names.forEach(n => { rows[norm(n)] = { pos: p.pos, tied: p.names.length > 1, prize: p.payout || 0, shotgun: false }; }));
-        w.shotguns.forEach(sg => sg.names.forEach(n => { rows[norm(n)] = { ...(rows[norm(n)]||{}), shotgun: true, shotPos: sg.pos, tied: rows[norm(n)]?.tied || sg.names.length > 1 }; }));
+        w.places.forEach(p => p.names.forEach(n => { rows[norm(n)] = { pos: p.pos, tied: p.names.length > 1, prize: p.payout || 0, shotgun: false, pts: p.pts ?? undefined }; }));
+        w.shotguns.forEach(sg => sg.names.forEach(n => { rows[norm(n)] = { ...(rows[norm(n)]||{}), shotgun: true, shotPos: sg.pos, tied: rows[norm(n)]?.tied || sg.names.length > 1, pts: rows[norm(n)]?.pts ?? sg.pts ?? undefined }; }));
         return { gw: w.gw, rows };
       });
       return { weeks, misses: {}, sparse: true };
@@ -9456,9 +9456,11 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         let fg = 'var(--text3)', bg = 'var(--bg3)', mark = '', border = 'transparent', tip = 'GW' + gw;
         if (future) { bg = 'transparent'; border = 'var(--border)'; }
         else if (!r && !missed && !data.sparse) { tip += ' · not in league'; bg = 'transparent'; }
-        if (r?.prize > 0) { [fg, bg] = posColor(r.pos); mark = (r.tied ? 'T' : '') + r.pos; tip += ' · ' + (r.tied ? 'T-' : '') + ord(r.pos) + ' · $' + r.prize.toFixed(2); }
-        else if (r?.pts !== undefined && !r.shotgun) { tip += ' · ' + ord(r.pos) + ' · ' + r.pts + ' pts'; }
-        if (r?.shotgun) { bg = 'var(--red-dim)'; mark = '🍺'; fg = 'var(--red)'; tip += ' · shotgun' + (r.shotPos ? ' (' + r.shotPos + ')' : ''); }
+        const ptsStr = (r?.pts !== undefined && r?.pts !== null) ? ' · ' + r.pts + ' pts' : '';
+        if (r?.prize > 0) { [fg, bg] = posColor(r.pos); mark = (r.tied ? 'T' : '') + r.pos; tip += ' · ' + (r.tied ? 'T-' : '') + ord(r.pos) + ptsStr + ' · $' + r.prize.toFixed(2); }
+        else if (r?.shotgun) { tip += (r.shotPos ? ' · ' + r.shotPos : (r.pos ? ' · ' + (r.tied ? 'T-' : '') + ord(r.pos) : '')) + ptsStr; }
+        else if (r?.pts !== undefined) { tip += ' · ' + ord(r.pos) + ptsStr; }
+        if (r?.shotgun) { bg = 'var(--red-dim)'; mark = '🍺'; fg = 'var(--red)'; tip += ' · 🍺 shotgun'; }
         if (!future && tip === 'GW' + gw) tip += ' · no prize or shotgun';
         if (missed) { border = 'var(--red)'; tip += ' · missed shotgun'; if (!r?.shotgun && !(r?.prize > 0)) { mark = '❌'; bg = 'var(--red-dim)'; } }
         html += '<div data-tip="' + e(tip) + '" onclick="window._wkTip(this)" style="cursor:pointer;-webkit-tap-highlight-color:transparent;aspect-ratio:1;border-radius:6px;background:' + bg + ';border:1px solid ' + border + ';display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;min-width:0;">'
