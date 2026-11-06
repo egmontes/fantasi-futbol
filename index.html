@@ -672,6 +672,9 @@
     #tab-history .alltime-cards { display: block !important; }
     .standings-cards, .weekly-cards, .alltime-cards { max-width: 760px; margin: 0 auto; }
     .s-card { transition: border-color 0.2s, box-shadow 0.2s; }
+    .s-card-chevron { display:flex; justify-content:center; margin:2px 0 -10px; color:var(--text3); opacity:0.6; line-height:0; }
+    .s-card-chevron svg { transition: transform 0.2s; }
+    .s-card-drawer[style*="display: block"] + .s-card-chevron svg { transform: rotate(180deg); }
     .s-card:not(.at-card) { border-left-width: 3px !important; }
 
     .standings-cards .s-card { background: linear-gradient(135deg, var(--card-bg, #1f3330) 0%, var(--bg2) 65%) !important; }
@@ -3280,8 +3283,10 @@ const subEl = document.getElementById('live-load-sub');
       const cardBg = kickedCard ? 'rgba(248,113,113,0.12)' : (sCardTheme ? sCardTheme.bg : '#1f3330');
       const cardRankColor = kickedCard ? 'var(--red)' : (sCardTheme ? sCardTheme.rankColor : 'var(--theme)');
 
-      html += '<div class="s-card" data-manager-id="' + m.id + '" style="--card-accent:' + cardBorder + ';--card-bg:' + cardBg + ';background:' + cardBg + ';border:1px solid ' + cardBorder.replace(/[\d.]+\)$/, '0.2)') + ';border-left:3px solid ' + cardBorder + ';border-radius:16px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.3);">';
+      html += '<div class="s-card" data-manager-id="' + m.id + '" style="position:relative;--card-accent:' + cardBorder + ';--card-bg:' + cardBg + ';background:' + cardBg + ';border:1px solid ' + cardBorder.replace(/[\d.]+\)$/, '0.2)') + ';border-left:3px solid ' + cardBorder + ';border-radius:16px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.3);">';
 
+      // History button (top right) → manager stats page
+      html += '<button class="s-card-history-btn" data-manager-name="' + esc(m.name) + '" title="Manager history" aria-label="Manager history" onclick="event.stopPropagation();event.preventDefault();window._openManagerHistory(this.getAttribute(\'data-manager-name\'));" style="position:absolute;top:10px;right:10px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--theme-dim);color:var(--theme);border:1px solid var(--theme-border);border-radius:8px;padding:0;cursor:pointer;z-index:2;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></button>';
       // Top row: rank + name + pts
       html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
       // Rank with trend arrow above
@@ -3382,6 +3387,7 @@ const subEl = document.getElementById('live-load-sub');
       html += '</div>';
       html += '</div>'; // close top row
       html += '<div class="s-card-drawer" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;"></div>';
+      html += '<div class="s-card-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>';
       html += '</div>';
     });
 
@@ -9289,7 +9295,25 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     window._renderManagerCharts(name);
   };
 
-  window._renderManagerCharts = function(name) {
+  // Open a manager's history/charts overlay from a current-season card
+  window._openManagerHistory = async function(name) {
+    if (window._openingManagerHistory) return;
+    window._openingManagerHistory = true;
+    try {
+      if (!window._statsDataLoaded || !window._historyData?.seasonData || !window._atCardDataMap) {
+        await showLeagueHistory(true);
+        window._statsDataLoaded = true;
+      }
+      const map = window._atCardDataMap || {};
+      const key = map[name] ? name : Object.keys(map).find(k => k.toLowerCase().trim() === String(name).toLowerCase().trim());
+      if (!key) { console.warn('[history] No history found for', name); return; }
+      const ov = document.getElementById('manager-chart-overlay');
+      if (ov) ov.style.display = 'none';
+      window._renderManagerCharts(key, true);
+    } finally { window._openingManagerHistory = false; }
+  };
+
+  window._renderManagerCharts = function(name, forceOverlay) {
     const m = window._atCardDataMap?.[name];
     if (!m) return;
     const historyData = window._historyData?.seasonData;
@@ -9298,7 +9322,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     // If called from all-time page, show in overlay (same UX as stats hub)
     const historyTab = document.getElementById('tab-history');
     const existingOverlay = document.getElementById('manager-chart-overlay');
-    if (historyTab?.classList.contains('active') && existingOverlay?.style.display !== 'block') {
+    if ((forceOverlay || historyTab?.classList.contains('active')) && existingOverlay?.style.display !== 'block') {
       let overlay = document.getElementById('manager-chart-overlay');
       if (!overlay) {
         overlay = document.createElement('div');
