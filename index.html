@@ -5169,7 +5169,8 @@ try {
         const cardMissed = didMissGW(m.name, gw);
         if (m.totalG > 0) html += '<span class="gw-season-badge badge-amber" data-sort-key="totalG" style="display:' + (_gwSortKey === 'totalG' ? 'none' : 'inline-flex') + ';"><span style="color:var(--amber);">🍺 Tot:</span><span style="color:var(--text);">' + m.totalG + '</span></span>';
         if (cardOwed > 0) html += '<span class="gw-season-badge badge-amber" data-sort-key="totalG" style="display:' + (_gwSortKey === 'totalG' ? 'none' : 'inline-flex') + ';"><span style="color:var(--amber);">🍺 Owes:</span><span style="color:var(--text);">' + cardOwed + '</span></span>';
-        if (cardMissed) html += '<span style="font-size:11px;font-family:var(--font-mono);color:var(--red);background:var(--red-dim);border-radius:6px;padding:3px 8px;">❌ Missed</span>';
+        const cardMissedCount = getGuinnessMissedGWs(m.name).filter(g => g <= gw).length;
+        if (cardMissedCount > 0) html += '<span style="font-size:11px;font-family:var(--font-mono);background:var(--red-dim);border-radius:6px;padding:3px 8px;display:inline-flex;gap:2px;"><span style="color:var(--red);">Missed:</span><span style="color:var(--text);">' + cardMissedCount + '</span></span>';
         html += '</div>';
         // Row 2: GW stats (matching current GW card order)
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px;">';
