@@ -249,7 +249,8 @@
     /* STAT CARDS */
     .stat-ticker-wrap {
       overflow: hidden;
-      margin-bottom: 2rem;
+      margin-bottom: calc(2rem - 12px);
+      padding: 2px 0 12px; /* room for card shadows so the bottom edge isn't clipped */
       position: relative;
     }
     .stat-ticker-wrap::before,
@@ -720,6 +721,12 @@
     :root[data-theme="light"] .stat-card.stat-card-red .s-value { color: var(--red); }
     :root[data-theme="light"] [style*="color:#FFD700"] { color: #9a6f00 !important; }
     :root[data-theme="light"] .stat-card.stat-card-gold { background: rgba(161,98,7,0.08); border-color: rgba(161,98,7,0.3); }
+    :root[data-theme="light"] .stat-card.stat-card-gold .s-label,
+    :root[data-theme="light"] .stat-card.stat-card-gold .s-value { color: #8a5a00; }
+    :root[data-theme="light"] .stat-card.stat-card-guinness { background: rgba(138,100,0,0.08); border-color: rgba(138,100,0,0.3); }
+    :root[data-theme="light"] .stat-card.stat-card-guinness .s-label,
+    :root[data-theme="light"] .stat-card.stat-card-guinness .s-value { color: #7a5c00; }
+    :root[data-theme="light"] .stat-card { box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
     :root[data-theme="light"] .chip-avail { background: rgba(0,0,0,0.04) !important; color: var(--text2) !important; border-color: rgba(0,0,0,0.22) !important; }
     :root[data-theme="light"] .chip-used { background: rgba(0,0,0,0.06) !important; color: var(--text3) !important; border-color: rgba(0,0,0,0.14) !important; text-decoration-color: rgba(0,0,0,0.45) !important; }
     :root[data-theme="light"] .badge-chip { background: rgba(124,58,237,0.12); color: #6d28d9; border-color: rgba(124,58,237,0.4); }
@@ -735,11 +742,30 @@
       if (t !== 'light' && t !== 'dark') { try { t = localStorage.getItem('ff_theme'); } catch(e) { t = null; } }
       if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
     })();
+    window._chartColors = function() {
+      const light = document.documentElement.getAttribute('data-theme') === 'light';
+      const rgb = light ? '11,138,146' : '85,226,233';
+      return {
+        theme: light ? '#0b8a92' : '#55e2e9',
+        text3: light ? '#6b7771' : '#666',
+        grid: light ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)',
+        muted: light ? '#a7b0ab' : '#444',
+        bg2: light ? '#ebefec' : '#161a18',
+        fill: a => 'rgba(' + rgb + ',' + a + ')'
+      };
+    };
     window._toggleTheme = function() {
       const light = document.documentElement.getAttribute('data-theme') !== 'light';
       if (light) document.documentElement.setAttribute('data-theme', 'light');
       else document.documentElement.removeAttribute('data-theme');
       try { localStorage.setItem('ff_theme', light ? 'light' : 'dark'); } catch(e) {}
+      // Redraw any visible charts in the new colors
+      try {
+        const ov = document.getElementById('manager-chart-overlay');
+        const statsOn = document.getElementById('tab-stats')?.classList.contains('active');
+        if (window._currentStatManager && document.getElementById('earnings-chart') && ((ov && ov.style.display === 'block') || statsOn)) window._renderManagerCharts?.(window._currentStatManager);
+        if (statsOn && document.getElementById('growth-chart')) window._renderGrowthChart?.();
+      } catch(e) {}
     };
   </script>
 </head>
@@ -9712,11 +9738,11 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       const cH = H - pad.top - pad.bottom;
       const rawMax = Math.max(...data, ...allCmpData.flatMap(c => c.data), 1);
       const maxVal = rawMax * 1.15;
-      const theme = '#55e2e9';
-      const text3 = '#666';
+      const theme = window._chartColors().theme;
+      const text3 = window._chartColors().text3;
 
       // Grid lines
-      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.strokeStyle = window._chartColors().grid;
       ctx.lineWidth = 1;
       [0, 0.25, 0.5, 0.75, 1].forEach(t => {
         const y = pad.top + cH * (1 - t * rawMax / maxVal);
@@ -9739,8 +9765,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
 
       // Gradient fill
       const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + cH);
-      grad.addColorStop(0, 'rgba(85,226,233,0.25)');
-      grad.addColorStop(1, 'rgba(85,226,233,0)');
+      grad.addColorStop(0, window._chartColors().fill(0.25));
+      grad.addColorStop(1, window._chartColors().fill(0));
       ctx.beginPath();
       ctx.moveTo(pts[0].x, pad.top + cH);
       pts.forEach(p => ctx.lineTo(p.x, p.y));
@@ -9753,7 +9779,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       for (let i = 1; i < pts.length; i++) {
         const segIn = inLeague[i-1] && inLeague[i];
         ctx.beginPath();
-        ctx.strokeStyle = segIn ? theme : '#444';
+        ctx.strokeStyle = segIn ? theme : window._chartColors().muted;
         ctx.lineWidth = segIn ? 2.5 : 1.5;
         ctx.setLineDash(segIn ? [] : [3,3]);
         ctx.lineJoin = 'round';
@@ -9768,9 +9794,9 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         const wasIn = inLeague[i];
         ctx.beginPath();
         ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-        ctx.fillStyle = wasIn ? theme : '#444';
+        ctx.fillStyle = wasIn ? theme : window._chartColors().muted;
         ctx.fill();
-        ctx.strokeStyle = 'var(--bg2)';
+        ctx.strokeStyle = window._chartColors().bg2;
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
@@ -9791,7 +9817,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         for (let i = 1; i < cmpPts.length; i++) {
           ctx.beginPath();
           const segIn = cmpIL[i-1] && cmpIL[i];
-          ctx.strokeStyle = segIn ? compareColor : '#444';
+          ctx.strokeStyle = segIn ? compareColor : window._chartColors().muted;
           ctx.lineWidth = 2; ctx.lineJoin = 'round';
           ctx.moveTo(cmpPts[i-1].x, cmpPts[i-1].y);
           ctx.lineTo(cmpPts[i].x, cmpPts[i].y);
@@ -9799,7 +9825,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         }
         cmpPts.forEach((p, i) => {
           ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-          ctx.fillStyle = cmpIL[i] ? compareColor : '#444'; ctx.fill();
+          ctx.fillStyle = cmpIL[i] ? compareColor : window._chartColors().muted; ctx.fill();
         });
         return cmpPts;
       });
@@ -9886,9 +9912,9 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         const bPad = { top: 24, right: 20, bottom: 30, left: 40 };
         const bCW = WB - bPad.left - bPad.right;
         const bCH = HB - bPad.top - bPad.bottom;
-        const amber = '#55e2e9'; // primary = theme cyan
+        const amber = window._chartColors().theme; // primary = theme color
         // compareColor defined per-compare-manager in loop below
-        const bText3 = '#666';
+        const bText3 = window._chartColors().text3;
 
         if (bData.length < 2 && Math.max(...bData) === 0) {
           bCtx.fillStyle = bText3; bCtx.font = '12px monospace'; bCtx.textAlign = 'center';
@@ -9900,7 +9926,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         const bMinVal = 0;
 
         // Grid
-        bCtx.strokeStyle = 'rgba(255,255,255,0.06)'; bCtx.lineWidth = 1;
+        bCtx.strokeStyle = window._chartColors().grid; bCtx.lineWidth = 1;
         [0, 0.5, 1].forEach(t => {
           const y = bPad.top + bCH * (1 - t);
           bCtx.beginPath(); bCtx.moveTo(bPad.left, y); bCtx.lineTo(bPad.left + bCW, y); bCtx.stroke();
@@ -9916,8 +9942,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         // Line segments for primary
         if (bPts.length >= 2) {
           const bGrad = bCtx.createLinearGradient(0, bPad.top, 0, bPad.top + bCH);
-          bGrad.addColorStop(0, 'rgba(85,226,233,0.2)');
-          bGrad.addColorStop(1, 'rgba(85,226,233,0)');
+          bGrad.addColorStop(0, window._chartColors().fill(0.2));
+          bGrad.addColorStop(1, window._chartColors().fill(0));
           bCtx.beginPath(); bCtx.moveTo(bPts[0].x, bPad.top + bCH);
           bPts.forEach(p => bCtx.lineTo(p.x, p.y));
           bCtx.lineTo(bPts[bPts.length-1].x, bPad.top + bCH);
@@ -9925,7 +9951,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
           for (let i = 1; i < bPts.length; i++) {
             bCtx.beginPath();
             const bSegIn = bInLeague[i-1] && bInLeague[i];
-            bCtx.strokeStyle = bSegIn ? amber : '#444';
+            bCtx.strokeStyle = bSegIn ? amber : window._chartColors().muted;
             bCtx.lineWidth = bSegIn ? 2.5 : 1.5;
             bCtx.setLineDash(bSegIn ? [] : [3,3]);
             bCtx.lineJoin = 'round';
@@ -9938,8 +9964,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         // Dots + labels for primary
         bPts.forEach((p, i) => {
           bCtx.beginPath(); bCtx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-          bCtx.fillStyle = bInLeague[i] ? amber : '#444'; bCtx.fill();
-          bCtx.strokeStyle = 'var(--bg2)'; bCtx.lineWidth = 1.5; bCtx.stroke();
+          bCtx.fillStyle = bInLeague[i] ? amber : window._chartColors().muted; bCtx.fill();
+          bCtx.strokeStyle = window._chartColors().bg2; bCtx.lineWidth = 1.5; bCtx.stroke();
           bCtx.fillStyle = bText3; bCtx.font = '10px monospace'; bCtx.textAlign = 'center';
           bCtx.fillText(labels[i], p.x, HB - 6);
           // Value labels drawn offset-aware below
@@ -9955,7 +9981,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
           for (let i = 1; i < cmpBPts.length; i++) {
             bCtx.beginPath();
             const segIn = cmpBIL[i-1] && cmpBIL[i];
-            bCtx.strokeStyle = segIn ? compareColor : '#444';
+            bCtx.strokeStyle = segIn ? compareColor : window._chartColors().muted;
             bCtx.lineWidth = 2; bCtx.lineJoin = 'round';
             bCtx.moveTo(cmpBPts[i-1].x, cmpBPts[i-1].y);
             bCtx.lineTo(cmpBPts[i].x, cmpBPts[i].y);
@@ -9963,7 +9989,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
           }
           cmpBPts.forEach((p, i) => {
             bCtx.beginPath(); bCtx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-            bCtx.fillStyle = cmpBIL[i] ? compareColor : '#444'; bCtx.fill();
+            bCtx.fillStyle = cmpBIL[i] ? compareColor : window._chartColors().muted; bCtx.fill();
             // Labels drawn in collision-resolution pass below
           });
           return cmpBPts;
@@ -10075,10 +10101,10 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       const maxVal = Math.max(...data);
       const minVal = Math.min(...data);
       const range = maxVal - minVal || 1;
-      const theme = '#55e2e9';
-      const text3 = '#666';
+      const theme = window._chartColors().theme;
+      const text3 = window._chartColors().text3;
 
-      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+      ctx.strokeStyle = window._chartColors().grid; ctx.lineWidth = 1;
       [0, 0.5, 1].forEach(t => {
         const v = Math.round(minVal + range * t);
         const y = pad.top + cH * (1 - (v - minVal) / range);
@@ -10093,8 +10119,8 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       }));
 
       const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + cH);
-      grad.addColorStop(0, 'rgba(85,226,233,0.2)');
-      grad.addColorStop(1, 'rgba(85,226,233,0)');
+      grad.addColorStop(0, window._chartColors().fill(0.2));
+      grad.addColorStop(1, window._chartColors().fill(0));
       ctx.beginPath();
       ctx.moveTo(pts[0].x, pad.top + cH);
       pts.forEach(p => ctx.lineTo(p.x, p.y));
@@ -10109,7 +10135,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       pts.forEach((p, i) => {
         ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
         ctx.fillStyle = theme; ctx.fill();
-        ctx.strokeStyle = 'var(--bg2)'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.strokeStyle = window._chartColors().bg2; ctx.lineWidth = 1.5; ctx.stroke();
         ctx.fillStyle = text3; ctx.font = '10px monospace'; ctx.textAlign = 'center';
         ctx.fillText(labels[i], p.x, H - 4);
         ctx.fillStyle = theme; ctx.font = 'bold 10px monospace';
