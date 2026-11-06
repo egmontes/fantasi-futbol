@@ -7516,8 +7516,9 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
           if (!res.ok) return;
           const cache = await res.json();
 
-          // Hydrate players
-          Object.entries(cache.players || {}).forEach(([id, p]) => {
+          // Hydrate players — only for the season on screen (player IDs reset each season,
+          // so loading last season's files in the background must not overwrite current names)
+          if (season === CURRENT_SEASON || window.__viewingSeason === season) Object.entries(cache.players || {}).forEach(([id, p]) => {
             state.bootstrapPlayers[parseInt(id)] = p.name;
             if (p.team) { state.playerTeams = state.playerTeams || {}; state.playerTeams[parseInt(id)] = p.team; }
           });
@@ -9288,11 +9289,189 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
         <div style="font-size:9px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;">🍺 Beers Over Time</div>
         <canvas id="beers-chart" style="width:100%;height:200px;"></canvas>
       </div>
+        <div id="manager-weekly-results" style="margin-top:12px;"></div>
     `;
 
     window._currentStatManager = name;
     window._compareManagers = [];
     window._renderManagerCharts(name);
+    window._renderManagerWeekly?.(name, document.getElementById('tab-stats'));
+  };
+
+  // ── Per-season weekly results table (manager history page) ─────────────
+  window._weeklyResultsCache = window._weeklyResultsCache || {};
+  window._renderManagerWeekly = async function(name, root) {
+    const host = (root || document).querySelector('#manager-weekly-results');
+    if (!host) return;
+    const e = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const NM = { 'Eddy GM':'Eddy Garcia-Montes','Mike Delaus':'Michael DeLaus','Dave Bambrick':'David Bambrick','Rob Disanto':'Rob DiSanto',
+      'Zach Duguid':'Zachary Duguid','Harry Wang':'Harrison Wang','Mitch Pattullo':'Mitchel Pattullo','JCarr Gamble':'J. Carr Gamble',
+      'Tommy Mayer':'Thomas Mayer','Andrew Denucci':'Andrew DeNucci' };
+    const norm = n => String(NM[n] || n || '').toLowerCase().trim();
+    const me = norm(name);
+    host.innerHTML = '<div style="color:var(--text3);font-family:var(--font-mono);font-size:12px;padding:12px 0;text-align:center;"><span class="spinner"></span> Loading weekly results...</div>';
+    const C = window._weeklyResultsCache;
+
+    // Weekly results from a season's saved GW files (2025/26 onward)
+    const fromGWFiles = async (seasonKey) => {
+      if (C[seasonKey]) return C[seasonKey];
+      const files = await Promise.all(Array.from({length:38}, (_, i) =>
+        fetch('data/' + seasonKey + '/gw' + String(i+1).padStart(2,'0') + '.json').then(r => r.ok ? r.json() : null).catch(() => null)));
+      let misses = {};
+      try { const r = await fetch('data/' + seasonKey + '/guinness-misses.json'); if (r.ok) misses = await r.json(); } catch(err) {}
+      const weeks = [];
+      files.forEach((f, i) => {
+        if (!f?.managers?.length) return;
+        const ranked = f.managers.filter(m => m.history).map(m => ({ id: m.id, name: m.name, gwPoints: (m.history.points||0) - (m.history.event_transfers_cost||0) }))
+          .sort((a,b) => b.gwPoints - a.gwPoints);
+        weeks.push({ gw: i+1, rows: rankedToRows(ranked, seasonKey) });
+      });
+      return (C[seasonKey] = { weeks, misses });
+    };
+    // Turn ranked rows into { normName: {pos, tied, prize, shotgun} }
+    const rankedToRows = (ranked, seasonKey) => {
+      const prizes = computeWeeklyPrizes(ranked, seasonKey, true);
+      const out = {};
+      ranked.forEach((m, i) => {
+        const first = ranked.findIndex(x => x.gwPoints === m.gwPoints);
+        const tied = ranked.filter(x => x.gwPoints === m.gwPoints).length > 1;
+        const p = prizes[m.id] || {};
+        out[norm(m.name)] = { pos: first + 1, tied, prize: p.prize || 0, shotgun: !!p.shotgun, pts: m.gwPoints };
+      });
+      return out;
+    };
+    // Current season from live state
+    const fromCurrent = () => {
+      const done = state.isRecentlyCompleted ? state.liveGW : (state.isLive ? state.liveGW - 1 : state.latestGW);
+      const weeks = [];
+      for (let gw = 1; gw <= (done || 0); gw++) {
+        const ranked = getWeeklyRankings(gw);
+        if (ranked.length < 2) continue;
+        weeks.push({ gw, rows: rankedToRows(ranked, CURRENT_SEASON) });
+      }
+      const misses = {};
+      Object.entries(state.guinnessDebts || {}).forEach(([n, d]) => { misses[n] = d; });
+      return { weeks, misses };
+    };
+    // Spreadsheet seasons (2023/24, 2024/25)
+    const fromSheet = async (file) => {
+      if (!C['sheet_' + file]) { try { const r = await fetch('data/seasons/' + file + '.json'); C['sheet_' + file] = r.ok ? await r.json() : {}; } catch(err) { C['sheet_' + file] = {}; } }
+      const sd = C['sheet_' + file];
+      if (!sd?.weeks) return null;
+      const weeks = sd.weeks.map(w => {
+        const rows = {};
+        w.places.forEach(p => p.names.forEach(n => { rows[norm(n)] = { pos: p.pos, tied: p.names.length > 1, prize: p.payout || 0, shotgun: false }; }));
+        w.shotguns.forEach(sg => sg.names.forEach(n => { rows[norm(n)] = { ...(rows[norm(n)]||{}), shotgun: true, shotPos: sg.pos, tied: rows[norm(n)]?.tied || sg.names.length > 1 }; }));
+        return { gw: w.gw, rows };
+      });
+      return { weeks, misses: {}, sparse: true };
+    };
+
+    const SEASONS = [
+      { label: CURRENT_SEASON_SHORT, rules: 'Top 6 paid · Bottom 4 shotgun', load: async () => fromCurrent(), current: true },
+      { label: '2025/26', rules: 'Top 4 paid · Bottom 2 shotgun', load: () => fromGWFiles('2025-2026') },
+      { label: '2024/25', rules: 'Top 4 paid · Bottom 2 shotgun', load: () => fromSheet('2024-2025') },
+      { label: '2023/24', rules: 'Top 4 paid · Bottom 2 shotgun', load: () => fromSheet('2023-2024') },
+      { label: '2022/23', rules: 'Top 2 paid · Last place shotgun', summaryOnly: '2022-2023' },
+    ];
+
+    // Season total + league/cup awards from the all-time data
+    const toArr = v => !v ? [] : Array.isArray(v) ? v : [v];
+    const seasonExtras = (label, weekly) => {
+      const sd = window._historyData?.seasonData?.[label];
+      const m = sd?.managers?.find(x => norm(x.name) === me);
+      const aw = sd?.awards || {};
+      const has = v => toArr(v).some(n => norm(n) === me);
+      const tags = [];
+      const L = aw.League || {};
+      if (has(L.winner)) tags.push('🏆 League champ'); else if (has(L.runner_up)) tags.push('League 2nd'); else if (has(L.third)) tags.push('League 3rd'); else if (has(L.fourth)) tags.push('League 4th'); else if (has(L.fifth)) tags.push('League 5th');
+      const Cu = aw.Cup || {};
+      if (has(Cu.winner)) tags.push('🏆 Cup winner'); else if (has(Cu.runner_up)) tags.push('Cup runner-up');
+      if (has(aw.Kluis?.winner)) tags.push('Kluis award');
+      const total = m?.earned || 0;
+      const prizes = Math.max(0, Math.round((total - (weekly || 0)) * 100) / 100);
+      if (!prizes && !tags.length) return '';
+      return '<div style="font-size:11px;font-family:var(--font-mono);color:var(--amber);margin:-4px 0 8px;">'
+        + (prizes ? '$' + prizes.toFixed(2) + ' season & cup prizes' : '') + (prizes && tags.length ? ' · ' : '') + tags.join(' · ')
+        + (total ? ' <span style="color:var(--text3);">($' + total.toFixed(2) + ' total)</span>' : '') + '</div>';
+    };
+    window._wkTip = function(el) {
+      const box = el.closest('.wk-season'); if (!box) return;
+      const out = box.querySelector('.wk-detail');
+      const same = el.classList.contains('wk-sel');
+      box.querySelectorAll('.wk-sel').forEach(c => { c.classList.remove('wk-sel'); c.style.outline = ''; });
+      if (same) { out.style.display = 'none'; return; }
+      el.classList.add('wk-sel'); el.style.outline = '2px solid var(--theme)';
+      out.textContent = el.getAttribute('data-tip'); out.style.display = 'block';
+    };
+    const posColor = pos => pos === 1 ? ['#f5c542','rgba(245,197,66,0.16)'] : pos === 2 ? ['var(--silver)','rgba(203,213,225,0.14)'] : pos === 3 ? ['#e0995e','rgba(205,127,50,0.18)'] : ['var(--green)','var(--green-dim)'];
+    const ord = n => n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
+
+    let html = '<div style="background:var(--bg2);border:1px solid var(--theme-border);border-radius:16px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.25);">';
+    html += '<div style="font-size:9px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">📅 Week by Week</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:10px;font-size:10px;font-family:var(--font-mono);color:var(--text3);margin-bottom:14px;">'
+      + '<span><span style="color:#f5c542;">■</span> 1st</span><span><span style="color:var(--silver);">■</span> 2nd</span><span><span style="color:#e0995e;">■</span> 3rd</span><span><span style="color:var(--green);">■</span> Paid</span><span>🍺 Shotgun</span><span>❌ Missed</span><span>T = tie</span></div>';
+
+    let any = false;
+    for (const S of SEASONS) {
+      if (S.summaryOnly) {
+        try {
+          const r = await fetch('data/seasons/' + S.summaryOnly + '.json');
+          const sd = r.ok ? await r.json() : null;
+          const m = sd?.managers?.find(x => norm(x.name) === me);
+          if (!m) continue;
+          any = true;
+          html += '<div style="margin-top:6px;padding-top:12px;border-top:1px solid var(--border);">'
+            + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span style="font-family:var(--font-display);font-size:16px;color:var(--text);">' + S.label + '</span><span style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">' + S.rules + '</span></div>'
+            + '<div style="font-size:11px;font-family:var(--font-mono);color:var(--text2);margin-top:6px;">🥇 ' + (m.top1||0) + ' · 🥈 ' + (m.top2||0) + ' · 🍺 ' + (m.last||0) + ' last place</div>'
+            + '<div style="margin-top:6px;">' + seasonExtras(S.label, null).replace('margin:-4px 0 8px','margin:0') + '</div>'
+            + '<div style="font-size:10px;font-family:var(--font-mono);color:var(--text3);margin-top:4px;">Week-by-week results weren\'t recorded this season.</div></div>';
+        } catch(err) {}
+        continue;
+      }
+      let data;
+      try { data = await S.load(); } catch(err) { data = null; }
+      if (!data?.weeks?.length) continue;
+      const mine = data.weeks.map(w => ({ gw: w.gw, r: w.rows[me] }));
+      if (!mine.some(x => x.r)) continue;
+      any = true;
+      const missedSet = new Set();
+      Object.entries(data.misses || {}).forEach(([n, d]) => { if (norm(n) === me) (d.missed_gws || []).forEach(g => missedSet.add(g)); });
+      const byGW = {}; mine.forEach(x => { byGW[x.gw] = x.r; });
+      const earned = mine.reduce((s, x) => s + (x.r?.prize || 0), 0);
+      const paid = mine.filter(x => x.r?.prize > 0).length;
+      const shots = mine.filter(x => x.r?.shotgun).length;
+      const wins = mine.filter(x => x.r?.pos === 1 && x.r?.prize > 0).length;
+      const lastGW = S.current ? Math.max(0, ...data.weeks.map(w => w.gw)) : 38;
+
+      html += '<div class="wk-season" style="margin-top:6px;padding-top:12px;border-top:1px solid var(--border);">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span style="font-family:var(--font-display);font-size:16px;color:var(--text);">' + S.label + '</span><span style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">' + S.rules + '</span></div>';
+      html += '<div style="font-size:11px;font-family:var(--font-mono);color:var(--text2);margin:6px 0 8px;">$' + earned.toFixed(2) + ' weekly · ' + paid + ' paid week' + (paid!==1?'s':'') + (wins ? ' · ' + wins + ' win' + (wins!==1?'s':'') : '') + ' · ' + shots + ' shotgun' + (shots!==1?'s':'') + (missedSet.size ? ' · ' + missedSet.size + ' missed' : '') + '</div>';
+      if (!S.current) html += seasonExtras(S.label, earned);
+      html += '<div style="display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;">';
+      for (let gw = 1; gw <= 38; gw++) {
+        const r = byGW[gw];
+        const missed = missedSet.has(gw);
+        const future = gw > lastGW;
+        let fg = 'var(--text3)', bg = 'var(--bg3)', mark = '', border = 'transparent', tip = 'GW' + gw;
+        if (future) { bg = 'transparent'; border = 'var(--border)'; }
+        else if (!r && !missed && !data.sparse) { tip += ' · not in league'; bg = 'transparent'; }
+        if (r?.prize > 0) { [fg, bg] = posColor(r.pos); mark = (r.tied ? 'T' : '') + r.pos; tip += ' · ' + (r.tied ? 'T-' : '') + ord(r.pos) + ' · $' + r.prize.toFixed(2); }
+        else if (r?.pts !== undefined && !r.shotgun) { tip += ' · ' + ord(r.pos) + ' · ' + r.pts + ' pts'; }
+        if (r?.shotgun) { bg = 'var(--red-dim)'; mark = '🍺'; fg = 'var(--red)'; tip += ' · shotgun' + (r.shotPos ? ' (' + r.shotPos + ')' : ''); }
+        if (!future && tip === 'GW' + gw) tip += ' · no prize or shotgun';
+        if (missed) { border = 'var(--red)'; tip += ' · missed shotgun'; if (!r?.shotgun && !(r?.prize > 0)) { mark = '❌'; bg = 'var(--red-dim)'; } }
+        html += '<div data-tip="' + e(tip) + '" onclick="window._wkTip(this)" style="cursor:pointer;-webkit-tap-highlight-color:transparent;aspect-ratio:1;border-radius:6px;background:' + bg + ';border:1px solid ' + border + ';display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;min-width:0;">'
+          + '<span style="font-size:7px;color:var(--text3);font-family:var(--font-mono);opacity:0.8;">' + gw + '</span>'
+          + '<span style="font-size:' + (mark.length > 2 ? 9 : 11) + 'px;font-weight:700;color:' + fg + ';font-family:var(--font-mono);margin-top:1px;">' + (mark || '&nbsp;') + '</span></div>';
+      }
+      html += '</div>';
+      html += '<div class="wk-detail" style="display:none;margin-top:8px;padding:8px 10px;background:var(--bg3);border-radius:8px;font-size:12px;font-family:var(--font-mono);color:var(--text);"></div>';
+      html += '</div>';
+    }
+    if (!any) html += '<div style="font-size:12px;color:var(--text3);font-family:var(--font-mono);">No weekly results found for this manager.</div>';
+    html += '</div>';
+    host.innerHTML = html;
   };
 
   // Open a manager's history/charts overlay from a current-season card
@@ -9364,10 +9543,12 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
           <div style="font-size:9px;color:var(--theme);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;">🍺 Beers Over Time</div>
           <canvas id="beers-chart" style="width:100%;height:200px;"></canvas>
         </div>
+        <div id="manager-weekly-results" style="margin-top:12px;"></div>
       `;
       window._currentStatManager = name;
       window._compareManagers = [];
       window._renderManagerCharts(name);
+      window._renderManagerWeekly?.(name, overlay);
       // Re-render after overlay is fully painted to get correct dimensions
       requestAnimationFrame(() => requestAnimationFrame(() => window._renderManagerCharts(name)));
       return;

@@ -502,5 +502,1677 @@
       "second_last": 1.0,
       "top4_count": 0.0
     }
+  ],
+  "weeks": [
+    {
+      "gw": 1,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "John Morcos"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Aidan White"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Andrew Denucci"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Matt Nicolai"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Collin Johnston"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Ryan Kelly"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 2,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Tyler Ray"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Mark Wright"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Rob Disanto"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Richard Katz"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Jack Bernatchez",
+            "Zach Duguid"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Marcus Williams"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 3,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "James McMullen"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Jimmy Romanelli"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Liam Cashman",
+            "Tucker Cina"
+          ],
+          "payout": 7.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Marcus Williams"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Ryan Kelly"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 4,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "John King"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Mike Delaus"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Luke Civantos"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Eddy GM"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Mitch Maisel"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Tommy Mayer"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 5,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Mark Wright"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Mitch Pattullo"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Mike Adipietro"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Rob Disanto"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Tommy Mayer"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Marcus Williams"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 6,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Tommy Mayer"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Ryan Kelly"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Alex Mack",
+            "JCarr Gamble"
+          ],
+          "payout": 7.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Jeff Wright"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Ben Boldt"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 7,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "John Morcos"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Ryan Kelly"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Eddy GM"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Jack Bernatchez",
+            "Collin Johnston"
+          ],
+          "payout": 2.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Liam Kelly"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Tommy Harris"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 8,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Tommy Harris"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Andrew Denucci",
+            "JCarr Gamble"
+          ],
+          "payout": 12.5
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Mitch Pattullo"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Eric Wallerstein"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Liam Kelly"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 9,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "JCarr Gamble"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Dave Bambrick",
+            "Jeff Wright"
+          ],
+          "payout": 12.5
+        },
+        {
+          "pos": 4,
+          "names": [
+            "John Morcos"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Mike Delaus"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Tommy Mayer"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 10,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Ryan Kelly",
+            "James McMullen"
+          ],
+          "payout": 22.5
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Tommy Harris"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Tucker Cina"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "John Heyer"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Graham Derfner"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 11,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Logan Kluis"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Liam Kelly"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Mitch Maisel"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Mike Delaus"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Ben Boldt",
+            "Jeff Wright"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Richard Katz"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 12,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Matt Nicolai"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Liam Kelly"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Harry Wang"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Liam Cashman",
+            "Tommy Mayer"
+          ],
+          "payout": 2.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Jeff Wright"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Ben Boldt"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 13,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Zach Duguid"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Dave Bambrick"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Harry Wang"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Tommy Harris"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Tyler Ray"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Jeff Wright"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 14,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Mitch Pattullo"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Matt Nicolai"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Graham Derfner"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Tucker Cina"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Richard Katz",
+            "Ben Boldt"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Gabriel Costa"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 15,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Jeff Wright"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Luke Civantos"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Mike Adipietro",
+            "Mike Delaus"
+          ],
+          "payout": 7.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "John Heyer"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Mark Wright"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 16,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Eddy GM"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "John Morcos",
+            "Luke Civantos",
+            "Alex Mack",
+            "Liam Kelly"
+          ],
+          "payout": 7.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Mitch Pattullo"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "John King"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 17,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Tommy Harris"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Graham Derfner"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Logan Kluis",
+            "Jimmy Romanelli",
+            "Aidan White",
+            "Zach Duguid"
+          ],
+          "payout": 3.75
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Richard Katz"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Gabriel Costa"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 18,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Jack Bernatchez"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Tommy Mayer"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "John Heyer",
+            "Mike Delaus"
+          ],
+          "payout": 7.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Richard Katz"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Gabriel Costa"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 19,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Jimmy Romanelli"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Mitch Pattullo"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Ryan Kelly"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Eric Wallerstein"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Richard Katz"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Gabriel Costa"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 20,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "JCarr Gamble"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "John Heyer"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Zach Duguid"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Tommy Harris"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "John King",
+            "Gabriel Costa"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Tucker Cina"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 21,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Aidan White"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Jimmy Romanelli",
+            "Tucker Cina"
+          ],
+          "payout": 12.5
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Liam Cashman"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Alex Mack"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Tyler Ray"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 22,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Aidan White"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Jack Bernatchez"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "John Morcos",
+            "Jimmy Romanelli"
+          ],
+          "payout": 7.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Tyler Wasser"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Dave Bambrick"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 23,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Jack Bernatchez"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Matt Nicolai"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Mike Delaus"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Tommy Harris"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Alex Mack"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "John King"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 24,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Tucker Cina",
+            "Liam Kelly"
+          ],
+          "payout": 22.5
+        },
+        {
+          "pos": 3,
+          "names": [
+            "JCarr Gamble"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Gabriel Costa",
+            "Mike Delaus"
+          ],
+          "payout": 2.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Rob Disanto"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Harry Wang"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 25,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "John Morcos"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Eddy GM"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Tommy Harris"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Dave Bambrick"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Luke Civantos"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Harry Wang"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 26,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Aidan White"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "James McMullen"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Mike Adipietro",
+            "Tommy Mayer"
+          ],
+          "payout": 7.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Tommy Harris"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "John King"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 27,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Rob Disanto"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Graham Derfner"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Harry Wang",
+            "Jack Bernatchez"
+          ],
+          "payout": 7.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "last",
+          "names": [
+            "John King",
+            "Liam Cashman"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 28,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "John King"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Eddy GM"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Jack Bernatchez",
+            "Ryan Kelly"
+          ],
+          "payout": 7.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Mitch Maisel",
+            "Tucker Cina"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Tyler Wasser"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 29,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Dave Bambrick"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Collin Johnston"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Tyler Wasser"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Mike Delaus",
+            "Alex Mack"
+          ],
+          "payout": 2.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "John Heyer"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Tommy Mayer"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 30,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Tommy Harris"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Mike Delaus"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Liam Cashman"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Alex Mack"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "last",
+          "names": [
+            "Mitch Pattullo",
+            "Dave Bambrick"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 31,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Matt Nicolai"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Andrew Denucci"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Mike Adipietro",
+            "Mike Delaus"
+          ],
+          "payout": 7.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Richard Katz",
+            "Collin Johnston"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Liam Cashman"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 32,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Zach Duguid"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Harry Wang"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Tucker Cina",
+            "Matt Nicolai"
+          ],
+          "payout": 7.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Ryan Kelly"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Collin Johnston"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 33,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Dave Bambrick"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Aidan White"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Mitch Pattullo",
+            "Andrew Denucci",
+            "Rob Disanto"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Tommy Harris",
+            "Logan Kluis",
+            "Tyler Ray"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Zach Duguid"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 34,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Eric Wallerstein"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Eddy GM"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Tucker Cina",
+            "Mike Adipietro"
+          ],
+          "payout": 7.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Logan Kluis"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Mark Wright"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 35,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Tucker Cina"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Eric Wallerstein"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "JCarr Gamble"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "Mark Wright"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Luke Civantos",
+            "Ryan Kelly"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "John Heyer"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 36,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Rob Disanto"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Andrew Denucci"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Collin Johnston"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "John Heyer"
+          ],
+          "payout": 5.0
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Jeff Wright",
+            "Mitch Maisel"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Richard Katz"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 37,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Mark Wright"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Luke Civantos"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Eric Wallerstein",
+            "John Heyer"
+          ],
+          "payout": 7.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Eddy GM",
+            "Tyler Wasser"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Jack Bernatchez"
+          ]
+        }
+      ]
+    },
+    {
+      "gw": 38,
+      "places": [
+        {
+          "pos": 1,
+          "names": [
+            "Tucker Cina"
+          ],
+          "payout": 30.0
+        },
+        {
+          "pos": 2,
+          "names": [
+            "Mike Adipietro"
+          ],
+          "payout": 15.0
+        },
+        {
+          "pos": 3,
+          "names": [
+            "Tommy Mayer"
+          ],
+          "payout": 10.0
+        },
+        {
+          "pos": 4,
+          "names": [
+            "John Morcos",
+            "Matt Nicolai"
+          ],
+          "payout": 2.5
+        }
+      ],
+      "shotguns": [
+        {
+          "pos": "2nd last",
+          "names": [
+            "Alex Mack"
+          ]
+        },
+        {
+          "pos": "last",
+          "names": [
+            "Collin Johnston"
+          ]
+        }
+      ]
+    }
   ]
 }
