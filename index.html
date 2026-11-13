@@ -742,6 +742,37 @@
       if (t !== 'light' && t !== 'dark') { try { t = localStorage.getItem('ff_theme'); } catch(e) { t = null; } }
       if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
     })();
+    // ── Storage + download helpers (iPhone Safari is strict about both) ──
+    window._pruneOldCaches = function(keepFrom) {
+      try {
+        const latest = parseInt(localStorage.getItem('ff_latest_gw') || '0');
+        if (!latest) return 0;
+        const min = keepFrom || (latest - 2);
+        const re = /^ff_(history_gw|picks_cache_gw|picks_cache_ts_gw|picks_final_gw|player_pts_ts_|player_pts_|player_mins_|live_scores_v2_|chips_cache_|captains_cache_|transfer_cache_)(\d+)$/;
+        const drop = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i), m = k && k.match(re);
+          if (m && parseInt(m[2]) < min) drop.push(k);
+        }
+        drop.forEach(k => localStorage.removeItem(k));
+        return drop.length;
+      } catch(e) { return 0; }
+    };
+    try { window._pruneOldCaches(); } catch(e) {}
+    window._safeSetItem = function(key, val) {
+      try { localStorage.setItem(key, val); return true; } catch(e) {
+        try { window._pruneOldCaches(parseInt(localStorage.getItem('ff_latest_gw') || '0')); localStorage.setItem(key, val); return true; }
+        catch(e2) { console.warn('[storage] could not save', key, e2); return false; }
+      }
+    };
+    window._downloadBlob = function(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 2000);
+    };
     window._chartColors = function() {
       const light = document.documentElement.getAttribute('data-theme') === 'light';
       const rgb = light ? '11,138,146' : '85,226,233';
@@ -6370,7 +6401,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       if (!text) return;
 
       // Save to localStorage
-      localStorage.setItem('recap-gw-' + gw, text);
+      window._safeSetItem('recap-gw-' + gw, text);
 
       // Ensure recap-display exists at top
       if (!document.getElementById('recap-display')) {
@@ -6386,13 +6417,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       const season = CURRENT_SEASON;
       const gwPadded = String(gw).padStart(2, '0');
       const filename = (window.__viewingSeason || CURRENT_SEASON).split('-')[0] + '-gw' + gwPadded + '.txt';
-      const blob = new Blob([text], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      window._downloadBlob(new Blob([text], { type: 'text/plain' }), filename);
 
       // Show download confirmation
       const btn = document.getElementById('save-recap-btn');
@@ -7257,7 +7282,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     document.getElementById('standings-save-recap-btn').addEventListener('click', () => {
       const text = document.getElementById('standings-recap-paste').value.trim();
       if (!text) return;
-      localStorage.setItem('recap-gw-' + gw, text);
+      window._safeSetItem('recap-gw-' + gw, text);
       let displayDiv = document.getElementById('standings-recap-display');
       if (!displayDiv) {
         displayDiv = document.createElement('div');
@@ -7282,11 +7307,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       const season = CURRENT_SEASON;
       const gwPadded = String(gw).padStart(2, '0');
       const filename = (window.__viewingSeason || CURRENT_SEASON).split('-')[0] + '-gw' + gwPadded + '.txt';
-      const blob = new Blob([text], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = filename; a.click();
-      URL.revokeObjectURL(url);
+      window._downloadBlob(new Blob([text], { type: 'text/plain' }), filename);
       const btn = document.getElementById('standings-save-recap-btn');
       btn.textContent = '✓ Downloaded → recaps/' + (window.__viewingSeason || CURRENT_SEASON) + '/' + filename;
       setTimeout(() => btn.textContent = 'Save recap', 3000);
@@ -7425,7 +7446,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     document.getElementById('weekly-save-recap-btn').addEventListener('click', () => {
       const text = document.getElementById('weekly-recap-paste').value.trim();
       if (!text) return;
-      localStorage.setItem('recap-gw-' + gw, text);
+      window._safeSetItem('recap-gw-' + gw, text);
       let displayDiv = document.getElementById('weekly-recap-display');
       if (!displayDiv) {
         displayDiv = document.createElement('div');
@@ -7443,10 +7464,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       const season = CURRENT_SEASON;
       const gwPadded = String(gw).padStart(2, '0');
       const filename = (window.__viewingSeason || CURRENT_SEASON).split('-')[0] + '-gw' + gwPadded + '.txt';
-      const blob = new Blob([text], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
-      URL.revokeObjectURL(url);
+      window._downloadBlob(new Blob([text], { type: 'text/plain' }), filename);
       const btn = document.getElementById('weekly-save-recap-btn');
       btn.textContent = '✓ Downloaded → recaps/' + (window.__viewingSeason || CURRENT_SEASON) + '/' + filename;
       setTimeout(() => btn.textContent = 'Save recap', 3000);
@@ -8508,7 +8526,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
     document.getElementById('season-save-recap-btn').addEventListener('click', () => {
       const text = document.getElementById('season-recap-paste').value.trim();
       if (!text) return;
-      localStorage.setItem(RECAP_KEY, text);
+      window._safeSetItem(RECAP_KEY, text);
       if (!document.getElementById('season-recap-display')) {
         const d = document.createElement('div');
         d.id = 'season-recap-display'; d.style.marginBottom = '2rem';
@@ -8517,10 +8535,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       renderRecapDisplay('season-2025', text, el);
       document.getElementById('season-clear-recap-btn').style.display = 'inline-block';
       // Download as txt file
-      const blob = new Blob([text], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = (window.__viewingSeason || CURRENT_SEASON).split('-')[0] + '-season.txt'; a.click();
-      URL.revokeObjectURL(url);
+      window._downloadBlob(new Blob([text], { type: 'text/plain' }), (window.__viewingSeason || CURRENT_SEASON).split('-')[0] + '-season.txt');
       const btn = document.getElementById('season-save-recap-btn');
       btn.textContent = '✓ Downloaded → recaps/' + (window.__viewingSeason || CURRENT_SEASON) + '/' + (window.__viewingSeason || CURRENT_SEASON).split('-')[0] + '-season.txt';
       setTimeout(() => btn.textContent = 'Save recap', 3000);
@@ -8910,13 +8925,7 @@ Tone: funny, punchy, group-chat energy. No extra commentary outside the sections
       };
 
       // Download as JSON file
-      const blob = new Blob([JSON.stringify(cache, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'gw' + String(gw).padStart(2, '0') + '.json';
-      a.click();
-      URL.revokeObjectURL(url);
+      window._downloadBlob(new Blob([JSON.stringify(cache, null, 2)], { type: 'application/json' }), 'gw' + String(gw).padStart(2, '0') + '.json');
 
       if (btn) { btn.textContent = '✓ Saved GW' + gw; btn.disabled = false; }
     } catch(e) {
